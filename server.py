@@ -33,6 +33,7 @@ from comps import get_adapter as get_comps_adapter
 from demo_cache import StepCache
 from inventory import comp_for_label, load_seed
 from listing import build_live_draft, demo_draft, get_post_adapter
+from studio import IMAGE_LIVE, demo_lookup, request_studio_render
 from meta_client import (
     MetaAPIError,
     chat_stream,
@@ -419,6 +420,20 @@ class Handler(BaseHTTPRequestHandler):
             "destinations": [],
         }
         put_session(session_id, session)
+        cutout = self._cutout_spec(part)
+        studio = None
+        if cutout.get("box"):
+            if not IMAGE_LIVE:
+                studio = demo_lookup(part_id, cutout, ROOT, part.get("label", ""))
+            else:
+                # Live leg (unreachable while IMAGE_LIVE is False): cutout
+                # bytes ride an optional payload field at rotation; absent
+                # today, so live honestly refuses and demo fills in.
+                try:
+                    studio = request_studio_render(
+                        payload.get("cutoutData"), part.get("label", ""))
+                except MetaAPIError:
+                    studio = demo_lookup(part_id, cutout, ROOT, part.get("label", ""))
         self._send_json(
             {
                 "ok": True,
@@ -427,7 +442,8 @@ class Handler(BaseHTTPRequestHandler):
                 "notice": notice,
                 "draftId": draft_id,
                 "draft": drafts[draft_id],
-                "cutout": self._cutout_spec(part),
+                "cutout": cutout,
+                "studio": studio,
             }
         )
 
@@ -438,7 +454,7 @@ class Handler(BaseHTTPRequestHandler):
             "frame": best.get("frame", ""),
             "box": best.get("box"),
             "source_tag": best.get("source_tag", ""),
-            "note": "Cutout preview crops this box from the source frame. Studio background is a later step.",
+            "note": "Cutout preview crops this box from the source frame. The studio photo above is the polished listing shot; this crop is the honest fallback.",
         }
 
     def _api_listing_approve(self, payload):

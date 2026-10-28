@@ -639,6 +639,28 @@ function refreshListingParts() {
   }
 }
 
+function renderStudio(studio, mode) {
+  // Studio photo above, cutout preview below: when the studio step is
+  // unavailable the box hides and the card stands on the cutout alone.
+  const box = $("studioBox");
+  box.innerHTML = "";
+  if (!studio || !studio.body) { box.style.display = "none"; return; }
+  box.style.display = "";
+  if (studio.kind === "image") {
+    const img = document.createElement("img");
+    img.src = studio.body;
+    img.alt = "Studio listing photo";
+    box.appendChild(img);
+  } else {
+    box.insertAdjacentHTML("afterbegin", studio.body);
+  }
+  const note = document.createElement("div");
+  note.className = "hint";
+  note.textContent = (studio.note || "") + " Source: " + (studio.source || "?");
+  box.appendChild(note);
+  if (mode !== "live") box.appendChild(demoBadge());
+}
+
 async function runDraft(partId) {
   const pid = partId || $("listingPart").value;
   if (!pid) throw new Error("run verdicts first, then pick a part");
@@ -668,6 +690,7 @@ async function runDraft(partId) {
     svg.appendChild(img);
   }
   $("cutoutNote").textContent = (cut.note || "") + " Source: " + (cut.source_tag || "?");
+  renderStudio(res.studio, res.mode);
   const label = ((state.report.verdicts || []).find((v) => v.part_id === pid) || {}).label || pid;
   feed("Drafted a listing for the " + label,
     "tool listing.draft — " + pid + " → Edit/Approve/Post card (" + res.mode + ")");
@@ -1769,6 +1792,7 @@ async function invDraftListing(partId) {
   markListingDemo();
   $("cutoutSvg").innerHTML = "";
   $("cutoutNote").textContent = "Inventory draft: no photo cutout. Edit, Approve, then Post — nothing posts without approval.";
+  renderStudio(res.studio, res.mode);
   showView("yard");
   document.getElementById("sec-listing").scrollIntoView();
   feed("Drafted a listing from inventory: " + part.label,

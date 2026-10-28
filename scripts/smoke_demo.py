@@ -109,6 +109,10 @@ def one_run(n):
     draft_id = listing["draftId"]
     check("differential" in listing["draft"]["title"].lower(), "run %d: draft title off" % n)
     check(listing["cutout"]["box"], "run %d: cutout box missing" % n)
+    check((listing["studio"] or {}).get("body", "").startswith("<svg"),
+          "run %d: studio photo missing" % n)
+    check("demo-cache" in (listing["studio"] or {}).get("source", ""),
+          "run %d: studio must be demo-sourced" % n)
 
     status, _ = post("/api/listing/post", {"sessionId": sid, "draftId": draft_id})
     check(status == 400, "run %d: post-before-approve must be refused" % n)
@@ -246,6 +250,7 @@ def inv_run(n):
         },
     )
     check("engine computer" in listing["draft"]["title"].lower(), "inv %d: draft title off" % n)
+    check(listing["studio"] is None, "inv %d: photo-less draft must fall back" % n)
     post("/api/listing/approve", {"sessionId": sid, "draftId": listing["draftId"]})
     _, posted = post("/api/listing/post", {"sessionId": sid, "draftId": listing["draftId"]})
     check(posted["receipt"]["adapter"] == "mock-outbox", "inv %d: mock receipt missing" % n)
