@@ -102,6 +102,10 @@ def one_run(n):
     check(grades["p_taillight"] == "C", "run %d: taillight must be C" % n)
     totals = verdicts["report"]["totals"]
     check(totals["A"]["low"] == 1145 and totals["A"]["high"] == 1465, "run %d: A total wrong" % n)
+    diff_inputs = next(v["inputs"] for v in verdicts["report"]["verdicts"] if v["part_id"] == "p_diff")
+    check(diff_inputs["money_grade"] == "A", "run %d: diff money grade off" % n)
+    check(diff_inputs["sold_count"] == 5, "run %d: diff sold count off" % n)
+    check(diff_inputs["reliable"], "run %d: diff must be reliable" % n)
     check("sure money" in totals["A"]["plain_words"], "run %d: A must say sure money" % n)
     check("maybe money" in totals["B"]["plain_words"], "run %d: B must say maybe money" % n)
 

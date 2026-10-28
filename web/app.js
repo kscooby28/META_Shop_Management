@@ -505,6 +505,20 @@ function money(v) {
   return v == null ? "" : "$" + Math.round(v);
 }
 
+function moneyRow(v) {
+  const inp = v.inputs;
+  if (!inp.money_grade) return "";
+  const nets = (inp.net_low != null && inp.net_high != null)
+    ? " Nets " + money(inp.net_low) + "–" + money(inp.net_high) + " after fees."
+    : "";
+  const count = inp.sold_count != null
+    ? " " + inp.sold_count + " sold(s)."
+    : " Sold count unknown.";
+  const notes = (inp.valuation_notes || []).join(" ");
+  return esc(inp.money_grade + " — " + inp.money_reason + nets + count + (notes ? " " + notes : "")) +
+    ' <span class="sourced">(' + esc(inp.price_source || "no source") + ")</span>";
+}
+
 function renderVerdicts() {
   const box = $("verdicts");
   box.innerHTML = "";
@@ -539,6 +553,7 @@ function renderVerdicts() {
       "<tr><th>Demand</th><td>" + esc(inp.demand) + (inp.demand_source ? ' <span class="sourced">(' + esc(inp.demand_source) + ")</span>" : ' <span class="missing">(no source)</span>') + "</td></tr>" +
       "<tr><th>Price</th><td>" + priceCell + "</td></tr>" +
       "<tr><th>Pull effort</th><td>" + pullCell + "</td></tr>" +
+      (moneyRow(v) ? "<tr><th>Money says</th><td>" + moneyRow(v) + "</td></tr>" : "") +
       "</table>" +
       '<div class="override-row"><span>Overrule:</span>' +
       ["", "A", "B", "C"].map((g) =>

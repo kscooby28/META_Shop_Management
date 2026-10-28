@@ -29,7 +29,7 @@ from bay import (
     validate_intake,
     VIN_LIVE,
 )
-from comps import get_adapter as get_comps_adapter
+from comps import get_adapter as get_comps_adapter, valuation_from_shop
 from demo_cache import StepCache
 from inventory import comp_for_label, load_seed
 from listing import build_live_draft, demo_draft, get_post_adapter
@@ -328,7 +328,17 @@ class Handler(BaseHTTPRequestHandler):
         for part in session.get("harvest", {}).get("parts", []):
             pid = part.get("id")
             entry = dict(comps.get(pid) or {})
-            entry.update(part_inputs.get(pid) or {})  # shop-typed comps win
+            typed = part_inputs.get(pid) or {}
+            entry.update(typed)  # shop-typed comps win
+            if "price_low" in typed or "price_high" in typed:
+                # Shop numbers win per-field with board fallback for the
+                # rest, so the money stats are revalued from the merged
+                # range instead of lingering from the board.
+                entry.update(valuation_from_shop(
+                    entry.get("price_low"), entry.get("price_high")))
+                entry["price_source"] = (
+                    typed.get("price_source") or entry.get("price_source") or "shop-entered"
+                )
             merged[pid] = entry
         return merged
 

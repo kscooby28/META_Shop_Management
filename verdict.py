@@ -234,6 +234,14 @@ def part_inputs(part, shop):
         "pull_minutes": _sourced(minutes, pull_source),
         "pull_source": pull_source,
         "frames": [s.get("frame", "?") for s in sightings],
+        "price_median": shop.get("price_median"),
+        "net_low": shop.get("net_low"),
+        "net_high": shop.get("net_high"),
+        "money_grade": shop.get("money_grade") or "",
+        "money_reason": shop.get("money_reason") or "",
+        "sold_count": shop.get("sold_count"),
+        "reliable": shop.get("reliable"),
+        "valuation_notes": shop.get("valuation_notes") or [],
     }
 
 
