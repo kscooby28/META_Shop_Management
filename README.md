@@ -8,6 +8,37 @@ photo in, car identified, harvest map with masks, A/B/C verdicts with visible
 rules, plain-money totals, and a listing draft behind the Approve gate. The
 shop-manager core (the Bay) shipped as Work Order 2 on the same scaffold.
 
+## Demo video first
+
+The three-minute demo video is what the judges watch, and it is the
+acceptance test for this build. Every feature must earn its minutes on
+camera: if it does not play on video, it is not done.
+
+Priority order: the video first, the functional repository second. The
+repository exists to make the video true — everything shown on camera
+runs in this repo, end to end, on demo cache.
+
+The video spine, one continuous journey: first-run setup, one question,
+shop or enthusiast. Enthusiast home. Register a parts car by photo and
+VIN, confirm, done. The what-to-look-for moment: the mid-90s M3 parts
+car surfaces the engine computer, no EWS, the E30 crowd wants it, $200.
+Inventory with plain-money totals. A listing draft behind the Approve
+gate — nothing posts without a human saying so. Shop home. A Bay case:
+symptom, codes, observations, ranked test plan. A pass and a fail, and
+the plan re-ranks live with the evidence trail naming what changed it.
+A decline card, professional, with a next step. Close.
+
+The rule for all future work: every work order from here is judged
+against that spine. Does it play beautifully? Does it work flawlessly?
+Does it take the fewest taps? A yes on all three is the bar.
+
+The video shows only event-built features. Anything on the roadmap —
+garage, 3D, watcher, exchange — is spoken as what is next, never shown
+as if it already exists.
+
+The submission itself: the demo video is submitted as a URL link and
+the repository as a public URL. Both are required.
+
 ## The Bay side (Work Order 2)
 
 The Bay tab on the same page serves the shop's daily driver: structured
