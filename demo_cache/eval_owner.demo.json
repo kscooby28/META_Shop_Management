@@ -1,0 +1,1 @@
+{"bay": {"case1": {"order": ["t1", "t2", "t4", "t3", "t5"], "top_score": 9}}, "note": "Owner-expected outcomes for the anonymized demo set. The lab fails if the engines drift from these.", "yard": {"p_bumper": "A", "p_diff": "A", "p_handle": "C", "p_headlight": "B", "p_mirror": "A", "p_taillight": "C", "p_wheel": "A"}}

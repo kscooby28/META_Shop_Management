@@ -217,3 +217,21 @@ behind it.
 - `tests/` — Python suites plus a Node driver for the browser logic
   (`tests/test_web_logic.py` runs it; Node is a test dependency).
   `scripts/smoke_demo.py` — 10× end-to-end over Yard, Bay, and inventory.
+
+<!-- EVAL-LAB:START -->
+## Eval lab
+
+The same anonymized demo set through each engine. Demo legs are measured below; live legs are flagged off with exactly what would run them. Regenerate with `python scripts/eval_lab.py --write-readme`.
+
+| engine | cases | grounding | agreement | cost | latency | status |
+| --- | --- | --- | --- | --- | --- | --- |
+| muse-spark-1.3 (demo leg) | 7 yard parts + intake | 7/7 boxes valid | 7/7 owner grades; bay order match, top score match | $0.00 (demo) | 2 ms (sampled) | live blocked: needs Meta key rotation confirmed |
+| wonder-standard (demo leg) | 7 verdicts routed | n/a (reviewer, not grounder) | 7/7 router outcomes | $0.00 (demo) | shares the run above | live blocked: needs Meta key rotation confirmed |
+| muse-spark-open-1026 | same demo set, when live | — | — | — | — | blocked: needs BASETEN_API_KEY in the local environment (endpoint https://inference.baseten.co/v1, model meta-models/muse-spark-open-1026) |
+| glimmer | same demo set, when live | — | — | — | — | blocked: needs a confirmed hosted endpoint (GLIMMER_ENDPOINT); will not run local on a 12GB card |
+
+- Meta key names checked (META_API_KEY, MODEL_API_KEY): present.
+- BASETEN_API_KEY: missing.
+- GLIMMER_ENDPOINT: unset, endpoint unconfirmed.
+- Key names only were read; no values were printed or logged.
+<!-- EVAL-LAB:END -->
