@@ -306,6 +306,11 @@ behind it.
   `BASETEN_API_KEY` is present, demo sample otherwise.
 - `scripts/eval_lab.py` — offline harness comparing all four engines; its
   table below regenerates with `--write-readme`.
+- `scripts/eval_scale.py` + `eval_scale_results.json` — Work Order 13 live
+  measurement: every demo case through the rules engine and Spark Open
+  live, with the matching README table beside the eval-lab table.
+- `yard_photos.py` — folder contract for the full-yard follow-up
+  (the owner stages `yard-photos/` later; the slot stays empty and ignored).
 - `demo_cache.py` + `demo_cache/*.demo.json` — cache behind every step.
 - `web/` — the one page (`index.html`, `app.js`, `profile.js`,
   `inventory.js`, `styles.css`) + sample frames.
@@ -324,13 +329,59 @@ The same anonymized demo set through each engine. Demo legs are measured below; 
 
 | engine | cases | grounding | agreement | cost | latency | status |
 | --- | --- | --- | --- | --- | --- | --- |
-| muse-spark-1.3 (demo leg) | 7 yard parts + intake | 7/7 boxes valid | 7/7 owner grades; bay order match, top score match | $0.00 (demo) | 2 ms (sampled) | live blocked: needs Meta key rotation confirmed |
+| muse-spark-1.3 (demo leg) | 7 yard parts + intake | 7/7 boxes valid | 7/7 owner grades; bay order match, top score match | $0.00 (demo) | 0 ms (sampled) | live blocked: needs Meta key rotation confirmed |
 | wonder-standard (demo leg) | 7 verdicts routed | n/a (reviewer, not grounder) | 7/7 router outcomes | $0.00 (demo) | shares the run above | live blocked: needs Meta key rotation confirmed |
 | muse-spark-open-1026 | same demo set, when live | — | — | — | — | blocked: needs BASETEN_API_KEY in the local environment (endpoint https://inference.baseten.co/v1, model meta-models/muse-spark-open-1026) |
 | glimmer | same demo set, when live | — | — | — | — | blocked: needs a confirmed hosted endpoint (GLIMMER_ENDPOINT); will not run local on a 12GB card |
 
 - Meta key names checked (META_API_KEY, MODEL_API_KEY): present.
-- BASETEN_API_KEY: missing.
+- BASETEN_API_KEY: present.
 - GLIMMER_ENDPOINT: unset, endpoint unconfirmed.
 - Key names only were read; no values were printed or logged.
 <!-- EVAL-LAB:END -->
+
+<!-- EVAL-SCALE:START -->
+## Live evaluation at scale (Work Order 13)
+
+Every demo case through both engines: the deterministic rules grade
+and the Muse Spark Open live grade side by side, one live Baseten
+call per case, no retries. Spark Open ran live because its key is
+present and proven; Spark 1.3, SAM, Image, Voice, and Wonder stayed
+on demo because the Meta key rotation is still unconfirmed. Bay job
+parts carry no pull-grade meaning in the product; they run here to
+measure thin-evidence behavior from name and note alone. Inventory
+conditions map to intact unless the text says unknown or untested.
+Regenerate with `python scripts/eval_scale.py --write-readme`.
+
+| case | part | rule grade | rule reason | Spark Open live grade | Spark Open reason | match |
+| --- | --- | --- | --- | --- | --- | --- |
+| yard-demo | driver mirror | A | Clear, wanted, worth listing: Intact, seen across frames, wanted, and priced above the list floor. | B | Intact yes in 2 frames but coverage only 0.0021 is very thin; high demand with $45-$65 (median $55) over 5 solds and net up to $56 with 15-min pull supports money grade B - worth it if you're standing there, not a priority pull. | NO |
+| yard-demo | front bumper cover | A | Clear, wanted, worth listing: Intact, seen across frames, wanted, and priced above the list floor. | A | Intact yes in 2 frames at 0.0512 coverage, medium demand with $120-$180 (median $150) over 5 solds net up to $156; 40-min pull is justified by payout, so A - pull and list now. | yes |
+| yard-demo | alloy wheel | A | Clear, wanted, worth listing: Intact, seen across frames, wanted, and priced above the list floor. | A | Intact yes with 0.0207 coverage over 3 frames, count 2, high demand with $80-$120 each (median $100) over 5 solds net up to $104; 30-min pull is reasonable for two wheels, so A - pull and list now. | yes |
+| yard-demo | driver headlight | B | Good part, softer demand: Intact and not unwanted: grab it while you are there. | B | Intact yes but only 1 frame at 0.0072 coverage so evidence thin; high demand with $55-$75 (median $65) over 5 solds net up to $65 and 20-min pull keeps money grade B - pull if you're at the car. | yes |
+| yard-demo | driver door handle | C | Seen once and unclear: Seen in only one frame and condition is unclear: not enough reliable evidence. | C | Intact unknown in 1 frame at 0.0012 coverage, demand unknown, no price and 0 solds on file with no pull time given; evidence too thin for any grade above C, so leave it. | yes |
+| yard-demo | left taillight | C | Broken in the photo: The part looks broken, so leave it no matter what else is true. | C | Intact no - damaged - in 1 frame at 0.007 coverage, demand low, no price and 0 solds on file with no pull time; broken part with no market shown, so C - leave it. | yes |
+| yard-demo | rear differential | A | Clear, wanted, worth listing: Intact, seen across frames, wanted, and priced above the list floor. | A | Intact yes with strongest 0.084 coverage across 2 frames, high demand with $900-$1100 (median $1000) over 5 solds net up to $954; 60-min pull is heavy but return is highest on car, so A - pull and list now. | yes |
+| bay-case1 | Matched module set from one donor car: module, immobilizer, ignition switch, steering lock, key, and door cylinder | C | Seen once and unclear: Seen in only one frame and condition is unclear: not enough reliable evidence. | C | Evidence is too thin to justify pull — price_known false with no low/high/median, money_grade C, sold_count 0, demand unknown, frames_seen 0 with intact unknown, and valuation notes state no sample comp on demo board; case note adds risk that part numbers must match exactly and wrong index was already rejected/refunded. | yes |
+| bay-case2 | Clutch-circuit oil, correct spec for this gearbox | C | Seen once and unclear: Seen in only one frame and condition is unclear: not enough reliable evidence. | C | Leave it: intact is unknown, 0 frames seen, demand is unknown with no source, price is unknown with no comps and 0 sold count, and pull time is not given - evidence is too thin to justify pulling clutch-circuit oil. | yes |
+| inventory-demo | spare ignition coil | B | Good part, softer demand: Intact and not unwanted: grab it while you are there. | C | Keep as spare, not list: intact yes and used working when pulled but only $25 price_low/high from demo-sample: inventory seed, demand unknown with no demand_source, frames_seen 0 with no coverage, money_grade C with no sample comp, reliable false sold_count 0, pull_minutes null, evidence thin; plus owner_note says Kept as roadside spare for My driver car_label. | NO |
+| inventory-demo | driver headlight | B | Good part, softer demand: Intact and not unwanted: grab it while you are there. | B | Intact yes lens clear with $65 price_low/high from demo-sample: inventory seed but demand unknown, frames_seen 0 best_coverage null, money_grade C no sample comp, reliable false sold_count 0, pull_minutes null pull_source empty so evidence thin prevents A; worth pulling if standing there given clear intact condition and moderate price. | yes |
+| inventory-demo | rear differential | B | Good part, softer demand: Intact and not unwanted: grab it while you are there. | B | High $1000 price_low/high from demo-sample: inventory seed and intact yes turns smoothly by hand, owner_note says The $1000 reason this car exists, but demand unknown, frames_seen 0, money_grade C no sample comp, reliable false sold_count 0, pull_minutes null; evidence thin with no frames or comps prevents A, but B if onsite due to upside. | yes |
+| inventory-demo | alloy wheel | B | Good part, softer demand: Intact and not unwanted: grab it while you are there. | C | Intact yes straight and true but only $40 price_low/high from demo-sample: inventory seed, demand unknown, frames_seen 0, money_grade C no sample comp, reliable false sold_count 0, pull_minutes null; thin evidence and low price for likely wheel pull effort, leave it. | NO |
+| inventory-demo | trunk lid | C | Seen once and unclear: Seen in only one frame and condition is unclear: not enough reliable evidence. | C | Intact unknown and condition unknown with owner_note Haven't looked closely yet, price_known false no price_low/high, demand unknown, frames_seen 0, money_grade C no sample comp, reliable false sold_count 0, pull_minutes null; no evidence to justify pull, needs inspection first. | yes |
+| inventory-demo | engine computer | C | Seen once and unclear: Seen in only one frame and condition is unclear: not enough reliable evidence. | B | Owner_note says Pull before anything else with $200 price_low/high from demo-sample: owner note but intact unknown, condition used untested, demand unknown, frames_seen 0, money_grade C no sample comp, reliable false sold_count 0, pull_minutes null; evidence thin and unverified prevents A, B only if onsite to inspect/test. | NO |
+
+Agreement: 11/15 parts (11 agree, 15 compared). Live Baseten calls sent: 4. Live Meta calls attempted: 0.
+
+- yard-demo: Spark Open live in 22817 ms, 7/7 parts graded.
+- bay-case1: Spark Open live in 6366 ms, 1/1 parts graded.
+- bay-case2: Spark Open live in 4377 ms, 1/1 parts graded.
+- bay-case3: no call sent (no parts to grade, so no call was sent).
+- inventory-demo: Spark Open live in 19603 ms, 6/6 parts graded.
+
+Disagreements, with both reasons:
+- yard-demo / driver mirror: rules say A (Clear, wanted, worth listing: Intact, seen across frames, wanted, and priced above the list floor.); Spark Open live says B (Intact yes in 2 frames but coverage only 0.0021 is very thin; high demand with $45-$65 (median $55) over 5 solds and net up to $56 with 15-min pull supports money grade B - worth it if you're standing there, not a priority pull.).
+- inventory-demo / spare ignition coil: rules say B (Good part, softer demand: Intact and not unwanted: grab it while you are there.); Spark Open live says C (Keep as spare, not list: intact yes and used working when pulled but only $25 price_low/high from demo-sample: inventory seed, demand unknown with no demand_source, frames_seen 0 with no coverage, money_grade C with no sample comp, reliable false sold_count 0, pull_minutes null, evidence thin; plus owner_note says Kept as roadside spare for My driver car_label.).
+- inventory-demo / alloy wheel: rules say B (Good part, softer demand: Intact and not unwanted: grab it while you are there.); Spark Open live says C (Intact yes straight and true but only $40 price_low/high from demo-sample: inventory seed, demand unknown, frames_seen 0, money_grade C no sample comp, reliable false sold_count 0, pull_minutes null; thin evidence and low price for likely wheel pull effort, leave it.).
+- inventory-demo / engine computer: rules say C (Seen once and unclear: Seen in only one frame and condition is unclear: not enough reliable evidence.); Spark Open live says B (Owner_note says Pull before anything else with $200 price_low/high from demo-sample: owner note but intact unknown, condition used untested, demand unknown, frames_seen 0, money_grade C no sample comp, reliable false sold_count 0, pull_minutes null; evidence thin and unverified prevents A, B only if onsite to inspect/test.).
+<!-- EVAL-SCALE:END -->

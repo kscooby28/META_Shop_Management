@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 demo_cache/live/
 shop_kb/*.json
+yard-photos/

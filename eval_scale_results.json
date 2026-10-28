@@ -1,0 +1,261 @@
+{
+  "order": "Work Order 13: live evaluation at scale, Baseten first",
+  "cases": [
+    {
+      "case": "yard-demo",
+      "label": "Yard demo case (7 harvest parts)",
+      "live_ok": true,
+      "call_sent": true,
+      "latency_ms": 22817,
+      "live_cause": "",
+      "dropped_unknown_ids": 0,
+      "cost": "the endpoint reports no cost, so none is estimated",
+      "parts": [
+        {
+          "part_id": "p_mirror",
+          "label": "driver mirror",
+          "rule_grade": "A",
+          "rule_id": "r_pull_now",
+          "rule_name": "Clear, wanted, worth listing",
+          "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+          "open_grade": "B",
+          "open_reason": "Intact yes in 2 frames but coverage only 0.0021 is very thin; high demand with $45-$65 (median $55) over 5 solds and net up to $56 with 15-min pull supports money grade B - worth it if you're standing there, not a priority pull.",
+          "open_mode": "live",
+          "agree": false
+        },
+        {
+          "part_id": "p_bumper",
+          "label": "front bumper cover",
+          "rule_grade": "A",
+          "rule_id": "r_pull_now",
+          "rule_name": "Clear, wanted, worth listing",
+          "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+          "open_grade": "A",
+          "open_reason": "Intact yes in 2 frames at 0.0512 coverage, medium demand with $120-$180 (median $150) over 5 solds net up to $156; 40-min pull is justified by payout, so A - pull and list now.",
+          "open_mode": "live",
+          "agree": true
+        },
+        {
+          "part_id": "p_wheel",
+          "label": "alloy wheel",
+          "rule_grade": "A",
+          "rule_id": "r_pull_now",
+          "rule_name": "Clear, wanted, worth listing",
+          "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+          "open_grade": "A",
+          "open_reason": "Intact yes with 0.0207 coverage over 3 frames, count 2, high demand with $80-$120 each (median $100) over 5 solds net up to $104; 30-min pull is reasonable for two wheels, so A - pull and list now.",
+          "open_mode": "live",
+          "agree": true
+        },
+        {
+          "part_id": "p_headlight",
+          "label": "driver headlight",
+          "rule_grade": "B",
+          "rule_id": "r_worth_it_seen",
+          "rule_name": "Good part, softer demand",
+          "rule_explain": "Intact and not unwanted: grab it while you are there.",
+          "open_grade": "B",
+          "open_reason": "Intact yes but only 1 frame at 0.0072 coverage so evidence thin; high demand with $55-$75 (median $65) over 5 solds net up to $65 and 20-min pull keeps money grade B - pull if you're at the car.",
+          "open_mode": "live",
+          "agree": true
+        },
+        {
+          "part_id": "p_handle",
+          "label": "driver door handle",
+          "rule_grade": "C",
+          "rule_id": "r_thin_evidence",
+          "rule_name": "Seen once and unclear",
+          "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+          "open_grade": "C",
+          "open_reason": "Intact unknown in 1 frame at 0.0012 coverage, demand unknown, no price and 0 solds on file with no pull time given; evidence too thin for any grade above C, so leave it.",
+          "open_mode": "live",
+          "agree": true
+        },
+        {
+          "part_id": "p_taillight",
+          "label": "left taillight",
+          "rule_grade": "C",
+          "rule_id": "r_damaged",
+          "rule_name": "Broken in the photo",
+          "rule_explain": "The part looks broken, so leave it no matter what else is true.",
+          "open_grade": "C",
+          "open_reason": "Intact no - damaged - in 1 frame at 0.007 coverage, demand low, no price and 0 solds on file with no pull time; broken part with no market shown, so C - leave it.",
+          "open_mode": "live",
+          "agree": true
+        },
+        {
+          "part_id": "p_diff",
+          "label": "rear differential",
+          "rule_grade": "A",
+          "rule_id": "r_pull_now",
+          "rule_name": "Clear, wanted, worth listing",
+          "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+          "open_grade": "A",
+          "open_reason": "Intact yes with strongest 0.084 coverage across 2 frames, high demand with $900-$1100 (median $1000) over 5 solds net up to $954; 60-min pull is heavy but return is highest on car, so A - pull and list now.",
+          "open_mode": "live",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "case": "bay-case1",
+      "label": "Bay demo case1 (1 job part)",
+      "live_ok": true,
+      "call_sent": true,
+      "latency_ms": 6366,
+      "live_cause": "",
+      "dropped_unknown_ids": 0,
+      "cost": "the endpoint reports no cost, so none is estimated",
+      "parts": [
+        {
+          "part_id": "bp-case1-1",
+          "label": "Matched module set from one donor car: module, immobilizer, ignition switch, steering lock, key, and door cylinder",
+          "rule_grade": "C",
+          "rule_id": "r_thin_evidence",
+          "rule_name": "Seen once and unclear",
+          "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+          "open_grade": "C",
+          "open_reason": "Evidence is too thin to justify pull \u2014 price_known false with no low/high/median, money_grade C, sold_count 0, demand unknown, frames_seen 0 with intact unknown, and valuation notes state no sample comp on demo board; case note adds risk that part numbers must match exactly and wrong index was already rejected/refunded.",
+          "open_mode": "live",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "case": "bay-case2",
+      "label": "Bay demo case2 (1 job part)",
+      "live_ok": true,
+      "call_sent": true,
+      "latency_ms": 4377,
+      "live_cause": "",
+      "dropped_unknown_ids": 0,
+      "cost": "the endpoint reports no cost, so none is estimated",
+      "parts": [
+        {
+          "part_id": "bp-case2-1",
+          "label": "Clutch-circuit oil, correct spec for this gearbox",
+          "rule_grade": "C",
+          "rule_id": "r_thin_evidence",
+          "rule_name": "Seen once and unclear",
+          "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+          "open_grade": "C",
+          "open_reason": "Leave it: intact is unknown, 0 frames seen, demand is unknown with no source, price is unknown with no comps and 0 sold count, and pull time is not given - evidence is too thin to justify pulling clutch-circuit oil.",
+          "open_mode": "live",
+          "agree": true
+        }
+      ]
+    },
+    {
+      "case": "bay-case3",
+      "label": "Bay demo case3 (0 job parts)",
+      "live_ok": false,
+      "call_sent": false,
+      "latency_ms": 0,
+      "live_cause": "no parts to grade, so no call was sent",
+      "dropped_unknown_ids": 0,
+      "cost": "the endpoint reports no cost, so none is estimated",
+      "parts": []
+    },
+    {
+      "case": "inventory-demo",
+      "label": "Inventory demo parts (6 parts)",
+      "live_ok": true,
+      "call_sent": true,
+      "latency_ms": 19603,
+      "live_cause": "",
+      "dropped_unknown_ids": 0,
+      "cost": "the endpoint reports no cost, so none is estimated",
+      "parts": [
+        {
+          "part_id": "ip-coil",
+          "label": "spare ignition coil",
+          "rule_grade": "B",
+          "rule_id": "r_worth_it_seen",
+          "rule_name": "Good part, softer demand",
+          "rule_explain": "Intact and not unwanted: grab it while you are there.",
+          "open_grade": "C",
+          "open_reason": "Keep as spare, not list: intact yes and used working when pulled but only $25 price_low/high from demo-sample: inventory seed, demand unknown with no demand_source, frames_seen 0 with no coverage, money_grade C with no sample comp, reliable false sold_count 0, pull_minutes null, evidence thin; plus owner_note says Kept as roadside spare for My driver car_label.",
+          "open_mode": "live",
+          "agree": false
+        },
+        {
+          "part_id": "ip-headlight",
+          "label": "driver headlight",
+          "rule_grade": "B",
+          "rule_id": "r_worth_it_seen",
+          "rule_name": "Good part, softer demand",
+          "rule_explain": "Intact and not unwanted: grab it while you are there.",
+          "open_grade": "B",
+          "open_reason": "Intact yes lens clear with $65 price_low/high from demo-sample: inventory seed but demand unknown, frames_seen 0 best_coverage null, money_grade C no sample comp, reliable false sold_count 0, pull_minutes null pull_source empty so evidence thin prevents A; worth pulling if standing there given clear intact condition and moderate price.",
+          "open_mode": "live",
+          "agree": true
+        },
+        {
+          "part_id": "ip-diff",
+          "label": "rear differential",
+          "rule_grade": "B",
+          "rule_id": "r_worth_it_seen",
+          "rule_name": "Good part, softer demand",
+          "rule_explain": "Intact and not unwanted: grab it while you are there.",
+          "open_grade": "B",
+          "open_reason": "High $1000 price_low/high from demo-sample: inventory seed and intact yes turns smoothly by hand, owner_note says The $1000 reason this car exists, but demand unknown, frames_seen 0, money_grade C no sample comp, reliable false sold_count 0, pull_minutes null; evidence thin with no frames or comps prevents A, but B if onsite due to upside.",
+          "open_mode": "live",
+          "agree": true
+        },
+        {
+          "part_id": "ip-wheel",
+          "label": "alloy wheel",
+          "rule_grade": "B",
+          "rule_id": "r_worth_it_seen",
+          "rule_name": "Good part, softer demand",
+          "rule_explain": "Intact and not unwanted: grab it while you are there.",
+          "open_grade": "C",
+          "open_reason": "Intact yes straight and true but only $40 price_low/high from demo-sample: inventory seed, demand unknown, frames_seen 0, money_grade C no sample comp, reliable false sold_count 0, pull_minutes null; thin evidence and low price for likely wheel pull effort, leave it.",
+          "open_mode": "live",
+          "agree": false
+        },
+        {
+          "part_id": "ip-lid",
+          "label": "trunk lid",
+          "rule_grade": "C",
+          "rule_id": "r_thin_evidence",
+          "rule_name": "Seen once and unclear",
+          "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+          "open_grade": "C",
+          "open_reason": "Intact unknown and condition unknown with owner_note Haven't looked closely yet, price_known false no price_low/high, demand unknown, frames_seen 0, money_grade C no sample comp, reliable false sold_count 0, pull_minutes null; no evidence to justify pull, needs inspection first.",
+          "open_mode": "live",
+          "agree": true
+        },
+        {
+          "part_id": "ip-ecu",
+          "label": "engine computer",
+          "rule_grade": "C",
+          "rule_id": "r_thin_evidence",
+          "rule_name": "Seen once and unclear",
+          "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+          "open_grade": "B",
+          "open_reason": "Owner_note says Pull before anything else with $200 price_low/high from demo-sample: owner note but intact unknown, condition used untested, demand unknown, frames_seen 0, money_grade C no sample comp, reliable false sold_count 0, pull_minutes null; evidence thin and unverified prevents A, B only if onsite to inspect/test.",
+          "open_mode": "live",
+          "agree": false
+        }
+      ]
+    }
+  ],
+  "agreement": {
+    "agree": 11,
+    "total": 15,
+    "rate": "11/15"
+  },
+  "live_baseten_calls_sent": 4,
+  "live_meta_calls_attempted": 0,
+  "engines_live": [
+    "Muse Spark Open through Baseten (meta-models/muse-spark-open-1026)"
+  ],
+  "engines_demo": [
+    "Muse Spark 1.3 (Meta key rotation unconfirmed)",
+    "SAM 3.1 (Meta key rotation unconfirmed)",
+    "Muse Image (Meta key rotation unconfirmed)",
+    "Muse Voice (Meta key rotation unconfirmed)",
+    "Muse Wonder (Meta key rotation unconfirmed)"
+  ]
+}
