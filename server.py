@@ -34,6 +34,7 @@ from demo_cache import StepCache
 from inventory import comp_for_label, load_seed
 from listing import build_live_draft, demo_draft, get_post_adapter
 from studio import IMAGE_LIVE, demo_lookup, request_studio_render
+from voice import VOICE_LIVE, transcribe
 from meta_client import (
     MetaAPIError,
     chat_stream,
@@ -200,6 +201,8 @@ class Handler(BaseHTTPRequestHandler):
             self._api_inv_part_photo(payload)
         elif parsed.path == "/api/inv/comps":
             self._api_inv_comps(payload)
+        elif parsed.path == "/api/voice/note":
+            self._api_voice_note(payload)
         else:
             self._send_json({"ok": False, "error": "unknown endpoint"}, status=404)
 
@@ -847,6 +850,43 @@ class Handler(BaseHTTPRequestHandler):
                 "ok": True,
                 "mode": "demo-cache" if payload.get("demo") else "live-adapter",
                 "comp": found,
+            }
+        )
+
+    def _api_voice_note(self, payload):
+        session_id, session = self._bay_session(payload)
+        kind = (payload.get("target") or {}).get("kind", "")
+        audio = payload.get("audio") or {}
+        try:
+            result = transcribe(audio.get("data"), kind, ROOT)
+        except MetaAPIError as exc:
+            self._send_json({"ok": False, "error": str(exc)}, status=400)
+            return
+        notice = ""
+        if not VOICE_LIVE:
+            notice = (
+                "Voice live is off until the key rotation, so this is a demo "
+                "sample transcript. Read it before trusting it."
+            )
+        pinned = False
+        if kind == "bay":
+            case = (session.get("bay") or {}).get("case")
+            if case is not None:
+                case.setdefault("voice_notes", []).append(
+                    {"text": result["text"], "source": result["source"]}
+                )
+                put_session(session_id, session)
+                pinned = True
+        self._send_json(
+            {
+                "ok": True,
+                "sessionId": session_id,
+                "mode": result["mode"],
+                "notice": notice,
+                "note": result.get("note", ""),
+                "text": result["text"],
+                "source": result["source"],
+                "pinned": pinned,
             }
         )
 

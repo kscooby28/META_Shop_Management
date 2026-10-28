@@ -165,6 +165,14 @@ def bay_run(n):
     check("$165" in labor["labor"]["plain_words"], "bay %d: labor math wrong" % n)
     check("donor set index" in labor["labor"]["plain_words"], "bay %d: missing time must be named" % n)
 
+    _, vnote = post(
+        "/api/voice/note",
+        {"sessionId": sid, "target": {"kind": "bay"}, "audio": None},
+    )
+    check(vnote["text"], "bay %d: voice note empty" % n)
+    check(vnote["pinned"], "bay %d: voice note must pin to the open case" % n)
+    check("demo-cache" in vnote["mode"], "bay %d: voice must be demo-sourced" % n)
+
     _, kb = get("/api/bay/kb?q=creep")
     check(len(kb["notes"]) == 1, "bay %d: kb search off" % n)
 
@@ -235,6 +243,9 @@ def inv_run(n):
     check("vin" not in vin["vehicle"], "inv %d: demo vin must store nothing" % n)
     _, part = post("/api/inv/part-photo", {"photo": {"name": "t.png", "data": tiny}, "demo": True})
     check("demo sample" in part["part"]["label"], "inv %d: demo part must be tagged" % n)
+    _, vnote = post("/api/voice/note", {"target": {"kind": "inv"}, "audio": None})
+    check(vnote["text"], "inv %d: voice note empty" % n)
+    check(not vnote["pinned"], "inv %d: inventory note pins in the browser, not the server" % n)
 
     _, session = post("/api/session", {})
     sid = session["sessionId"]

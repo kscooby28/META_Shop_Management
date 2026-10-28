@@ -141,6 +141,9 @@
       <label>Fault codes, comma separated<input id="bayCodes" type="text" placeholder="e.g. P0304, U0100"></label>
       <label>What you observed, one per line<textarea id="bayObs" style="min-height:60px" placeholder="e.g. 12.1 volts at the pins"></textarea></label>
     </div>
+    <div class="row" style="margin-top:0.4rem">
+      <button id="btnBayMic" type="button" class="small">Hold to dictate a note</button>
+    </div>
     <div class="row" style="margin-top:0.6rem">
       <button id="btnBayCase" type="button" class="primary">Create case</button>
     </div>
@@ -285,6 +288,7 @@
         <label>Value $<input id="invPartValue" type="number" min="0" placeholder="blank means unknown"></label>
       </div>
       <div class="row">
+        <button id="btnInvMic" type="button" class="small">Hold to dictate</button>
         <button id="btnInvComps" type="button">Check comps</button>
         <button id="btnInvAddPart" type="button" class="primary">Attach part</button>
       </div>

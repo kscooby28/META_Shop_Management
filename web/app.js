@@ -870,6 +870,86 @@ function guard(fn, busyLabel) {
   };
 }
 
+function micSupported() {
+  return !!(navigator.mediaDevices && window.MediaRecorder);
+}
+
+async function sendVoice(blob, kind) {
+  let audio = null;
+  if (blob && blob.size) {
+    const data = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("could not read the recording"));
+      reader.readAsDataURL(blob);
+    });
+    audio = { mime: blob.type || "audio/webm", data };
+  }
+  const res = await api("/api/voice/note", {
+    sessionId: state.sessionId, target: { kind }, audio,
+  });
+  state.sessionId = res.sessionId;
+  if (res.notice) notice(esc(res.notice));
+  return res;
+}
+
+function pressMic(btn, kind, onText) {
+  // Push-to-talk: hold (pointer or keyboard) to record, release to send.
+  // No mic, blocked mic, or empty recording all degrade to typed notes.
+  if (!micSupported()) {
+    btn.disabled = true;
+    btn.textContent = "Mic unavailable — type instead";
+    return;
+  }
+  const label = btn.textContent;
+  let recorder = null, stream = null;
+  const chunks = [];
+  async function start(e) {
+    if (e) e.preventDefault();
+    if (recorder) return;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      notice("Mic blocked — type the note instead.");
+      return;
+    }
+    chunks.length = 0;
+    recorder = new MediaRecorder(stream);
+    recorder.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+    recorder.start();
+    btn.textContent = "Listening… release to send";
+  }
+  async function stop(e) {
+    if (e) e.preventDefault();
+    if (!recorder) return;
+    const rec = recorder;
+    recorder = null;
+    btn.textContent = label;
+    await new Promise((resolve) => { rec.onstop = resolve; rec.stop(); });
+    stream.getTracks().forEach((t) => t.stop());
+    stream = null;
+    try {
+      onText(await sendVoice(new Blob(chunks, { type: rec.mimeType }), kind));
+    } catch (err) {
+      notice(esc(err.message));
+    }
+  }
+  const fail = (fn) => (e) => { fn(e).catch((err) => notice(esc(err.message))); };
+  btn.addEventListener("pointerdown", fail(start));
+  window.addEventListener("pointerup", fail(stop));
+  window.addEventListener("pointercancel", fail(stop));
+  btn.addEventListener("keydown", (e) => {
+    if ((e.key === "Enter" || e.key === " ") && !e.repeat) fail(start)(e);
+  });
+  btn.addEventListener("keyup", (e) => {
+    if (e.key === "Enter" || e.key === " ") fail(stop)(e);
+  });
+}
+
+function pokeDraft(box) {
+  box.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 async function init() {
   const res = await api("/api/session", {});
   state.sessionId = res.sessionId;
@@ -946,6 +1026,15 @@ function bayManual() {
   };
 }
 
+function voiceNotesHtml(c) {
+  const notes = (c && c.voice_notes) || [];
+  if (!notes.length) return "";
+  return "<ul class='part-list'>" + notes.map((n) =>
+    "<li><strong>Spoken note:</strong> “" + esc(n.text) + "”" +
+    ' <span class="sourced">(' + esc(n.source || "voice") + ")</span></li>"
+  ).join("") + "</ul>";
+}
+
 function renderBayCase() {
   const box = $("bayCaseCard");
   renderBayHome();
@@ -957,7 +1046,8 @@ function renderBayCase() {
     box.innerHTML =
       '<div class="decline"><div class="dtitle">' + esc(d.title) + "</div>" +
       "<div>" + esc(d.body) + "</div>" +
-      '<div class="next">' + esc(d.next_step) + "</div></div>";
+      '<div class="next">' + esc(d.next_step) + "</div></div>" +
+      voiceNotesHtml(c);
     return;
   }
   const v = c.vehicle;
@@ -972,6 +1062,7 @@ function renderBayCase() {
     (c.stakes ? "<dt>Stakes</dt><dd>" + esc(c.stakes) + ' <span class="sourced">(' + esc(c.stakes_source) + ")</span></dd>" : "") +
     "<dt>Source</dt><dd>" + esc((v.source_tags || []).join(", ")) + "</dd>" +
     "</dl>" +
+    voiceNotesHtml(c) +
     (v.notes || []).map((n) => '<div class="notice">' + esc(n) + "</div>").join("") +
     "</div>";
   if (isDemoMode(state.modes.bayIntake)) {
@@ -1371,6 +1462,19 @@ function initBay() {
     feed("Labor math updated", "tool bay.labor — shop times at $180/hr");
   }));
   $("btnBayKb").addEventListener("click", guard(bayKb));
+  pressMic($("btnBayMic"), "bay", (res) => {
+    if (bay.case && res.pinned) {
+      bay.case.voice_notes = bay.case.voice_notes || [];
+      bay.case.voice_notes.push({ text: res.text, source: res.source });
+      renderBayCase();
+      feed("Voice note pinned to the case", "tool voice.note — mic → text (" + res.mode + ")");
+    } else {
+      const box = $("bayObs");
+      box.value = box.value ? box.value + "\n" + res.text : res.text;
+      pokeDraft(box);
+      feed("Voice note landed in observations", "tool voice.note — mic → text (" + res.mode + ")");
+    }
+  });
 }
 
 initBay();
@@ -1916,6 +2020,12 @@ function initInventory() {
     await readInvVin();
   }, "reading the plate…"));
   $("btnInvCarVin").addEventListener("click", guard(readInvVin, "reading the plate…"));
+  pressMic($("btnInvMic"), "inv", (res) => {
+    const box = $("invPartNote");
+    box.value = box.value ? box.value + " " + res.text : res.text;
+    pokeDraft(box);
+    feed("Voice note landed in the owner note", "tool voice.note — mic → text (" + res.mode + ")");
+  });
 
   $("invKnowCar").addEventListener("change", renderInvKnow);
   $("btnInvAddNote").addEventListener("click", guard(async () => {
