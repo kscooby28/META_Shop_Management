@@ -691,6 +691,81 @@ async function runWonder(kind, ref, hard, boxId) {
   return res;
 }
 
+function gradePill(grade) {
+  if (grade === "A" || grade === "B" || grade === "C") {
+    return '<span class="grade grade-' + grade + '">' + grade + "</span>";
+  }
+  return '<span class="missing">?</span>';
+}
+
+function renderCompare(res) {
+  const box = $("compareOut");
+  box.innerHTML = "";
+  const modeTag = (mode) => mode === "live"
+    ? " <span class='sourced'>(live)</span>"
+    : " <span class='demobadge'>DEMO</span>";
+  const agree = res.rows.filter((r) =>
+    r.grade13 !== "?" && r.gradeOpen !== "?" && r.grade13 === r.gradeOpen).length;
+  const head = document.createElement("p");
+  head.innerHTML = "<strong>" + agree + " of " + res.rows.length +
+    " second looks agree.</strong> " +
+    '<span class="hint">Rules decide; agreement is information, not a verdict.</span>';
+  box.appendChild(head);
+  const table = document.createElement("table");
+  table.innerHTML = "<tr><th>Part</th><th>Rule grade</th>" +
+    "<th>Muse Spark 1.3" + modeTag(res.mode13) + "</th>" +
+    "<th>Muse Spark Open, open-weight via Baseten" + modeTag(res.modeOpen) + "</th></tr>";
+  for (const r of res.rows) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td><strong>" + esc(r.label) + "</strong></td>" +
+      "<td>" + gradePill(r.rule) + "</td>" +
+      "<td>" + gradePill(r.grade13) +
+      ' <span class="hint">' + esc(r.reason13) + "</span></td>" +
+      "<td>" + gradePill(r.gradeOpen) +
+      ' <span class="hint">' + esc(r.reasonOpen) + "</span></td>";
+    table.appendChild(tr);
+  }
+  const wrap = document.createElement("div");
+  wrap.className = "verdict";
+  wrap.appendChild(table);
+  box.appendChild(wrap);
+  const foot = document.createElement("p");
+  foot.className = "hint";
+  foot.textContent = res.notice13 + (res.noticeOpen ? " " + res.noticeOpen : "") +
+    " Open-model source: " + (res.sourceOpen || "?");
+  box.appendChild(foot);
+  flash(wrap);
+  scrollSoon(box);
+}
+
+async function runCompare() {
+  if (!state.report || !(state.report.verdicts || []).length) {
+    const box = $("compareOut");
+    box.innerHTML = "";
+    const div = document.createElement("div");
+    div.className = "emptybox";
+    div.innerHTML = "<div class='etitle'>No case to compare yet.</div>" +
+      "<p>Run the Yard flow first — the same case then runs through both engines here.</p>";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "Run the Yard flow";
+    btn.addEventListener("click", () => {
+      showView("yard");
+      document.getElementById("sec-intake").scrollIntoView();
+      $("btnRunAll").click();
+    });
+    div.appendChild(btn);
+    box.appendChild(div);
+    return null;
+  }
+  const res = await api("/api/compare", { sessionId: state.sessionId });
+  state.sessionId = res.sessionId;
+  renderCompare(res);
+  feed("Compared both engines on " + res.rows.length + " parts",
+    "tool compare.run — spark 1.3 (" + res.mode13 + ") vs spark open (" + res.modeOpen + ")");
+  return res;
+}
+
 function refreshListingParts() {
   const sel = $("listingPart");
   const wsel = $("wonderPart");
@@ -1058,6 +1133,7 @@ async function init() {
   $("btnWonderYard").addEventListener("click", guard(async () => {
     await runWonder("yard", $("wonderPart").value, $("wonderHard").checked, "wonderYard");
   }, "asking the second opinion…"));
+  $("btnCompare").addEventListener("click", guard(runCompare, "comparing both engines…"));
   $("btnDraft").addEventListener("click", guard(async () => { await runDraft(); }, "drafting the listing…"));
   $("btnApprove").addEventListener("click", guard(runApprove));
   $("btnPost").addEventListener("click", guard(runPost));
@@ -1462,9 +1538,11 @@ function showView(which) {
   $("view-yard").hidden = which !== "yard";
   $("view-bay").hidden = which !== "bay";
   $("view-inventory").hidden = which !== "inventory";
+  $("view-compare").hidden = which !== "compare";
   $("tabYard").classList.toggle("active", which === "yard");
   $("tabBay").classList.toggle("active", which === "bay");
   $("tabInventory").classList.toggle("active", which === "inventory");
+  $("tabCompare").classList.toggle("active", which === "compare");
   flash(document.querySelector(".work"));
 }
 
@@ -1472,6 +1550,7 @@ function initBay() {
   $("tabYard").addEventListener("click", () => showView("yard"));
   $("tabBay").addEventListener("click", () => { showView("bay"); bayKb(); });
   $("tabInventory").addEventListener("click", () => showView("inventory"));
+  $("tabCompare").addEventListener("click", () => showView("compare"));
 
   document.querySelectorAll("[data-baycase]").forEach((btn) => {
     btn.addEventListener("click", guard(async () => {

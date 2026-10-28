@@ -109,6 +109,12 @@ def one_run(n):
     check("sure money" in totals["A"]["plain_words"], "run %d: A must say sure money" % n)
     check("maybe money" in totals["B"]["plain_words"], "run %d: B must say maybe money" % n)
 
+    _, compare = post("/api/compare", {"sessionId": sid})
+    check(len(compare["rows"]) == 7, "run %d: compare must cover 7 parts" % n)
+    check(compare["mode13"] == "demo-cache", "run %d: spark 1.3 side must be demo" % n)
+    check(compare["modeOpen"] in ("live", "demo-cache"), "run %d: open side unlabeled" % n)
+    check(all(r["rule"] for r in compare["rows"]), "run %d: rule grades must pass through" % n)
+
     _, wonder = post("/api/wonder", {"sessionId": sid, "kind": "yard", "ref": "p_headlight"})
     check(wonder["escalated"], "run %d: borderline B must escalate" % n)
     check("headlight" in wonder["opinion"]["title"].lower(), "run %d: opinion title off" % n)

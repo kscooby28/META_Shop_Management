@@ -35,6 +35,7 @@ from inventory import comp_for_label, load_seed
 from listing import build_live_draft, demo_draft, get_post_adapter
 from studio import IMAGE_LIVE, demo_lookup, request_studio_render
 from voice import VOICE_LIVE, transcribe
+from spark_open import compare_grades
 from wonder import WONDER_LIVE, escalate
 from meta_client import (
     MetaAPIError,
@@ -206,6 +207,8 @@ class Handler(BaseHTTPRequestHandler):
             self._api_voice_note(payload)
         elif parsed.path == "/api/wonder":
             self._api_wonder(payload)
+        elif parsed.path == "/api/compare":
+            self._api_compare(payload)
         else:
             self._send_json({"ok": False, "error": "unknown endpoint"}, status=404)
 
@@ -955,6 +958,60 @@ class Handler(BaseHTTPRequestHandler):
                 "inputs": result["assessment"]["inputs"],
                 "escalated": result["escalated"],
                 "opinion": result["opinion"],
+            }
+        )
+
+    def _api_compare(self, payload):
+        # Second look only: reads the session's verdicts, writes nothing,
+        # changes no grade. Spark 1.3 side runs on the demo leg (money
+        # stats already in the verdict inputs) until key rotation; the
+        # Spark Open side attempts one live Baseten call, else demo sample.
+        session_id = payload.get("sessionId")
+        session = get_session(session_id) if session_id else None
+        verdicts = (session or {}).get("verdicts", {}).get("verdicts", [])
+        if not verdicts:
+            self._send_json(
+                {"ok": False, "error": "run verdicts first, then compare"},
+                status=400,
+            )
+            return
+        evidence = {
+            "car": (session.get("harvest") or {}).get("car", {}),
+            "parts": [
+                {"part_id": v.get("part_id"), "label": v.get("label"),
+                 "inputs": v.get("inputs", {})}
+                for v in verdicts
+            ],
+        }
+        part_ids = [v.get("part_id") for v in verdicts]
+        opened = compare_grades(evidence, part_ids, ROOT)
+        open_by_id = {g["part_id"]: g for g in opened["grades"]}
+        rows = []
+        for v in verdicts:
+            inputs = v.get("inputs", {})
+            side = open_by_id.get(v.get("part_id"), {})
+            rows.append({
+                "part_id": v.get("part_id"),
+                "label": v.get("label", "part"),
+                "rule": v.get("verdict", "?"),
+                "grade13": inputs.get("money_grade") or "?",
+                "reason13": inputs.get("money_reason") or (
+                    "Money stats missing; re-run verdicts to fill this side."),
+                "gradeOpen": side.get("grade", "?"),
+                "reasonOpen": side.get("reason", ""),
+            })
+        self._send_json(
+            {
+                "ok": True,
+                "sessionId": session_id,
+                "mode13": "demo-cache",
+                "modeOpen": opened["mode"],
+                "sourceOpen": opened["source"],
+                "notice13": ("Muse Spark 1.3 side runs on the demo leg until the "
+                             "Meta key rotation is confirmed: money-grade second "
+                             "look computed from demo cache, no live call."),
+                "noticeOpen": opened["notice"],
+                "rows": rows,
             }
         )
 

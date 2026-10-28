@@ -15,6 +15,7 @@
   <button id="tabYard" type="button" class="tab active">Yard</button>
   <button id="tabBay" type="button" class="tab">Bay</button>
   <button id="tabInventory" type="button" class="tab">Inventory</button>
+  <button id="tabCompare" type="button" class="tab">Compare</button>
   <button id="panelToggle" type="button">Shop Copilot</button>
 </header>
 
@@ -307,6 +308,17 @@
   <section id="sec-itotals">
     <h2><span class="step">4</span>Inventory totals — plain money</h2>
     <div id="invTotals" class="totals"><p class="hint">Totals appear once parts exist.</p></div>
+  </section>
+  </div>
+
+  <div id="view-compare" hidden>
+  <section id="sec-compare">
+    <h2>Compare — two engines, one case</h2>
+    <p class="hint">Where the open model runs: after verdicts, as a second look beside the rule grade. Left column is Muse Spark 1.3 on the demo leg (Meta key rotation pending, no live call). Right column is Muse Spark Open, the open-weight model, running through Baseten — live when a key is present, demo sample otherwise. Rules decide; this view never overrules.</p>
+    <div class="row">
+      <button id="btnCompare" type="button" class="primary">Run comparison</button>
+    </div>
+    <div id="compareOut" style="margin-top:0.7rem"></div>
   </section>
   </div>
 </main>
