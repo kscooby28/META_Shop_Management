@@ -117,6 +117,9 @@ def one_run(n):
     reply = "".join(e.get("text", "") for e in events if e.get("type") == "token")
     check("headlight" in reply.lower(), "run %d: chat should explain the B part" % n)
     check(any(e.get("type") == "done" for e in events), "run %d: chat stream never finished" % n)
+    demo_events = post_sse("/api/chat", {"sessionId": sid, "message": "Why is this part a B?", "demo": True})
+    demo_modes = [e.get("mode") for e in demo_events if e.get("type") == "done"]
+    check(demo_modes == ["demo-cache"], "run %d: forced demo chat must stay local" % n)
 
     print("run %d/%d: PASS (A=%s B=%s)" % (n, RUNS, totals["A"]["high"], totals["B"]["high"]))
 
@@ -175,6 +178,11 @@ def bay_run(n):
     )
     check(not vinoff["case"]["declined"], "bay %d: manual case must open" % n)
     check("key rotation" in vinoff["notice"], "bay %d: must say live read is off" % n)
+
+    # Forced-demo plan on a manual case: empty hand-entry plan, no API call.
+    _, manplan = post("/api/bay/plan", {"sessionId": sid, "demo": True})
+    check(manplan["mode"] == "manual", "bay %d: forced demo must go manual" % n)
+    check(manplan["plan"]["tests"] == [], "bay %d: forced demo starts empty" % n)
 
     # Decline path: N63 no-start never gets a plan.
     _, session2 = post("/api/session", {})

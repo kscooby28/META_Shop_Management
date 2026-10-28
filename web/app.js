@@ -14,7 +14,41 @@ const state = {
   modes: {},
   overrides: {},   // partId -> A/B/C, survives re-renders until a fresh grade run
   selectedFrame: null,
+  forceDemo: localStorage.getItem("copilot.offline") === "1",
+  offlineSeen: false,
 };
+
+function setBusy(text) {
+  const bar = $("busbar");
+  if (!text) {
+    bar.hidden = true;
+    bar.textContent = "";
+    return;
+  }
+  bar.hidden = false;
+  bar.textContent = "Working: " + text;
+}
+
+function updateOffline() {
+  const bar = $("offlineBar");
+  if (state.forceDemo) {
+    bar.hidden = false;
+    bar.textContent = "Offline demo, forced on in settings: everything below runs on demo cache.";
+  } else if (state.offlineSeen) {
+    bar.hidden = false;
+    bar.textContent = "Live AI is unreachable, so this page runs on demo cache. Your work still saves.";
+  } else {
+    bar.hidden = true;
+    bar.textContent = "";
+  }
+}
+
+function watchFallback(explicitDemo, mode) {
+  if (!explicitDemo && mode !== "live" && mode !== "live-adapter") {
+    state.offlineSeen = true;
+    updateOffline();
+  }
+}
 
 function cutoutSVG(src, box, cls) {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -35,6 +69,7 @@ const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => (
 ));
 
 async function api(path, body) {
+  if (state.forceDemo && body && typeof body === "object") body.demo = true;
   const res = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -72,6 +107,31 @@ function notice(html) {
   box.appendChild(div);
 }
 
+function emptyInto(box, key, onAction) {
+  const e = UX.emptyState(key);
+  box.innerHTML = "";
+  const div = document.createElement("div");
+  div.className = "emptybox";
+  div.innerHTML = '<div class="etitle">' + esc(e.title) + "</div><p>" + esc(e.message) + "</p>";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.textContent = e.action;
+  btn.addEventListener("click", onAction);
+  div.appendChild(btn);
+  box.appendChild(div);
+}
+
+function demoBadge() {
+  const s = document.createElement("span");
+  s.className = "demobadge";
+  s.textContent = "DEMO";
+  return s;
+}
+
+function isDemoMode(mode) {
+  return mode === "demo-cache";
+}
+
 function setPill() {
   const pill = $("modePill");
   const modes = Object.values(state.modes);
@@ -95,7 +155,7 @@ function say(text, who, mode) {
   if (mode) {
     const span = document.createElement("span");
     span.className = "mode";
-    span.textContent = mode === "live" ? "answered live by Spark" : "answered from the case file (demo cache)";
+    span.textContent = mode === "live" ? "answered live" : "answered from the case file";
     div.appendChild(span);
   }
   thread.appendChild(div);
@@ -168,6 +228,10 @@ function renderCar(car) {
     "<dt>Trim</dt><dd>" + val(car.trim) + (car.trim_note ? " — " + esc(car.trim_note) : "") + "</dd>" +
     "<dt>Source</dt><dd>" + esc(car.source || "") + " · " + esc((car.source_tags || []).join(", ")) + "</dd>" +
     "</dl></div>";
+  if (isDemoMode(state.modes.intake)) {
+    box.querySelector(".name").appendChild(document.createTextNode(" "));
+    box.querySelector(".name").appendChild(demoBadge());
+  }
 }
 
 function payloadImages() {
@@ -184,6 +248,7 @@ async function runIntake() {
   state.intake = res.intake;
   state.modes.intake = res.mode;
   setPill();
+  watchFallback(state.demo, res.mode);
   if (res.notice) notice(esc(res.notice));
   renderCar(res.intake.car);
   const n = (res.intake.parts || []).length;
@@ -289,7 +354,13 @@ function renderViewer() {
     frameOrder().map((n) => ({ name: n, src: frameSrc(n) })),
     state.selectedFrame
   );
-  if (!frame) return;
+  if (!frame) {
+    emptyInto(box, "gallery", () => {
+      $("btnDemo").click();
+      document.getElementById("sec-intake").scrollIntoView();
+    });
+    return;
+  }
   state.selectedFrame = frame.name;
   const parts = (state.harvest && state.harvest.parts) || [];
   const items = Gallery.sightingsForFrame(parts, frame.name);
@@ -322,6 +393,13 @@ function renderPartList() {
   const box = $("partList");
   box.innerHTML = "";
   const parts = (state.harvest && state.harvest.parts) || [];
+  if (!parts.length) {
+    emptyInto(box, "parts", () => {
+      document.getElementById("sec-intake").scrollIntoView();
+      $("btnIdentify").click();
+    });
+    return;
+  }
   for (const part of parts) {
     const li = document.createElement("li");
     li.className = "clickable";
@@ -364,6 +442,7 @@ async function runHarvest() {
   state.harvest = res.harvest;
   state.modes.harvest = res.mode;
   setPill();
+  watchFallback(state.demo, res.mode);
   if (res.notice) notice(esc(res.notice));
   // Demo fallback swaps to the sample frames so boxes never lie on your photos.
   if (res.mode !== "live") {
@@ -430,6 +509,13 @@ function renderVerdicts() {
   const box = $("verdicts");
   box.innerHTML = "";
   const list = (state.report && state.report.verdicts) || [];
+  if (!list.length) {
+    emptyInto(box, "verdicts", () => {
+      document.getElementById("sec-intake").scrollIntoView();
+      $("btnRunAll").click();
+    });
+    return;
+  }
   for (const v of list) {
     const inp = v.inputs;
     const card = document.createElement("div");
@@ -523,7 +609,9 @@ function renderTotals() {
   const card = (grade, t, cls, label) =>
     "<div class='totalcard " + cls + "'><div class='lbl'>" + grade + " · " + label +
     " · " + t.count + " part(s)</div><div class='big'>" + totalBig(t) + "</div></div>";
+  const yardDemo = ["intake", "harvest", "comps"].some((k) => isDemoMode(state.modes[k]));
   box.innerHTML =
+    (yardDemo ? "<p><span class='demobadge'>DEMO</span> <span class='hint'>sample-backed totals</span></p>" : "") +
     "<div class='totalgrid'>" +
     card("A", totals.A, "total-a", "pull and list now") +
     card("B", totals.B, "total-b", "worth it if standing there") +
@@ -558,11 +646,14 @@ async function runDraft(partId) {
   state.draftId = res.draftId;
   state.modes.listing = res.mode;
   setPill();
+  watchFallback(state.demo, res.mode);
   if (res.notice) notice(esc(res.notice));
   $("listingCard").style.display = "";
   $("listingTitle").value = res.draft.title || "";
   $("listingDesc").value = res.draft.description || "";
+  UX.clearDraft(localStorage, "listing");
   $("receipt").innerHTML = "";
+  markListingDemo();
   // Cutout preview: crop the best box out of its source frame.
   const svg = $("cutoutSvg");
   svg.innerHTML = "";
@@ -584,7 +675,7 @@ async function runDraft(partId) {
 }
 
 async function runApprove() {
-  if (!state.draftId) throw new Error("draft a listing first");
+  if (!state.draftId) throw new Error("press Draft listing again first — your words are still in the boxes");
   const res = await api("/api/listing/approve", {
     sessionId: state.sessionId,
     draftId: state.draftId,
@@ -716,7 +807,7 @@ async function sendChat(message) {
   }
   const span = document.createElement("span");
   span.className = "mode";
-  span.textContent = mode === "live" ? "answered live by Spark" : "answered from the case file (demo cache)";
+  span.textContent = mode === "live" ? "answered live" : "answered from the case file";
   bubble.appendChild(span);
 }
 
@@ -739,13 +830,15 @@ async function runAll() {
   feed("Flow complete: photo in, verdicts out, listing ready for your approval", null);
 }
 
-function guard(fn) {
+function guard(fn, busyLabel) {
   return async (...args) => {
+    if (busyLabel) setBusy(busyLabel);
     try { await fn(...args); }
     catch (err) {
       notice(esc(err.message));
       feed("Step hit a snag: " + err.message, null);
     }
+    finally { if (busyLabel) setBusy(null); }
   };
 }
 
@@ -779,10 +872,10 @@ async function init() {
   $("btnIdentify").addEventListener("click", guard(async () => {
     await runIntake();
     await runHarvest();
-  }));
-  $("btnRunAll").addEventListener("click", guard(runAll));
+  }, "identifying the car…"));
+  $("btnRunAll").addEventListener("click", guard(runAll, "running intake to listing…"));
   $("btnRerun").addEventListener("click", guard(async () => { await runVerdicts(true); }));
-  $("btnDraft").addEventListener("click", guard(async () => { await runDraft(); }));
+  $("btnDraft").addEventListener("click", guard(async () => { await runDraft(); }, "drafting the listing…"));
   $("btnApprove").addEventListener("click", guard(runApprove));
   $("btnPost").addEventListener("click", guard(runPost));
   $("btnSaveRules").addEventListener("click", guard(saveRules));
@@ -827,6 +920,8 @@ function bayManual() {
 
 function renderBayCase() {
   const box = $("bayCaseCard");
+  renderBayHome();
+  renderGuides();
   const c = bay.case;
   if (!c) { box.innerHTML = ""; return; }
   if (c.declined) {
@@ -851,6 +946,10 @@ function renderBayCase() {
     "</dl>" +
     (v.notes || []).map((n) => '<div class="notice">' + esc(n) + "</div>").join("") +
     "</div>";
+  if (isDemoMode(state.modes.bayIntake)) {
+    box.querySelector(".name").appendChild(document.createTextNode(" "));
+    box.querySelector(".name").appendChild(demoBadge());
+  }
 }
 
 function scoreLine(t) {
@@ -869,13 +968,27 @@ function scoreLine(t) {
 function renderBayPlan() {
   const box = $("bayPlan");
   box.innerHTML = "";
+  renderBayHome();
+  renderGuides();
   const plan = bay.plan;
-  if (!plan) return;
+  if (!plan) {
+    emptyInto(box, "bayplan", () => {
+      document.getElementById("sec-bcase").scrollIntoView();
+      $("btnBayPlan").click();
+    });
+    return;
+  }
+  if (!plan.tests.length) {
+    box.innerHTML = "<p class='hint'>No tests yet — add the first by hand below and the ranking takes it from there.</p>";
+    renderBayTrail();
+    return;
+  }
   const done = Object.keys(plan.results).length;
   const total = plan.tests.length;
   const pct = total ? Math.round((done / total) * 100) : 0;
   box.insertAdjacentHTML("beforeend",
-    "<p><strong>" + done + " of " + total + " recorded</strong></p>" +
+    "<p><strong>" + done + " of " + total + " recorded</strong>" +
+    (isDemoMode(state.modes.bayPlan) ? " <span class='demobadge'>DEMO</span>" : "") + "</p>" +
     "<div class='progress' style='margin-bottom:0.7rem'><div style='width:" + pct + "%'></div></div>");
   plan.tests.forEach((t, i) => {
     const result = plan.results[t.id];
@@ -973,16 +1086,33 @@ function renderBayTrail() {
     box.innerHTML = '<p class="hint">Results you record appear here with the ranking change each one caused.</p>';
     return;
   }
+  const plan = bay.plan;
+  const doneCount = Object.keys(plan.results).length;
   box.innerHTML = '<ul class="trail">' + trail.map((e) =>
     "<li><span class='seq'>#" + e.seq + "</span>" + esc(e.caused_by) +
     (e.moved && e.moved.length ? " Moved: " + esc(e.moved.join(", ")) + "." : " Order held.") + "</li>"
   ).join("") + "</ul>";
+  if (plan.tests.length && doneCount >= plan.tests.length) {
+    const div = document.createElement("div");
+    div.className = "emptybox";
+    div.innerHTML = "<div class='etitle'>Plan complete — every test recorded.</div>" +
+      "<p>Review the parts list and the labor math next.</p>";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "Review parts";
+    btn.addEventListener("click", () => document.getElementById("sec-bparts").scrollIntoView());
+    div.appendChild(btn);
+    box.insertBefore(div, box.firstChild);
+  }
 }
 
 function renderBayParts(note) {
   const box = $("bayParts");
   if (!bay.parts.length) {
-    box.innerHTML = "<p>" + esc(note || "No parts listed yet.") + "</p>";
+    box.innerHTML = note ? "<p>" + esc(note) + "</p>" : "";
+    const sub = document.createElement("div");
+    box.appendChild(sub);
+    emptyInto(sub, "bayparts", () => { $("bayPName").focus(); });
     return;
   }
   box.innerHTML = "<ul class='part-list'>" + bay.parts.map((p) =>
@@ -1017,8 +1147,10 @@ async function bayCreateCase(demoCase) {
   state.sessionId = res.sessionId;
   bay.case = res.case;
   bay.plan = null;
-  state.modes.bay = res.mode;
+  bay.demoCase = demoCase || null;
+  state.modes.bayIntake = res.mode;
   setPill();
+  watchFallback(!!demoCase, res.mode);
   if (res.notice) notice(esc(res.notice));
   renderBayCase();
   if (res.case.declined) {
@@ -1026,6 +1158,7 @@ async function bayCreateCase(demoCase) {
       "tool bay.intake — policy gate → decline card (" + res.mode + ")");
     return res;
   }
+  UX.clearDraft(localStorage, "baycase");
   const v = res.case.vehicle;
   feed("Bay case opened: " + v.category,
     "tool bay.intake — symptom + " + (res.case.codes || []).length + " code(s) → " + v.category + " (" + res.mode + ")");
@@ -1036,8 +1169,9 @@ async function bayCreateCase(demoCase) {
 async function bayDraftPlan() {
   const res = await api("/api/bay/plan", { sessionId: state.sessionId });
   bay.plan = res.plan;
-  state.modes.bay = res.mode;
+  state.modes.bayPlan = res.mode;
   setPill();
+  watchFallback(!!bay.demoCase, res.mode);
   if (res.notice) notice(esc(res.notice));
   renderBayPlan();
   feed("Drafted " + res.plan.tests.length + " ranked tests",
@@ -1126,8 +1260,8 @@ function initBay() {
       await bayCreateCase(btn.getAttribute("data-baycase"));
     }));
   });
-  $("btnBayCase").addEventListener("click", guard(async () => { await bayCreateCase(null); }));
-  $("btnBayPlan").addEventListener("click", guard(async () => { await bayDraftPlan(); }));
+  $("btnBayCase").addEventListener("click", guard(async () => { await bayCreateCase(null); }, "opening the case…"));
+  $("btnBayPlan").addEventListener("click", guard(async () => { await bayDraftPlan(); }, "drafting the plan…"));
   $("bayVin").addEventListener("change", guard(async (e) => {
     const file = (e.target.files || [])[0];
     if (!file) { bay.vinPhoto = null; $("bayVinRow").style.display = "none"; return; }
@@ -1171,10 +1305,12 @@ function initBay() {
     await bayEditPlan(tests, null);
     $("bayTTitle").value = ""; $("bayTWhat").value = "";
     $("bayTHow").value = ""; $("bayTExp").value = "";
+    UX.clearDraft(localStorage, "baytest");
   }));
   $("btnBayAddPart").addEventListener("click", guard(async () => {
     await bayParts({ name: $("bayPName").value, note: $("bayPNote").value });
     $("bayPName").value = ""; $("bayPNote").value = "";
+    UX.clearDraft(localStorage, "baypart");
     feed("Added a part to the job list", "tool bay.parts — shop-entered entry");
   }));
   $("btnBayLabor").addEventListener("click", guard(async () => {
@@ -1246,6 +1382,30 @@ function renderSettings() {
     location.reload();
   });
   box.appendChild(reset);
+  const off = document.createElement("label");
+  const offBox = document.createElement("input");
+  offBox.type = "checkbox";
+  offBox.checked = state.forceDemo;
+  offBox.addEventListener("change", () => {
+    state.forceDemo = offBox.checked;
+    localStorage.setItem("copilot.offline", state.forceDemo ? "1" : "0");
+    updateOffline();
+    feed(state.forceDemo ? "Offline demo forced on" : "Offline demo off",
+      "settings — demo-cache switch, no network touched");
+  });
+  off.appendChild(offBox);
+  off.appendChild(document.createTextNode(" Force offline demo"));
+  box.appendChild(off);
+  const walk = document.createElement("button");
+  walk.type = "button";
+  walk.className = "small";
+  walk.textContent = "Show walkthroughs again";
+  walk.addEventListener("click", () => {
+    UX.showGuide(localStorage, "shop");
+    UX.showGuide(localStorage, "enthusiast");
+    renderGuides();
+  });
+  box.appendChild(walk);
 }
 
 function initIdentity() {
@@ -1282,7 +1442,11 @@ function renderInvCars() {
   const box = $("invCars");
   box.innerHTML = "";
   if (!invState.cars.length) {
-    box.innerHTML = '<p class="hint">No cars yet. Load the demo inventory or register a car below.</p>';
+    emptyInto(box, "invcars", () => {
+      const d = document.querySelector("#sec-icars details");
+      d.open = true;
+      $("invCarLabel").focus();
+    });
     return;
   }
   for (const car of invState.cars) {
@@ -1296,6 +1460,28 @@ function renderInvCars() {
       " · trim " + esc(car.identity.trim) + " · " + esc(car.identity.category) + "</div>" +
       '<div class="ident">' + mine.length + " part(s). " + esc(Inventory.plainTotals(t, "parts")) + "</div>" +
       '<div class="ident">sources: ' + esc(car.source_tags.join(", ")) + "</div>";
+    const rm = document.createElement("button");
+    rm.type = "button";
+    rm.className = "small";
+    rm.textContent = "Remove car";
+    rm.addEventListener("click", () => {
+      const mine = invState.parts.filter((p) => p.carId === car.id).length;
+      const res = UX.guardedDelete(
+        window.confirm.bind(window),
+        "Remove " + car.label + " and its " + mine + " part(s)? This cannot be undone.",
+        () => {
+          invState = {
+            cars: invState.cars.filter((c) => c.id !== car.id),
+            parts: invState.parts.filter((p) => p.carId !== car.id),
+            knowledge: invState.knowledge.filter((n) => n.carId !== car.id),
+          };
+          saveInvState();
+          renderInventory();
+        }
+      );
+      if (res.done) feed("Removed " + car.label, "inventory — confirmed delete");
+    });
+    div.appendChild(rm);
     box.appendChild(div);
   }
 }
@@ -1324,7 +1510,11 @@ function renderInvParts() {
   const box = $("invParts");
   fillCarSelect($("invPartCar"));
   if (!invState.parts.length) {
-    box.innerHTML = '<p class="hint">Parts appear here once cars exist.</p>';
+    emptyInto(box, "invparts", () => {
+      const d = document.querySelector("#sec-iparts details");
+      d.open = true;
+      document.getElementById("sec-iparts").scrollIntoView();
+    });
     return;
   }
   box.innerHTML = "";
@@ -1362,6 +1552,27 @@ function renderInvParts() {
       li.querySelector("[data-list]").addEventListener("click", guard(async () => {
         await invDraftListing(part.id);
       }));
+      const rm = document.createElement("button");
+      rm.type = "button";
+      rm.className = "small";
+      rm.textContent = "Remove";
+      rm.addEventListener("click", () => {
+        const res = UX.guardedDelete(
+          window.confirm.bind(window),
+          "Remove " + part.label + " from the inventory? This cannot be undone.",
+          () => {
+            invState = {
+              cars: invState.cars,
+              parts: invState.parts.filter((p) => p.id !== part.id),
+              knowledge: invState.knowledge,
+            };
+            saveInvState();
+            renderInventory();
+          }
+        );
+        if (res.done) feed("Removed " + part.label, "inventory — confirmed delete");
+      });
+      li.appendChild(rm);
       ul.appendChild(li);
     }
     box.appendChild(ul);
@@ -1375,6 +1586,12 @@ function renderInvTotals() {
     return;
   }
   box.innerHTML = "<p><strong>" + esc(Inventory.plainTotals(Inventory.overallTotals(invState), "parts")) + "</strong></p>";
+  if (invSeeded) {
+    const line = document.createElement("p");
+    line.appendChild(demoBadge());
+    line.appendChild(document.createTextNode(" sample-backed totals"));
+    box.appendChild(line);
+  }
 }
 
 function renderInventory() {
@@ -1382,6 +1599,117 @@ function renderInventory() {
   renderInvKnow();
   renderInvParts();
   renderInvTotals();
+  renderInvHome();
+  renderGuides();
+}
+
+function renderInvHome() {
+  const box = $("invHome");
+  box.innerHTML = "";
+  const strong = document.createElement("strong");
+  strong.textContent = "Inventory home";
+  box.appendChild(strong);
+  const span = document.createElement("span");
+  span.textContent = invState.cars.length + " car(s), " + invState.parts.length + " part(s).";
+  box.appendChild(span);
+  const reg = document.createElement("button");
+  reg.type = "button";
+  reg.className = "small";
+  reg.textContent = "Register a car";
+  reg.addEventListener("click", () => {
+    const d = document.querySelector("#sec-icars details");
+    d.open = true;
+    document.getElementById("sec-icars").scrollIntoView();
+  });
+  box.appendChild(reg);
+  const add = document.createElement("button");
+  add.type = "button";
+  add.className = "small";
+  add.textContent = "Add a part";
+  add.addEventListener("click", () => {
+    const d = document.querySelector("#sec-iparts details");
+    d.open = true;
+    document.getElementById("sec-iparts").scrollIntoView();
+  });
+  box.appendChild(add);
+}
+
+function renderBayHome() {
+  const box = $("bayHome");
+  if (!box) return;
+  box.innerHTML = "";
+  const strong = document.createElement("strong");
+  strong.textContent = "Bay home";
+  box.appendChild(strong);
+  const span = document.createElement("span");
+  if (bay.case && !bay.case.declined) {
+    const done = bay.plan ? Object.keys(bay.plan.results).length : 0;
+    const total = bay.plan ? bay.plan.tests.length : 0;
+    span.textContent = "Case open: " + bay.case.vehicle.category + ", " + done + " of " + total + " recorded.";
+  } else if (bay.case) {
+    span.textContent = "Case declined. Start a new one below.";
+  } else {
+    span.textContent = "No case open. Start one below.";
+  }
+  box.appendChild(span);
+  const fresh = document.createElement("button");
+  fresh.type = "button";
+  fresh.className = "small";
+  fresh.textContent = "New case";
+  fresh.addEventListener("click", () => document.getElementById("sec-bcase").scrollIntoView());
+  box.appendChild(fresh);
+  const kb = document.createElement("button");
+  kb.type = "button";
+  kb.className = "small";
+  kb.textContent = "Knowledge base";
+  kb.addEventListener("click", () => document.getElementById("sec-bkb").scrollIntoView());
+  box.appendChild(kb);
+}
+
+function renderGuide(boxId, mode, facts, title) {
+  const box = $(boxId);
+  box.innerHTML = "";
+  if (UX.isGuideHidden(localStorage, mode)) return;
+  const steps = UX.guideSteps(mode, facts);
+  const card = document.createElement("div");
+  card.className = "guide";
+  card.innerHTML = "<h3>" + esc(title) + "</h3><ol>" + steps.map((s) =>
+    "<li class='" + (s.done ? "done" : "") + "'>" + (s.done ? "✓ " : "") + esc(s.text) + "</li>"
+  ).join("") + "</ol>";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "small";
+  btn.textContent = steps.every((s) => s.done) ? "Done — dismiss" : "Dismiss walkthrough";
+  btn.addEventListener("click", () => {
+    UX.hideGuide(localStorage, mode);
+    renderGuides();
+  });
+  card.appendChild(btn);
+  box.appendChild(card);
+}
+
+function renderGuides() {
+  renderGuide("bayGuide", "shop", {
+    hasCase: !!(bay.case && !bay.case.declined),
+    planTests: bay.plan ? bay.plan.tests.length : 0,
+    results: bay.plan ? Object.keys(bay.plan.results).length : 0,
+  }, "First task: open a case");
+  renderGuide("invGuide", "enthusiast", {
+    cars: invState.cars.length,
+    parts: invState.parts.length,
+    valued: invState.parts.filter((p) => p.value !== null && p.valueSource).length,
+  }, "First task: register a parts car");
+}
+
+function markListingDemo() {
+  const old = $("listingBadge");
+  if (old) old.remove();
+  if (isDemoMode(state.modes.listing)) {
+    const badge = demoBadge();
+    badge.id = "listingBadge";
+    const card = $("listingCard");
+    card.insertBefore(badge, card.firstChild);
+  }
 }
 
 async function invDraftListing(partId) {
@@ -1399,10 +1727,16 @@ async function invDraftListing(partId) {
   });
   state.sessionId = res.sessionId;
   state.draftId = res.draftId;
+  state.modes.listing = res.mode;
+  setPill();
+  watchFallback(invSeeded, res.mode);
+  if (res.notice) notice(esc(res.notice));
   $("listingCard").style.display = "";
   $("listingTitle").value = res.draft.title || "";
   $("listingDesc").value = res.draft.description || "";
+  UX.clearDraft(localStorage, "listing");
   $("receipt").innerHTML = "";
+  markListingDemo();
   $("cutoutSvg").innerHTML = "";
   $("cutoutNote").textContent = "Inventory draft: no photo cutout. Edit, Approve, then Post — nothing posts without approval.";
   showView("yard");
@@ -1482,6 +1816,7 @@ function initInventory() {
     renderInventory();
     $("invCarLabel").value = ""; $("invCarYear").value = "";
     $("invCarMake").value = ""; $("invCarModel").value = ""; $("invCarTrim").value = "";
+    UX.clearDraft(localStorage, "invcar");
     feed("Registered " + added.car.label, "tool inv.register — " + added.car.identity.category);
   }));
 
@@ -1532,6 +1867,7 @@ function initInventory() {
     saveInvState();
     renderInvKnow();
     $("invKnowPart").value = ""; $("invKnowReason").value = ""; $("invKnowValue").value = "";
+    UX.clearDraft(localStorage, "invnote");
     feed("Knowledge note added", "tool inv.note — owner-supplied, car-pinned");
   }));
 
@@ -1584,6 +1920,7 @@ function initInventory() {
     $("invPartValue").dataset.source = "";
     $("invPartPhoto").value = "";
     invPartPhotoData = null;
+    UX.clearDraft(localStorage, "invpart");
     feed("Attached " + added.part.label + " to " + Inventory.carLabel(invState, added.part.carId),
       "tool inv.attach — part → car (" + added.part.relation + ")");
   }));
@@ -1591,3 +1928,82 @@ function initInventory() {
 
 initIdentity();
 initInventory();
+
+/* ---------- usability: drafts, guides, paint every state ---------- */
+
+function persistFields(key, ids) {
+  const save = () => {
+    const data = {};
+    for (const id of ids) {
+      const el = $(id);
+      if (el) data[id] = el.value;
+    }
+    UX.saveDraft(localStorage, key, data);
+  };
+  for (const id of ids) {
+    const el = $(id);
+    if (!el) continue;
+    el.addEventListener("input", save);
+    el.addEventListener("change", save);
+  }
+}
+
+function restoreDraft(key, ids) {
+  const data = UX.loadDraft(localStorage, key);
+  if (!data) return;
+  for (const id of ids) {
+    const el = $(id);
+    if (el && data[id] !== undefined) el.value = data[id];
+  }
+}
+
+function initUx() {
+  updateOffline();
+  // Paint every state on load so empties guide instead of blanking.
+  renderViewer();
+  renderPartList();
+  renderVerdicts();
+  renderBayCase();
+  renderBayPlan();
+  renderBayParts("");
+  renderGuides();
+  // Drafts: never eaten by a reload.
+  persistFields("listing", ["listingTitle", "listingDesc"]);
+  persistFields("baycase", ["bayYear", "bayMake", "bayModel", "bayTrim", "bayEngine", "bayArea", "bayService", "baySymptom", "bayCodes", "bayObs"]);
+  persistFields("invcar", ["invCarLabel", "invCarYear", "invCarMake", "invCarModel", "invCarTrim"]);
+  persistFields("invpart", ["invPartLabel", "invPartCond", "invPartNote", "invPartValue"]);
+  persistFields("invnote", ["invKnowPart", "invKnowReason", "invKnowValue"]);
+  persistFields("baytest", ["bayTTitle", "bayTWhat", "bayTHow", "bayTExp", "bayTCauses", "bayTOut", "bayTSusp"]);
+  persistFields("baypart", ["bayPName", "bayPNote"]);
+  restoreDraft("baycase", ["bayYear", "bayMake", "bayModel", "bayTrim", "bayEngine", "bayArea", "bayService", "baySymptom", "bayCodes", "bayObs"]);
+  restoreDraft("invcar", ["invCarLabel", "invCarYear", "invCarMake", "invCarModel", "invCarTrim"]);
+  restoreDraft("invpart", ["invPartLabel", "invPartCond", "invPartNote", "invPartValue"]);
+  restoreDraft("invnote", ["invKnowPart", "invKnowReason", "invKnowValue"]);
+  restoreDraft("baytest", ["bayTTitle", "bayTWhat", "bayTHow", "bayTExp", "bayTCauses", "bayTOut", "bayTSusp"]);
+  restoreDraft("baypart", ["bayPName", "bayPNote"]);
+  const savedListing = UX.loadDraft(localStorage, "listing");
+  if (savedListing && (savedListing.listingTitle || savedListing.listingDesc)) {
+    $("listingCard").style.display = "";
+    $("listingTitle").value = savedListing.listingTitle || "";
+    $("listingDesc").value = savedListing.listingDesc || "";
+  }
+  $("panelClose").addEventListener("click", () => $("panel").classList.remove("open"));
+  $("btnDiscardDraft").addEventListener("click", () => {
+    UX.guardedDelete(
+      window.confirm.bind(window),
+      "Discard this listing draft? Your last approved post stays put.",
+      () => {
+        $("listingCard").style.display = "none";
+        $("listingTitle").value = "";
+        $("listingDesc").value = "";
+        $("receipt").innerHTML = "";
+        state.draftId = null;
+        UX.clearDraft(localStorage, "listing");
+        markListingDemo();
+        feed("Draft discarded", "listing — confirmed discard, approvals untouched");
+      }
+    );
+  });
+}
+
+initUx();

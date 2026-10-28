@@ -92,7 +92,7 @@ class MockPostAdapter:
             "adapter": self.name,
             "destinations": destinations,
             "title": draft.get("title"),
-            "note": "Mock post: saved on this machine only. Nothing was sent anywhere.",
+            "note": "Saved on this machine only. Nothing was sent anywhere.",
         }
         path = os.path.join(folder, "post-%d.json" % int(time.time() * 1000))
         with open(path, "w", encoding="utf-8") as fh:

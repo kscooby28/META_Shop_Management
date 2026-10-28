@@ -20,6 +20,8 @@
 
 <div class="layout">
 <main class="work">
+  <div id="busbar" class="busbar" hidden></div>
+  <div id="offlineBar" class="offlinebar" hidden></div>
   <div id="notices"></div>
   <details id="settings">
     <summary>Settings &amp; profile</summary>
@@ -82,9 +84,10 @@
         <label><input id="destEbay" type="checkbox" checked> eBay</label>
         <label><input id="destExchange" type="checkbox"> Parts exchange <span class="roadmap">(roadmap — not built yet)</span></label>
       </div>
-      <div class="row">
-        <button id="btnApprove" type="button" class="primary">Approve</button>
+      <div class="row approve-row">
+        <button id="btnApprove" type="button" class="primary approve">Approve this listing</button>
         <button id="btnPost" type="button">Post</button>
+        <button id="btnDiscardDraft" type="button" class="small">Discard draft</button>
       </div>
       <div id="receipt"></div>
     </div>
@@ -101,6 +104,8 @@
   </div>
 
   <div id="view-bay" hidden>
+  <div id="bayHome" class="homehead"></div>
+  <div id="bayGuide"></div>
   <section id="sec-bcase">
     <h2><span class="step">1</span>Bay case — symptom in</h2>
     <p class="hint">Load a demo case, or describe the car and the symptom in your own words. A VIN photo fills the blanks; manual entry always works.</p>
@@ -111,11 +116,11 @@
     </div>
     <div class="bayform">
       <label>VIN photo (optional)<input id="bayVin" type="file" accept="image/*"></label>
-      <label>Year<input id="bayYear" type="text" inputmode="numeric"></label>
-      <label>Make<input id="bayMake" type="text"></label>
-      <label>Model<input id="bayModel" type="text"></label>
-      <label>Trim (blank stays unknown)<input id="bayTrim" type="text"></label>
-      <label>Engine (if known)<input id="bayEngine" type="text"></label>
+      <label>Year<input id="bayYear" type="text" inputmode="numeric" placeholder="e.g. 2009"></label>
+      <label>Make<input id="bayMake" type="text" placeholder="e.g. BMW"></label>
+      <label>Model<input id="bayModel" type="text" placeholder="e.g. 335i"></label>
+      <label>Trim (blank stays unknown)<input id="bayTrim" type="text" placeholder="e.g. xDrive"></label>
+      <label>Engine (if known)<input id="bayEngine" type="text" placeholder="e.g. N52"></label>
       <label>Area
         <select id="bayArea">
           <option>not sure</option><option>engine</option><option>gearbox</option>
@@ -130,10 +135,10 @@
       <button id="btnBayVinRead" type="button">Read plate</button>
     </div>
     <div id="bayVinCard" style="margin-top:0.5rem"></div>
-    <label>Symptom, in your own words (kept verbatim)<br><textarea id="baySymptom" style="min-height:70px"></textarea></label>
+    <label>Symptom, in your own words (kept verbatim)<br><textarea id="baySymptom" style="min-height:70px" placeholder="e.g. cranks but will not start when hot"></textarea></label>
     <div class="bayform">
-      <label>Fault codes, comma separated<input id="bayCodes" type="text"></label>
-      <label>What you observed, one per line<textarea id="bayObs" style="min-height:60px"></textarea></label>
+      <label>Fault codes, comma separated<input id="bayCodes" type="text" placeholder="e.g. P0304, U0100"></label>
+      <label>What you observed, one per line<textarea id="bayObs" style="min-height:60px" placeholder="e.g. 12.1 volts at the pins"></textarea></label>
     </div>
     <div class="row" style="margin-top:0.6rem">
       <button id="btnBayCase" type="button" class="primary">Create case</button>
@@ -151,7 +156,7 @@
     <details>
       <summary>Add a test by hand</summary>
       <div class="bayform">
-        <label>Title<input id="bayTTitle" type="text"></label>
+        <label>Title<input id="bayTTitle" type="text" placeholder="e.g. Check the ground strap"></label>
         <label>What to check<input id="bayTWhat" type="text"></label>
         <label>How (Autel or by hand)<input id="bayTHow" type="text"></label>
         <label>Expected result<input id="bayTExp" type="text"></label>
@@ -204,6 +209,8 @@
   </div>
 
   <div id="view-inventory" hidden>
+  <div id="invHome" class="homehead"></div>
+  <div id="invGuide"></div>
   <section id="sec-icars">
     <h2><span class="step">1</span>My cars — what do I have</h2>
     <p class="hint">Register your driver and each parts car: by picture, by VIN photo, or by hand. Demo data loads with one button and stays on this machine.</p>
@@ -226,10 +233,10 @@
       <div id="invVinCard" style="margin-top:0.5rem"></div>
       <div class="bayform">
         <label>Name for this car<input id="invCarLabel" type="text" placeholder="My driver"></label>
-        <label>Year<input id="invCarYear" type="text" inputmode="numeric"></label>
-        <label>Make<input id="invCarMake" type="text"></label>
-        <label>Model<input id="invCarModel" type="text"></label>
-        <label>Trim (blank stays unknown)<input id="invCarTrim" type="text"></label>
+        <label>Year<input id="invCarYear" type="text" inputmode="numeric" placeholder="e.g. 2005"></label>
+        <label>Make<input id="invCarMake" type="text" placeholder="e.g. BMW"></label>
+        <label>Model<input id="invCarModel" type="text" placeholder="e.g. 325i"></label>
+        <label>Trim (blank stays unknown)<input id="invCarTrim" type="text" placeholder="leave blank unless a badge shows it"></label>
       </div>
       <div class="row">
         <button id="btnInvAddCar" type="button" class="primary">Add car</button>
@@ -247,9 +254,9 @@
     <details>
       <summary>Add a knowledge note</summary>
       <div class="bayform">
-        <label>Part<input id="invKnowPart" type="text"></label>
-        <label>Why it is worth pulling<input id="invKnowReason" type="text"></label>
-        <label>Value, if you know one<input id="invKnowValue" type="number" min="0"></label>
+        <label>Part<input id="invKnowPart" type="text" placeholder="e.g. engine computer"></label>
+        <label>Why it is worth pulling<input id="invKnowReason" type="text" placeholder="e.g. no EWS, the E30 crowd wants it"></label>
+        <label>Value, if you know one<input id="invKnowValue" type="number" min="0" placeholder="e.g. 200"></label>
       </div>
       <div class="row">
         <button id="btnInvAddNote" type="button">Add note</button>
@@ -271,10 +278,10 @@
         <button id="btnInvPartPhoto" type="button">Describe picture</button>
       </div>
       <div class="bayform">
-        <label>Part name<input id="invPartLabel" type="text"></label>
-        <label>Condition, honestly<input id="invPartCond" type="text" placeholder="used, working / unknown"></label>
-        <label>Owner note<input id="invPartNote" type="text"></label>
-        <label>Value $<input id="invPartValue" type="number" min="0"></label>
+        <label>Part name<input id="invPartLabel" type="text" placeholder="e.g. driver headlight"></label>
+        <label>Condition, honestly<input id="invPartCond" type="text" placeholder="e.g. used, lens clear (or unknown)"></label>
+        <label>Owner note<input id="invPartNote" type="text" placeholder="e.g. pull before anything else"></label>
+        <label>Value $<input id="invPartValue" type="number" min="0" placeholder="blank means unknown"></label>
       </div>
       <div class="row">
         <button id="btnInvComps" type="button">Check comps</button>
@@ -305,7 +312,7 @@
 
 <aside id="panel" class="panel">
   <header>
-    <h2>Shop Copilot</h2>
+    <div class="panelhead"><h2>Shop Copilot</h2><button id="panelClose" type="button" class="small">Close</button></div>
     <p>Ask about this case. Every step shows its work below.</p>
   </header>
   <div id="feed" aria-live="polite"></div>
@@ -325,6 +332,7 @@
 <script src="profile.js"></script>
 <script src="inventory.js"></script>
 <script src="gallery.js"></script>
+<script src="ux.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -590,6 +590,20 @@ class Handler(BaseHTTPRequestHandler):
         if case.get("declined"):
             self._send_json({"ok": False, "error": "case declined: no test plan"}, status=400)
             return
+        if payload.get("demo") and not bay.get("demo_case"):
+            bay["plan"] = new_plan(case, [])
+            bay["modes"]["plan"] = "manual"
+            put_session(session_id, session)
+            self._send_json(
+                {
+                    "ok": True,
+                    "sessionId": session_id,
+                    "mode": "manual",
+                    "notice": "Offline demo: add the tests by hand below; the ranking still works.",
+                    "plan": self._bay_plan_view(bay["plan"]),
+                }
+            )
+            return
         mode = "live"
         notice = ""
         raw_tests = None
@@ -994,6 +1008,17 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.flush()
 
         summary = self._case_summary(session)
+        if payload.get("demo"):
+            reply = self._local_chat_answer(session, message)
+            emit({"type": "mode", "mode": "demo-cache"})
+            emit({"type": "token", "text": reply})
+            if session is not None:
+                trail = session.setdefault("chat", [])
+                trail.append({"role": "user", "content": message})
+                trail.append({"role": "assistant", "content": reply})
+                put_session(session_id, session)
+            emit({"type": "done", "mode": "demo-cache"})
+            return
         try:
             emit({"type": "mode", "mode": "live"})
             full = []

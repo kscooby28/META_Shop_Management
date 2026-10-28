@@ -84,6 +84,21 @@ API key rotation — flipping it later changes the data source, not the
 interface. No fake VIN artifact exists anywhere, because a sample VIN
 could collide with a real one.
 
+## Usability pass (Work Order 5)
+
+No new features: everything already built, made effortless. Sticky
+navigation with mode homes (Bay home: case status plus New case and
+Knowledge base; Inventory home: counts plus Register and Add part);
+guided first tasks per mode that check off inside the real flows and
+never reappear after dismissal; big thumb-sized primary actions and a
+large, separated Approve; a working bar that always says what is
+happening; an offline banner when the page falls back to demo cache
+(plus a settings switch to force offline demo); every empty view with a
+titled next action; DEMO badges on every demo-backed view; drafts that
+survive reloads (browser only); deletes and draft-discards behind one
+plain confirmation; model names kept inside the expandable tool detail;
+and a mobile panel with an obvious open and close.
+
 ## Run it
 
 No dependencies — standard library only.
@@ -167,6 +182,7 @@ behind it.
 - `inventory.py` + `demo_cache/inv_seed.demo.json` — demo seed, photo ID
   help, and comps value lookups (inventory data itself stays in the browser).
 - `web/gallery.js` — pure strip/viewer model behind the photo gallery.
+- `web/ux.js` — pure usability logic: drafts, guides, empty states, deletes.
 - `tests/` — Python suites plus a Node driver for the browser logic
   (`tests/test_web_logic.py` runs it; Node is a test dependency).
   `scripts/smoke_demo.py` — 10× end-to-end over Yard, Bay, and inventory.
