@@ -173,5 +173,22 @@ class CompareEndpointTest(unittest.TestCase):
         self.assertEqual(fake.sent[-1][0], 400)
 
 
+class CompareLabelsTest(unittest.TestCase):
+    """The ruling label must be visible in the shipped page, not just the API."""
+
+    def test_engine_labels_in_page(self):
+        with open(os.path.join(ROOT, "web", "index.html"), encoding="utf-8") as fh:
+            html = fh.read()
+        for phrase in ("Muse Spark Open", "open-weight", "Baseten",
+                       "Rules decide", "second look", "Compare"):
+            self.assertIn(phrase, html, phrase)
+
+    def test_engine_labels_in_render(self):
+        with open(os.path.join(ROOT, "web", "app.js"), encoding="utf-8") as fh:
+            src = fh.read()
+        for phrase in ("Muse Spark 1.3", "Muse Spark Open, open-weight via Baseten"):
+            self.assertIn(phrase, src, phrase)
+
+
 if __name__ == "__main__":
     unittest.main()
