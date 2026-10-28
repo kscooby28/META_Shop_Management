@@ -44,6 +44,25 @@ clutch-circuit oil only, flawless hot drive; final creep/rescan gates
 left open, never claimed), and the cylinder that followed (diesel SUV,
 +3.02 mg/stroke stays on cylinder 4 after the injector swap).
 
+## First-run identity + enthusiast inventory (Work Order 3)
+
+On the very first open, and only then, one setup question: shop or
+enthusiast, plus an email. The answer persists in a local-only browser
+profile that is never sent anywhere; later opens route by it (shops open
+the Bay, enthusiasts open the Inventory), and mode changes happen only as
+a deliberate settings action. The same page serves phone and PC browsers.
+
+The Inventory tab organizes an enthusiast's cars and parts: register each
+car by picture, VIN photo, or hand entry; attach parts with honest
+condition, an owner note, and a value that is comps-sourced or
+owner-entered (unsourced values stay unknown and out of the totals);
+per-car what-to-look-for notes from owner knowledge (silence when none
+exists — desirability is never invented); plain-money totals. Selling is
+a deliberate second step: any part can feed the unchanged listing draft
+behind the Approve gate, still mock-post only. Demo seed: a driver plus
+two 3-series parts cars and a mid-90s M3 parts car with the owner's
+engine-computer note, all anonymized samples.
+
 ## Run it
 
 No dependencies — standard library only.
@@ -122,5 +141,10 @@ behind it.
 - `comps.py` — sold-comp adapters (mock ships; real one slots in).
 - `listing.py` — drafts + mock post outbox.
 - `demo_cache.py` + `demo_cache/*.demo.json` — cache behind every step.
-- `web/` — the one page (`index.html`, `app.js`, `styles.css`) + sample frames.
-- `tests/` — verdict engine tests. `scripts/smoke_demo.py` — 10× end-to-end.
+- `web/` — the one page (`index.html`, `app.js`, `profile.js`,
+  `inventory.js`, `styles.css`) + sample frames.
+- `inventory.py` + `demo_cache/inv_seed.demo.json` — demo seed, photo ID
+  help, and comps value lookups (inventory data itself stays in the browser).
+- `tests/` — Python suites plus a Node driver for the browser logic
+  (`tests/test_web_logic.py` runs it; Node is a test dependency).
+  `scripts/smoke_demo.py` — 10× end-to-end over Yard, Bay, and inventory.

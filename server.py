@@ -30,8 +30,17 @@ from bay import (
 )
 from comps import get_adapter as get_comps_adapter
 from demo_cache import StepCache
+from inventory import comp_for_label, load_seed
 from listing import build_live_draft, demo_draft, get_post_adapter
-from meta_client import MetaAPIError, chat_stream, draft_plan, identify_car, read_vin_photo, segment_parts
+from meta_client import (
+    MetaAPIError,
+    chat_stream,
+    describe_part,
+    draft_plan,
+    identify_car,
+    read_vin_photo,
+    segment_parts,
+)
 from verdict import evaluate, load_rules, render_decline, save_rules
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -131,6 +140,13 @@ class Handler(BaseHTTPRequestHandler):
         elif parsed.path == "/api/bay/kb":
             query = urllib.parse.parse_qs(parsed.query).get("q", [""])[0]
             self._send_json({"ok": True, "notes": search_kb(ROOT, query)})
+        elif parsed.path == "/api/inv/seed":
+            try:
+                seed = load_seed(ROOT)
+            except (OSError, ValueError):
+                self._send_json({"ok": False, "error": "demo seed missing"}, status=500)
+                return
+            self._send_json({"ok": True, "seed": seed})
         else:
             self._serve_static(parsed.path)
 
@@ -174,6 +190,14 @@ class Handler(BaseHTTPRequestHandler):
             self._api_bay_parts(payload)
         elif parsed.path == "/api/bay/labor":
             self._api_bay_labor(payload)
+        elif parsed.path == "/api/inv/identify":
+            self._api_inv_identify(payload)
+        elif parsed.path == "/api/inv/vin":
+            self._api_inv_vin(payload)
+        elif parsed.path == "/api/inv/part-photo":
+            self._api_inv_part_photo(payload)
+        elif parsed.path == "/api/inv/comps":
+            self._api_inv_comps(payload)
         else:
             self._send_json({"ok": False, "error": "unknown endpoint"}, status=404)
 
@@ -329,28 +353,50 @@ class Handler(BaseHTTPRequestHandler):
         self._send_json({"ok": True, "sessionId": session_id, "report": report})
 
     def _api_listing(self, payload):
-        session_id = payload.get("sessionId")
-        session = get_session(session_id) if session_id else None
-        if session is None or "harvest" not in session:
-            self._send_json({"ok": False, "error": "run harvest first"}, status=400)
-            return
-        part_id = payload.get("partId")
-        part = next(
-            (p for p in session["harvest"].get("parts", []) if p.get("id") == part_id), None
-        )
-        if part is None:
-            self._send_json({"ok": False, "error": "unknown part"}, status=400)
-            return
-        comp = (session.get("comps") or {}).get(part_id, {})
-        verdict_info = next(
-            (v for v in session.get("verdicts", {}).get("verdicts", []) if v.get("part_id") == part_id),
-            None,
-        )
-        car = session.get("harvest", {}).get("car", {})
+        inv = payload.get("invPart")
+        if inv is not None:
+            # Sell second: an inventory item feeds a draft. No harvest needed.
+            session_id, session = self._bay_session(payload)
+            part_id = inv.get("id") or "inv-part"
+            part = {
+                "id": part_id,
+                "label": inv.get("label") or "part",
+                "intact": "unknown",
+                "intact_note": inv.get("condition") or "",
+                "sightings": [],
+            }
+            comp = {
+                "price_low": inv.get("value"),
+                "price_high": inv.get("value"),
+                "price_source": inv.get("valueSource") or "",
+            }
+            verdict_info = None
+            car = payload.get("invCar") or {}
+            force_demo = bool(payload.get("demo"))
+        else:
+            session_id = payload.get("sessionId")
+            session = get_session(session_id) if session_id else None
+            if session is None or "harvest" not in session:
+                self._send_json({"ok": False, "error": "run harvest first"}, status=400)
+                return
+            part_id = payload.get("partId")
+            part = next(
+                (p for p in session["harvest"].get("parts", []) if p.get("id") == part_id), None
+            )
+            if part is None:
+                self._send_json({"ok": False, "error": "unknown part"}, status=400)
+                return
+            comp = (session.get("comps") or {}).get(part_id, {})
+            verdict_info = next(
+                (v for v in session.get("verdicts", {}).get("verdicts", []) if v.get("part_id") == part_id),
+                None,
+            )
+            car = session.get("harvest", {}).get("car", {})
+            force_demo = False
         mode = "live"
         notice = ""
         try:
-            if session.get("harvest_mode") != "live":
+            if force_demo or session.get("harvest_mode") != "live":
                 raise MetaAPIError("harvest came from demo cache", kind="demo")
             draft = build_live_draft(part, comp, verdict_info, car)
             StepCache(ROOT).save_live(session_id, "listing-%s" % part_id, draft)
@@ -670,6 +716,95 @@ class Handler(BaseHTTPRequestHandler):
                 }
         put_session(session_id, session)
         self._send_json({"ok": True, "sessionId": session_id, "labor": labor_math(plan, standards)})
+
+    # -- inventory -------------------------------------------------------
+    def _api_inv_identify(self, payload):
+        if payload.get("demo"):
+            return self._send_json(
+                {
+                    "ok": True,
+                    "mode": "demo-cache",
+                    "notice": "Demo sample identification.",
+                    "car": load_seed(ROOT)["sampleIdentify"],
+                }
+            )
+        photo = payload.get("photo")
+        if not photo:
+            self._send_json({"ok": False, "error": "attach a photo first"}, status=400)
+            return
+        try:
+            found = identify_car([photo])
+        except MetaAPIError:
+            self._send_json(
+                {"ok": False, "error": "could not identify the car offline; enter it by hand"},
+                status=400,
+            )
+            return
+        self._send_json({"ok": True, "mode": "live", "notice": "", "car": found["car"]})
+
+    def _api_inv_vin(self, payload):
+        if payload.get("demo"):
+            return self._send_json(
+                {
+                    "ok": True,
+                    "mode": "demo-cache",
+                    "notice": "Demo sample vehicle; no VIN stored.",
+                    "vehicle": load_seed(ROOT)["sampleVin"],
+                }
+            )
+        photo = payload.get("photo")
+        if not photo:
+            self._send_json({"ok": False, "error": "attach a VIN photo first"}, status=400)
+            return
+        try:
+            read = read_vin_photo(photo)
+        except MetaAPIError:
+            self._send_json(
+                {"ok": False, "error": "could not read the plate offline; enter it by hand"},
+                status=400,
+            )
+            return
+        read.pop("vin", None)  # identification only; the VIN itself is not kept
+        self._send_json({"ok": True, "mode": "live", "notice": "", "vehicle": read})
+
+    def _api_inv_part_photo(self, payload):
+        if payload.get("demo"):
+            return self._send_json(
+                {
+                    "ok": True,
+                    "mode": "demo-cache",
+                    "notice": "Demo sample description; enter the real condition by hand.",
+                    "part": load_seed(ROOT)["samplePart"],
+                }
+            )
+        photo = payload.get("photo")
+        if not photo:
+            self._send_json({"ok": False, "error": "attach a part photo first"}, status=400)
+            return
+        try:
+            part = describe_part(photo)
+        except MetaAPIError:
+            self._send_json(
+                {"ok": False, "error": "could not describe the part offline; enter it by hand"},
+                status=400,
+            )
+            return
+        self._send_json({"ok": True, "mode": "live", "notice": "", "part": part})
+
+    def _api_inv_comps(self, payload):
+        label = payload.get("label") or ""
+        try:
+            seed = load_seed(ROOT)
+        except (OSError, ValueError):
+            seed = {}
+        found = comp_for_label(seed, label, allow_samples=bool(payload.get("demo")))
+        self._send_json(
+            {
+                "ok": True,
+                "mode": "demo-cache" if payload.get("demo") else "live-adapter",
+                "comp": found,
+            }
+        )
 
     # -- chat ------------------------------------------------------------
     def _case_summary(self, session):

@@ -7,7 +7,9 @@ Each yard run: session → intake (demo) → harvest → comps → verdicts →
 listing draft → approve → mock post → chat. Each bay run: session → bay
 intake (demo case 1) → plan → pass → fail → parts → labor → kb, plus an
 N63 no-start decline that must get no plan. Exits nonzero on the first
-failure so "10 out of 10" is a real claim.
+failure so "10 out of 10" is a real claim. Inventory runs cover the demo
+seed, comps hit/miss/no-data, demo photo paths, and a sell-second listing
+draft through approve into the mock outbox.
 """
 
 import json
@@ -179,12 +181,54 @@ def bay_run(n):
     print("bay %d/%d: PASS" % (n, RUNS))
 
 
+def inv_run(n):
+    _, seed = get("/api/inv/seed")
+    check(len(seed["seed"]["cars"]) == 4, "inv %d: seed must carry 4 cars" % n)
+    check(len(seed["seed"]["parts"]) == 6, "inv %d: seed must carry 6 parts" % n)
+
+    _, hit = post("/api/inv/comps", {"label": "engine computer", "demo": True})
+    check(hit["comp"]["value"] == 200, "inv %d: demo comp must hit" % n)
+    _, miss = post("/api/inv/comps", {"label": "trunk lid", "demo": True})
+    check(miss["comp"]["value"] is None, "inv %d: demo miss must be no-data" % n)
+    _, live = post("/api/inv/comps", {"label": "engine computer", "demo": False})
+    check(live["comp"]["value"] is None, "inv %d: live must be no-data" % n)
+
+    tiny = "data:image/png;base64,iVBORw0KGgo="
+    _, ident = post("/api/inv/identify", {"photo": {"name": "t.png", "data": tiny}, "demo": True})
+    check(ident["car"]["trim"] == "unknown", "inv %d: demo identify must stay honest" % n)
+    _, vin = post("/api/inv/vin", {"photo": {"name": "t.png", "data": tiny}, "demo": True})
+    check("vin" not in vin["vehicle"], "inv %d: demo vin must store nothing" % n)
+    _, part = post("/api/inv/part-photo", {"photo": {"name": "t.png", "data": tiny}, "demo": True})
+    check("demo sample" in part["part"]["label"], "inv %d: demo part must be tagged" % n)
+
+    _, session = post("/api/session", {})
+    sid = session["sessionId"]
+    _, listing = post(
+        "/api/listing",
+        {
+            "sessionId": sid,
+            "demo": True,
+            "invPart": {"id": "ip-ecu", "label": "engine computer",
+                        "condition": "used, untested", "value": 200,
+                        "valueSource": "demo-sample: owner note"},
+            "invCar": {"year": 1995, "make": "BMW", "model": "M3"},
+        },
+    )
+    check("engine computer" in listing["draft"]["title"].lower(), "inv %d: draft title off" % n)
+    post("/api/listing/approve", {"sessionId": sid, "draftId": listing["draftId"]})
+    _, posted = post("/api/listing/post", {"sessionId": sid, "draftId": listing["draftId"]})
+    check(posted["receipt"]["adapter"] == "mock-outbox", "inv %d: mock receipt missing" % n)
+    print("inv %d/%d: PASS" % (n, RUNS))
+
+
 def main():
     for n in range(1, RUNS + 1):
         one_run(n)
     for n in range(1, RUNS + 1):
         bay_run(n)
-    print("ALL %d YARD + %d BAY RUNS PASSED" % (RUNS, RUNS))
+    for n in range(1, RUNS + 1):
+        inv_run(n)
+    print("ALL %d YARD + %d BAY + %d INV RUNS PASSED" % (RUNS, RUNS, RUNS))
 
 
 if __name__ == "__main__":

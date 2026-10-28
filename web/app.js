@@ -1002,15 +1002,19 @@ function bayLaborFromInputs() {
   return standards;
 }
 
+function showView(which) {
+  $("view-yard").hidden = which !== "yard";
+  $("view-bay").hidden = which !== "bay";
+  $("view-inventory").hidden = which !== "inventory";
+  $("tabYard").classList.toggle("active", which === "yard");
+  $("tabBay").classList.toggle("active", which === "bay");
+  $("tabInventory").classList.toggle("active", which === "inventory");
+}
+
 function initBay() {
-  const show = (which) => {
-    $("view-yard").hidden = which !== "yard";
-    $("view-bay").hidden = which !== "bay";
-    $("tabYard").classList.toggle("active", which === "yard");
-    $("tabBay").classList.toggle("active", which === "bay");
-  };
-  $("tabYard").addEventListener("click", () => show("yard"));
-  $("tabBay").addEventListener("click", () => { show("bay"); bayKb(); });
+  $("tabYard").addEventListener("click", () => showView("yard"));
+  $("tabBay").addEventListener("click", () => { showView("bay"); bayKb(); });
+  $("tabInventory").addEventListener("click", () => showView("inventory"));
 
   document.querySelectorAll("[data-baycase]").forEach((btn) => {
     btn.addEventListener("click", guard(async () => {
@@ -1060,3 +1064,357 @@ function initBay() {
 }
 
 initBay();
+
+/* ---------- first-run identity + enthusiast inventory ---------- */
+
+const INV_KEY = "copilot.inventory";
+const INV_SEED_KEY = "copilot.invSeeded";
+let invState = Inventory.blankInventory();
+let invSeeded = false;
+
+function loadInvState() {
+  try {
+    const raw = localStorage.getItem(INV_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.cars) && Array.isArray(parsed.parts)) invState = parsed;
+    }
+  } catch (err) {
+    invState = Inventory.blankInventory();
+  }
+  invSeeded = localStorage.getItem(INV_SEED_KEY) === "1";
+}
+
+function saveInvState() {
+  localStorage.setItem(INV_KEY, JSON.stringify(invState));
+  localStorage.setItem(INV_SEED_KEY, invSeeded ? "1" : "0");
+}
+
+function renderSettings() {
+  const box = $("settingsBody");
+  const p = Profile.loadProfile(localStorage);
+  box.innerHTML = "";
+  if (!p) {
+    box.textContent = "No profile yet — finish first-run setup.";
+    return;
+  }
+  const span = document.createElement("span");
+  span.textContent = p.email + " · " + p.mode;
+  box.appendChild(span);
+  const other = p.mode === "shop" ? "enthusiast" : "shop";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "small";
+  btn.textContent = "Switch to " + other;
+  btn.addEventListener("click", guard(async () => {
+    Profile.setMode(localStorage, other);
+    renderSettings();
+    showView(Profile.routeFor(other));
+    feed("Mode switched to " + other + " in settings", "profile — deliberate change, persisted locally");
+  }));
+  box.appendChild(btn);
+  const reset = document.createElement("button");
+  reset.type = "button";
+  reset.className = "small";
+  reset.textContent = "Reset demo profile";
+  reset.addEventListener("click", () => {
+    Profile.clearProfile(localStorage);
+    localStorage.removeItem(INV_KEY);
+    localStorage.removeItem(INV_SEED_KEY);
+    location.reload();
+  });
+  box.appendChild(reset);
+}
+
+function initIdentity() {
+  if (Profile.needsSetup(localStorage)) {
+    $("setupOverlay").hidden = false;
+  } else {
+    showView(Profile.routeFor(Profile.loadProfile(localStorage).mode));
+  }
+  const choose = (mode) => guard(async () => {
+    Profile.saveProfile(localStorage, $("setupEmail").value, mode);
+    $("setupOverlay").hidden = true;
+    renderSettings();
+    showView(Profile.routeFor(mode));
+    feed("First-run setup done: " + mode, "profile — stored in this browser only, never sent");
+  });
+  $("btnSetupShop").addEventListener("click", choose("shop"));
+  $("btnSetupFan").addEventListener("click", choose("enthusiast"));
+  renderSettings();
+}
+
+function fillCarSelect(sel) {
+  const current = sel.value;
+  sel.innerHTML = "";
+  for (const car of invState.cars) {
+    const opt = document.createElement("option");
+    opt.value = car.id;
+    opt.textContent = car.label;
+    sel.appendChild(opt);
+  }
+  if (invState.cars.some((c) => c.id === current)) sel.value = current;
+}
+
+function renderInvCars() {
+  const box = $("invCars");
+  box.innerHTML = "";
+  if (!invState.cars.length) {
+    box.innerHTML = '<p class="hint">No cars yet. Load the demo inventory or register a car below.</p>';
+    return;
+  }
+  for (const car of invState.cars) {
+    const mine = invState.parts.filter((p) => p.carId === car.id);
+    const t = Inventory.carTotals(invState, car.id);
+    const div = document.createElement("div");
+    div.className = "invcar";
+    div.innerHTML =
+      '<div class="cname">' + esc(car.label) + "</div>" +
+      '<div class="ident">' + esc([car.identity.year, car.identity.make, car.identity.model].join(" ")) +
+      " · trim " + esc(car.identity.trim) + " · " + esc(car.identity.category) + "</div>" +
+      '<div class="ident">' + mine.length + " part(s). " + esc(Inventory.plainTotals(t, "parts")) + "</div>" +
+      '<div class="ident">sources: ' + esc(car.source_tags.join(", ")) + "</div>";
+    box.appendChild(div);
+  }
+}
+
+function renderInvKnow() {
+  fillCarSelect($("invKnowCar"));
+  const box = $("invKnow");
+  const carId = $("invKnowCar").value;
+  const notes = carId ? Inventory.notesForCar(invState, carId) : [];
+  if (!carId) {
+    box.innerHTML = '<p class="hint">Register a car first.</p>';
+    return;
+  }
+  if (!notes.length) {
+    box.innerHTML = "<p>No knowledge notes for this car yet. Add what you know below — the software will not invent any.</p>";
+    return;
+  }
+  box.innerHTML = "<ul class='part-list'>" + notes.map((n) =>
+    "<li><strong>Look for the " + esc(n.part) + "</strong><span>" + esc(n.reason) + "</span>" +
+    (n.value !== null ? "<span>about $" + n.value + "</span>" : "<span>value unknown</span>") +
+    '<span class="tag">' + esc(n.source) + "</span></li>"
+  ).join("") + "</ul>";
+}
+
+function renderInvParts() {
+  const box = $("invParts");
+  fillCarSelect($("invPartCar"));
+  if (!invState.parts.length) {
+    box.innerHTML = '<p class="hint">Parts appear here once cars exist.</p>';
+    return;
+  }
+  box.innerHTML = "";
+  for (const car of invState.cars) {
+    const mine = invState.parts.filter((p) => p.carId === car.id);
+    if (!mine.length) continue;
+    const head = document.createElement("p");
+    head.innerHTML = "<strong>" + esc(car.label) + "</strong>";
+    box.appendChild(head);
+    const ul = document.createElement("ul");
+    ul.className = "part-list";
+    for (const part of mine) {
+      const li = document.createElement("li");
+      li.innerHTML =
+        "<strong>" + esc(part.label) + "</strong>" +
+        '<span class="relbadge">' + esc(part.relation) + " " + esc(car.label) + "</span>" +
+        "<span>" + esc(part.condition) + "</span>" +
+        (part.note ? "<span>" + esc(part.note) + "</span>" : "") +
+        (part.value !== null && part.valueSource
+          ? "<span>$" + part.value + ' <span class="sourced">(' + esc(part.valueSource) + ")</span></span>"
+          : '<span class="missing">value unknown</span>') +
+        ' <button type="button" class="small" data-list="' + part.id + '">Draft listing</button>';
+      li.querySelector("[data-list]").addEventListener("click", guard(async () => {
+        await invDraftListing(part.id);
+      }));
+      ul.appendChild(li);
+    }
+    box.appendChild(ul);
+  }
+}
+
+function renderInvTotals() {
+  const box = $("invTotals");
+  if (!invState.parts.length) {
+    box.innerHTML = '<p class="hint">Totals appear once parts exist.</p>';
+    return;
+  }
+  box.innerHTML = "<p><strong>" + esc(Inventory.plainTotals(Inventory.overallTotals(invState), "parts")) + "</strong></p>";
+}
+
+function renderInventory() {
+  renderInvCars();
+  renderInvKnow();
+  renderInvParts();
+  renderInvTotals();
+}
+
+async function invDraftListing(partId) {
+  const part = invState.parts.find((p) => p.id === partId);
+  if (!part) throw new Error("part not found");
+  const car = invState.cars.find((c) => c.id === part.carId) || {};
+  const res = await api("/api/listing", {
+    sessionId: state.sessionId,
+    demo: invSeeded,
+    invPart: {
+      id: part.id, label: part.label, condition: part.condition,
+      value: part.value, valueSource: part.valueSource,
+    },
+    invCar: car.identity || {},
+  });
+  state.sessionId = res.sessionId;
+  state.draftId = res.draftId;
+  $("listingCard").style.display = "";
+  $("listingTitle").value = res.draft.title || "";
+  $("listingDesc").value = res.draft.description || "";
+  $("receipt").innerHTML = "";
+  $("cutoutSvg").innerHTML = "";
+  $("cutoutNote").textContent = "Inventory draft: no photo cutout. Edit, Approve, then Post — nothing posts without approval.";
+  showView("yard");
+  document.getElementById("sec-listing").scrollIntoView();
+  feed("Drafted a listing from inventory: " + part.label,
+    "tool listing.draft — inventory item → Edit/Approve/Post card (" + res.mode + ")");
+}
+
+function readPhotoInput(input) {
+  const file = (input.files || [])[0];
+  if (!file) return Promise.resolve(null);
+  return downscale(file).then((data) => ({ name: file.name, data }));
+}
+
+function initInventory() {
+  loadInvState();
+  renderInventory();
+
+  $("btnInvSeed").addEventListener("click", guard(async () => {
+    const res = await fetch("/api/inv/seed");
+    const data = await res.json();
+    if (!data.ok) throw new Error("demo seed missing");
+    invState = Inventory.applySeed(data.seed);
+    invSeeded = true;
+    saveInvState();
+    renderInventory();
+    feed("Loaded the demo inventory: 4 cars, 6 parts, 1 knowledge note",
+      "tool inv.seed — anonymized samples, local only");
+  }));
+  $("btnInvClear").addEventListener("click", guard(async () => {
+    invState = Inventory.blankInventory();
+    invSeeded = false;
+    saveInvState();
+    renderInventory();
+    feed("Inventory cleared", "inventory — local data removed from this browser");
+  }));
+
+  $("btnInvAddCar").addEventListener("click", guard(async () => {
+    const added = Inventory.addCar(invState, {
+      label: $("invCarLabel").value,
+      identity: {
+        year: $("invCarYear").value.trim(),
+        make: $("invCarMake").value.trim(),
+        model: $("invCarModel").value.trim(),
+        trim: $("invCarTrim").value.trim(),
+      },
+      source_tags: ["owner-entered"],
+    });
+    invState = added.inv;
+    saveInvState();
+    renderInventory();
+    $("invCarLabel").value = ""; $("invCarYear").value = "";
+    $("invCarMake").value = ""; $("invCarModel").value = ""; $("invCarTrim").value = "";
+    feed("Registered " + added.car.label, "tool inv.register — " + added.car.identity.category);
+  }));
+
+  $("btnInvCarPhoto").addEventListener("click", guard(async () => {
+    const photo = await readPhotoInput($("invCarPhoto"));
+    if (!photo) throw new Error("attach a picture first");
+    const res = await api("/api/inv/identify", { photo, demo: invSeeded });
+    const car = res.car || {};
+    if (car.year && car.year !== "unknown") $("invCarYear").value = car.year;
+    if (car.make && car.make !== "unknown") $("invCarMake").value = car.make;
+    if (car.model && car.model !== "unknown") $("invCarModel").value = car.model;
+    if (car.trim && car.trim !== "unknown") $("invCarTrim").value = car.trim;
+    feed("Picture identified: " + [car.year, car.make, car.model].filter(Boolean).join(" "),
+      "tool inv.identify — photo → car ID (" + res.mode + ")");
+  }));
+
+  $("btnInvCarVin").addEventListener("click", guard(async () => {
+    const photo = await readPhotoInput($("invCarVin"));
+    if (!photo) throw new Error("attach a VIN photo first");
+    const res = await api("/api/inv/vin", { photo, demo: invSeeded });
+    const car = res.vehicle || {};
+    if (car.year && car.year !== "unknown") $("invCarYear").value = car.year;
+    if (car.make && car.make !== "unknown") $("invCarMake").value = car.make;
+    if (car.model && car.model !== "unknown") $("invCarModel").value = car.model;
+    feed("VIN photo read into the form (VIN itself not kept)",
+      "tool inv.vin — plate → vehicle fields (" + res.mode + ")");
+  }));
+
+  $("invKnowCar").addEventListener("change", renderInvKnow);
+  $("btnInvAddNote").addEventListener("click", guard(async () => {
+    const value = $("invKnowValue").value.trim();
+    invState = Inventory.addNote(invState, {
+      carId: $("invKnowCar").value,
+      part: $("invKnowPart").value,
+      reason: $("invKnowReason").value,
+      value: value === "" ? null : Number(value),
+      source: value === "" ? "" : "owner-entered",
+    });
+    saveInvState();
+    renderInvKnow();
+    $("invKnowPart").value = ""; $("invKnowReason").value = ""; $("invKnowValue").value = "";
+    feed("Knowledge note added", "tool inv.note — owner-supplied, car-pinned");
+  }));
+
+  $("btnInvPartPhoto").addEventListener("click", guard(async () => {
+    const photo = await readPhotoInput($("invPartPhoto"));
+    if (!photo) throw new Error("attach a part picture first");
+    const res = await api("/api/inv/part-photo", { photo, demo: invSeeded });
+    if (res.part.label) $("invPartLabel").value = res.part.label.replace(" (demo sample)", "");
+    if (res.part.condition) $("invPartCond").value = res.part.condition;
+    if (res.notice) notice(esc(res.notice));
+    feed("Part picture described: " + res.part.label,
+      "tool inv.part-photo — photo → label + condition (" + res.mode + ")");
+  }));
+
+  $("btnInvComps").addEventListener("click", guard(async () => {
+    const label = $("invPartLabel").value.trim();
+    if (!label) throw new Error("name the part first");
+    const res = await api("/api/inv/comps", { label, demo: invSeeded });
+    if (res.comp.value !== null && res.comp.source) {
+      $("invPartValue").value = res.comp.value;
+      $("invPartValue").dataset.source = res.comp.source;
+      feed("Comps say about $" + res.comp.value + " (" + res.comp.source + ")",
+        "tool inv.comps — '" + label + "' → sourced value (" + res.mode + ")");
+    } else {
+      $("invPartValue").dataset.source = "";
+      notice(esc(res.comp.note || "No reliable value."));
+      feed("No reliable value for '" + label + "'", "tool inv.comps — no-data, honestly stated");
+    }
+  }));
+
+  $("btnInvAddPart").addEventListener("click", guard(async () => {
+    const valueRaw = $("invPartValue").value.trim();
+    const added = Inventory.attachPart(invState, {
+      carId: $("invPartCar").value,
+      relation: $("invPartRel").value,
+      label: $("invPartLabel").value,
+      condition: $("invPartCond").value,
+      note: $("invPartNote").value,
+      value: valueRaw === "" ? null : Number(valueRaw),
+      valueSource: valueRaw === "" ? "" : ($("invPartValue").dataset.source || "owner-entered"),
+      source_tags: ["owner-entered"],
+    });
+    invState = added.inv;
+    saveInvState();
+    renderInventory();
+    $("invPartLabel").value = ""; $("invPartCond").value = "";
+    $("invPartNote").value = ""; $("invPartValue").value = "";
+    $("invPartValue").dataset.source = "";
+    feed("Attached " + added.part.label + " to " + Inventory.carLabel(invState, added.part.carId),
+      "tool inv.attach — part → car (" + added.part.relation + ")");
+  }));
+}
+
+initIdentity();
+initInventory();

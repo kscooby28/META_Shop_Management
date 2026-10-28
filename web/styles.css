@@ -276,6 +276,44 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
 .kbnote { border: 1px solid var(--line); border-radius: 8px; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; font-size: 0.9rem; }
 .kbnote .src { display: block; font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; }
 
+#setupOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 28, 24, 0.55);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+#setupOverlay[hidden] { display: none; }
+.setup-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.4rem 1.5rem;
+  max-width: 420px;
+  width: 100%;
+}
+.setup-card h2 { margin: 0 0 0.4rem; font-size: 1.25rem; }
+
+#settings { margin-bottom: 1.1rem; font-size: 0.88rem; }
+#settings summary { cursor: pointer; color: var(--muted); }
+#settingsBody { padding-top: 0.4rem; display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+
+.invcar { border: 1px solid var(--line); border-radius: 10px; padding: 0.7rem 0.9rem; margin-bottom: 0.6rem; }
+.invcar .cname { font-weight: 800; font-size: 1.02rem; }
+.invcar .ident { font-size: 0.88rem; color: var(--muted); }
+.relbadge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: var(--wash);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
 @media (max-width: 900px) {
   .layout { flex-direction: column; }
   .panel {

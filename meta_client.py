@@ -418,6 +418,43 @@ jargon. Never invent part numbers, prices, torque values, or labor times. If
 the evidence is thin, say so in a test's "what" instead of guessing."""
 
 
+PART_PROMPT = """You identify one photographed car part for an enthusiast's inventory.
+Reply with JSON only: {"label": ..., "condition": ..., "notes": ...}. Name the
+part in plain words. State only the condition you can honestly see; anything
+unclear must say so. Never invent part numbers, fitment, or prices."""
+
+
+def describe_part(image):
+    """Ask Spark to describe one part photo. Raises MetaAPIError."""
+    cfg = settings()
+    raw = _post(
+        "/chat/completions",
+        {
+            "model": cfg["spark_model"],
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": PART_PROMPT},
+                        {"type": "image_url", "image_url": {"url": _as_data_url(image)}},
+                    ],
+                }
+            ],
+            "response_format": {"type": "json_object"},
+        },
+    )
+    try:
+        text = raw["choices"][0]["message"]["content"]
+        parsed = json.loads(text)
+        assert isinstance(parsed.get("label"), str)
+    except (KeyError, IndexError, AssertionError, ValueError, TypeError) as exc:
+        raise MetaAPIError("Spark part read unusable: %s" % exc, kind="bad_response")
+    parsed.setdefault("condition", "unknown")
+    parsed.setdefault("notes", "")
+    parsed["source"] = "spark-live"
+    return parsed
+
+
 def draft_plan(case):
     """Ask Spark to draft the ranked test plan. Raises MetaAPIError."""
     cfg = settings()

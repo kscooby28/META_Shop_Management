@@ -14,12 +14,17 @@
   <span id="modePill" class="pill">not started</span>
   <button id="tabYard" type="button" class="tab active">Yard</button>
   <button id="tabBay" type="button" class="tab">Bay</button>
+  <button id="tabInventory" type="button" class="tab">Inventory</button>
   <button id="panelToggle" type="button">Shop Copilot</button>
 </header>
 
 <div class="layout">
 <main class="work">
   <div id="notices"></div>
+  <details id="settings">
+    <summary>Settings &amp; profile</summary>
+    <div id="settingsBody"></div>
+  </details>
   <div id="view-yard">
 
   <section id="sec-intake">
@@ -191,7 +196,102 @@
     <div id="bayKb" style="margin-top:0.6rem"></div>
   </section>
   </div>
+
+  <div id="view-inventory" hidden>
+  <section id="sec-icars">
+    <h2><span class="step">1</span>My cars — what do I have</h2>
+    <p class="hint">Register your driver and each parts car: by picture, by VIN photo, or by hand. Demo data loads with one button and stays on this machine.</p>
+    <div class="row">
+      <button id="btnInvSeed" type="button">Load demo inventory</button>
+      <button id="btnInvClear" type="button">Clear inventory</button>
+    </div>
+    <div id="invCars" style="margin-top:0.7rem"></div>
+    <details>
+      <summary>Register a car</summary>
+      <div class="row">
+        <label>Picture<input id="invCarPhoto" type="file" accept="image/*"></label>
+        <button id="btnInvCarPhoto" type="button">Identify picture</button>
+        <label>VIN photo<input id="invCarVin" type="file" accept="image/*"></label>
+        <button id="btnInvCarVin" type="button">Read VIN</button>
+      </div>
+      <div class="bayform">
+        <label>Name for this car<input id="invCarLabel" type="text" placeholder="My driver"></label>
+        <label>Year<input id="invCarYear" type="text" inputmode="numeric"></label>
+        <label>Make<input id="invCarMake" type="text"></label>
+        <label>Model<input id="invCarModel" type="text"></label>
+        <label>Trim (blank stays unknown)<input id="invCarTrim" type="text"></label>
+      </div>
+      <div class="row">
+        <button id="btnInvAddCar" type="button" class="primary">Add car</button>
+      </div>
+    </details>
+  </section>
+
+  <section id="sec-iknow">
+    <h2><span class="step">2</span>What to look for — on each car</h2>
+    <p class="hint">Owner knowledge and sourced comps only. The software never invents a reason a part is desirable.</p>
+    <div class="row">
+      <select id="invKnowCar"></select>
+    </div>
+    <div id="invKnow" style="margin-top:0.5rem"></div>
+    <details>
+      <summary>Add a knowledge note</summary>
+      <div class="bayform">
+        <label>Part<input id="invKnowPart" type="text"></label>
+        <label>Why it is worth pulling<input id="invKnowReason" type="text"></label>
+        <label>Value, if you know one<input id="invKnowValue" type="number" min="0"></label>
+      </div>
+      <div class="row">
+        <button id="btnInvAddNote" type="button">Add note</button>
+      </div>
+    </details>
+  </section>
+
+  <section id="sec-iparts">
+    <h2><span class="step">3</span>Parts — which car, what condition, what worth</h2>
+    <div id="invParts"><p class="hint">Parts appear here once cars exist.</p></div>
+    <details>
+      <summary>Add a part by picture or by hand</summary>
+      <div class="row">
+        <select id="invPartCar"></select>
+        <select id="invPartRel"><option value="came from">came from this car</option><option value="fits">fits this car</option></select>
+      </div>
+      <div class="row">
+        <label>Part picture<input id="invPartPhoto" type="file" accept="image/*"></label>
+        <button id="btnInvPartPhoto" type="button">Describe picture</button>
+      </div>
+      <div class="bayform">
+        <label>Part name<input id="invPartLabel" type="text"></label>
+        <label>Condition, honestly<input id="invPartCond" type="text" placeholder="used, working / unknown"></label>
+        <label>Owner note<input id="invPartNote" type="text"></label>
+        <label>Value $<input id="invPartValue" type="number" min="0"></label>
+      </div>
+      <div class="row">
+        <button id="btnInvComps" type="button">Check comps</button>
+        <button id="btnInvAddPart" type="button" class="primary">Attach part</button>
+      </div>
+    </details>
+  </section>
+
+  <section id="sec-itotals">
+    <h2><span class="step">4</span>Inventory totals — plain money</h2>
+    <div id="invTotals" class="totals"><p class="hint">Totals appear once parts exist.</p></div>
+  </section>
+  </div>
 </main>
+
+<div id="setupOverlay" hidden>
+  <div class="setup-card">
+    <h2>First run: who are you?</h2>
+    <p>This is asked once and never again. Your answer stays on this machine with your profile.</p>
+    <label>Your email<br><input id="setupEmail" type="text" placeholder="you@example.com" style="width:100%"></label>
+    <div class="row" style="margin-top:0.8rem">
+      <button id="btnSetupShop" type="button">I run a shop</button>
+      <button id="btnSetupFan" type="button" class="primary">I'm an enthusiast</button>
+    </div>
+    <p class="hint">Demo profile: stored in this browser only, never sent anywhere.</p>
+  </div>
+</div>
 
 <aside id="panel" class="panel">
   <header>
@@ -212,6 +312,8 @@
 </aside>
 </div>
 
+<script src="profile.js"></script>
+<script src="inventory.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
