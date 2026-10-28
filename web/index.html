@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop AI Copilot — Yard</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <h1>Shop AI Copilot</h1>
+  <span class="sub">Yard side — point at a car, know what to pull. Built for a Gulf Coast shop.</span>
+  <span class="spacer"></span>
+  <span id="modePill" class="pill">not started</span>
+  <button id="panelToggle" type="button">Shop Copilot</button>
+</header>
+
+<div class="layout">
+<main class="work">
+  <div id="notices"></div>
+
+  <section id="sec-intake">
+    <h2><span class="step">1</span>Intake — photos in</h2>
+    <p class="hint">Upload car photos or walk-around frames. The car is identified only as far as the photos honestly support.</p>
+    <div class="row">
+      <input id="fileInput" type="file" accept="image/*" multiple>
+      <button id="btnDemo" type="button">Load demo car</button>
+      <button id="btnIdentify" type="button">Identify car</button>
+      <button id="btnRunAll" type="button" class="primary">Run whole flow</button>
+    </div>
+    <div id="thumbs" class="thumbs"></div>
+    <div id="carCard" style="margin-top:0.8rem"></div>
+  </section>
+
+  <section id="sec-harvest">
+    <h2><span class="step">2</span>Harvest map — parts found</h2>
+    <p class="hint">Masks and boxes drawn over your photos. Every part names the frame it came from.</p>
+    <div id="frames" class="frames"></div>
+    <ul id="partList" class="part-list"></ul>
+  </section>
+
+  <section id="sec-verdicts">
+    <h2><span class="step">3</span>Verdicts — pull it or leave it</h2>
+    <p class="hint">A means pull and list now. B means worth it if you are standing there. C means leave it. The rule and its inputs sit next to every grade, and you can overrule any grade with one tap.</p>
+    <div id="compsNote"></div>
+    <div id="verdicts"></div>
+    <div class="row">
+      <button id="btnRerun" type="button">Re-run verdicts</button>
+    </div>
+  </section>
+
+  <section id="sec-totals">
+    <h2><span class="step">4</span>Plain-money totals</h2>
+    <div id="totals" class="totals"><p class="hint">Totals appear after verdicts.</p></div>
+  </section>
+
+  <section id="sec-listing">
+    <h2><span class="step">5</span>Listing draft — you approve, then it posts</h2>
+    <p class="hint">Pick a part, get a draft with the flaws stated. Nothing posts without your approval.</p>
+    <div class="row">
+      <select id="listingPart"></select>
+      <button id="btnDraft" type="button">Draft listing</button>
+    </div>
+    <div id="listingCard" style="display:none">
+      <div class="cutout">
+        <svg id="cutoutSvg" viewBox="0 0 100 100" role="img" aria-label="Part cutout preview"></svg>
+        <div id="cutoutNote" class="hint"></div>
+      </div>
+      <label>Title<br><input id="listingTitle" type="text" style="width:100%"></label>
+      <p></p>
+      <label>Description<br><textarea id="listingDesc"></textarea></label>
+      <div class="dest">
+        <label><input id="destEbay" type="checkbox" checked> eBay</label>
+        <label><input id="destExchange" type="checkbox"> Parts exchange <span class="roadmap">(roadmap — not built yet)</span></label>
+      </div>
+      <div class="row">
+        <button id="btnApprove" type="button" class="primary">Approve</button>
+        <button id="btnPost" type="button">Post</button>
+      </div>
+      <div id="receipt"></div>
+    </div>
+  </section>
+
+  <section id="sec-rules">
+    <h2><span class="step">6</span>Rules — see them, change them</h2>
+    <p class="hint">The verdict engine is these rules, in order, first match wins. Change a number or switch a rule off, save, and verdicts re-run.</p>
+    <div id="rulesForm" class="rules-form"></div>
+    <div class="row" style="margin-top:0.6rem">
+      <button id="btnSaveRules" type="button">Save rules</button>
+    </div>
+  </section>
+</main>
+
+<aside id="panel" class="panel">
+  <header>
+    <h2>Shop Copilot</h2>
+    <p>Ask about this case. Every step shows its work below.</p>
+  </header>
+  <div id="feed" aria-live="polite"></div>
+  <div id="thread"></div>
+  <div id="chips">
+    <button type="button" data-chip="Identify this car">Identify this car</button>
+    <button type="button" data-chip="Why is this part a B?">Why is this part a B?</button>
+    <button type="button" data-chip="Draft the listing">Draft the listing</button>
+  </div>
+  <form id="chatForm">
+    <input id="chatInput" type="text" placeholder="Ask about this case…" autocomplete="off">
+    <button type="submit">Send</button>
+  </form>
+</aside>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

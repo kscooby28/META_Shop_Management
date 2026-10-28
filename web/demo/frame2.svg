@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" role="img" aria-label="Demo frame 2: sample sedan left side walk-around drawing">
+  <rect x="0" y="0" width="1000" height="1000" fill="#f4f1ea"/>
+  <text x="40" y="72" font-family="monospace" font-size="30" fill="#6b675f">yard-case-4a · demo-frame-2 · left side</text>
+  <line x1="60" y1="780" x2="940" y2="780" stroke="#b9b3a6" stroke-width="4"/>
+  <!-- body -->
+  <rect x="120" y="470" width="760" height="200" rx="30" fill="#e3ded3" stroke="#2a2723" stroke-width="6"/>
+  <!-- greenhouse -->
+  <polygon points="300,470 370,350 630,350 700,470" fill="#cfd8dc" stroke="#2a2723" stroke-width="6"/>
+  <line x1="500" y1="362" x2="500" y2="470" stroke="#2a2723" stroke-width="5"/>
+  <!-- door cut + handle -->
+  <line x1="520" y1="470" x2="520" y2="660" stroke="#b9b3a6" stroke-width="4"/>
+  <rect x="430" y="530" width="60" height="20" rx="10" fill="#2a2723"/>
+  <!-- rocker -->
+  <rect x="340" y="640" width="320" height="26" rx="13" fill="#d5cfc1" stroke="#2a2723" stroke-width="5"/>
+  <!-- front bumper edge -->
+  <rect x="120" y="600" width="80" height="80" rx="12" fill="#d5cfc1" stroke="#2a2723" stroke-width="6"/>
+  <!-- wheels -->
+  <circle cx="260" cy="690" r="72" fill="#3a3733" stroke="#2a2723" stroke-width="6"/>
+  <circle cx="260" cy="690" r="24" fill="#b9b3a6" stroke="#2a2723" stroke-width="4"/>
+  <circle cx="740" cy="690" r="72" fill="#3a3733" stroke="#2a2723" stroke-width="6"/>
+  <circle cx="740" cy="690" r="24" fill="#b9b3a6" stroke="#2a2723" stroke-width="4"/>
+  <!-- driver mirror -->
+  <line x1="300" y1="448" x2="270" y2="448" stroke="#2a2723" stroke-width="6"/>
+  <rect x="262" y="428" width="44" height="40" rx="8" fill="#cfd8dc" stroke="#2a2723" stroke-width="6"/>
+  <text x="40" y="950" font-family="monospace" font-size="26" fill="#6b675f">sample drawing — boxes overlay from harvest map</text>
+</svg>
