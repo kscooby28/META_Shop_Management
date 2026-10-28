@@ -13,10 +13,25 @@ import time
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from bay import (
+    build_case,
+    categorize,
+    edit_plan,
+    labor_math,
+    load_bay_case,
+    load_kb,
+    new_plan,
+    normalize_part,
+    ranked_tests,
+    record_result,
+    search_kb,
+    strip_vin,
+    validate_intake,
+)
 from comps import get_adapter as get_comps_adapter
 from demo_cache import StepCache
 from listing import build_live_draft, demo_draft, get_post_adapter
-from meta_client import MetaAPIError, chat_stream, identify_car, segment_parts
+from meta_client import MetaAPIError, chat_stream, draft_plan, identify_car, read_vin_photo, segment_parts
 from verdict import evaluate, load_rules, render_decline, save_rules
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -113,6 +128,9 @@ class Handler(BaseHTTPRequestHandler):
             )
         elif parsed.path == "/api/rules":
             self._send_json({"ok": True, "rules": load_rules(RULES_PATH)})
+        elif parsed.path == "/api/bay/kb":
+            query = urllib.parse.parse_qs(parsed.query).get("q", [""])[0]
+            self._send_json({"ok": True, "notes": search_kb(ROOT, query)})
         else:
             self._serve_static(parsed.path)
 
@@ -144,6 +162,18 @@ class Handler(BaseHTTPRequestHandler):
             self._api_listing_post(payload)
         elif parsed.path == "/api/chat":
             self._api_chat(payload)
+        elif parsed.path == "/api/bay/intake":
+            self._api_bay_intake(payload)
+        elif parsed.path == "/api/bay/plan":
+            self._api_bay_plan(payload)
+        elif parsed.path == "/api/bay/result":
+            self._api_bay_result(payload)
+        elif parsed.path == "/api/bay/plan/edit":
+            self._api_bay_plan_edit(payload)
+        elif parsed.path == "/api/bay/parts":
+            self._api_bay_parts(payload)
+        elif parsed.path == "/api/bay/labor":
+            self._api_bay_labor(payload)
         else:
             self._send_json({"ok": False, "error": "unknown endpoint"}, status=404)
 
@@ -402,6 +432,245 @@ class Handler(BaseHTTPRequestHandler):
         put_session(session_id, session)
         self._send_json({"ok": True, "sessionId": session_id, "draft": draft, "receipt": receipt})
 
+    # -- bay -------------------------------------------------------------
+    def _bay_session(self, payload):
+        session_id = payload.get("sessionId")
+        session = get_session(session_id) if session_id else None
+        if session is None:
+            session_id = new_session_id()
+            session = {"created": time.time()}
+            put_session(session_id, session)
+        return session_id, session
+
+    def _api_bay_intake(self, payload):
+        session_id, session = self._bay_session(payload)
+        demo_case = payload.get("demoCase")
+        notices = []
+        mode = "live"
+        if demo_case in ("case1", "case2", "case3"):
+            try:
+                manual = load_bay_case("intake", demo_case, ROOT)
+            except (OSError, ValueError):
+                self._send_json({"ok": False, "error": "demo case missing"}, status=500)
+                return
+            mode = "demo-cache"
+            notices.append("Demo case: anonymized Bay sample, no customer data, no VIN.")
+        else:
+            manual = payload.get("manual") or {}
+            problems = validate_intake(manual)
+            if problems:
+                self._send_json(
+                    {"ok": False, "error": "case needs work: " + "; ".join(problems)}, status=400
+                )
+                return
+            vin_photo = payload.get("vinPhoto")
+            if vin_photo:
+                try:
+                    read = read_vin_photo(vin_photo)
+                    vehicle = manual.setdefault("vehicle", {})
+                    for field in ("year", "make", "model", "trim", "engine"):
+                        if not (vehicle.get(field) or "") and read.get(field) not in (None, "", "unknown"):
+                            vehicle[field] = read[field]
+                    tags = vehicle.setdefault("source_tags", ["manual-entry"])
+                    if "vin-photo" not in tags:
+                        tags.append("vin-photo")
+                    session_vin = read.get("vin")
+                    if session_vin and session_vin != "unknown":
+                        session.setdefault("bay_vin", session_vin)  # memory only, never disk
+                except MetaAPIError:
+                    mode = "demo-cache"
+                    notices.append("Could not read the VIN plate, so the case uses manual entry only.")
+        vehicle = manual.get("vehicle", manual)
+        intake = {
+            "symptom": manual.get("symptom", ""),
+            "codes": manual.get("codes") or [],
+            "observations": manual.get("observations") or [],
+            "area": manual.get("area", "not sure"),
+            "service_requested": manual.get("service_requested", ""),
+            "engine": (vehicle.get("engine") if isinstance(vehicle, dict) else manual.get("engine")) or "",
+        }
+        case_id = "b-%d" % int(time.time() * 1000)
+        case = build_case(case_id, vehicle if isinstance(vehicle, dict) else {}, intake)
+        if not case["declined"]:
+            case["stakes"] = manual.get("stakes", "")
+            case["stakes_source"] = manual.get("stakes_source", "")
+        else:
+            notices.append("Shop policy declines this job, so there is no test plan.")
+        bay = session.setdefault("bay", {})
+        bay["case"] = case
+        bay["plan"] = None
+        bay["added_parts"] = []
+        bay["standards"] = {}
+        bay["demo_case"] = demo_case if demo_case in ("case1", "case2", "case3") else None
+        bay["modes"] = {"intake": mode}
+        put_session(session_id, session)
+        StepCache(ROOT).save_live(session_id, "bay-intake-%s" % case_id, strip_vin(case))
+        self._send_json(
+            {
+                "ok": True,
+                "sessionId": session_id,
+                "mode": mode,
+                "notice": " ".join(notices),
+                "case": case,
+            }
+        )
+
+    def _bay_plan_view(self, plan):
+        return {
+            "tests": ranked_tests(plan),
+            "results": plan["results"],
+            "notes": plan["notes"],
+            "eliminated": plan["eliminated"],
+            "suspected": plan["suspected"],
+            "trail": plan["trail"],
+        }
+
+    def _api_bay_plan(self, payload):
+        session_id = payload.get("sessionId")
+        session = get_session(session_id) if session_id else None
+        bay = (session or {}).get("bay") or {}
+        case = bay.get("case")
+        if case is None:
+            self._send_json({"ok": False, "error": "create a bay case first"}, status=400)
+            return
+        if case.get("declined"):
+            self._send_json({"ok": False, "error": "case declined: no test plan"}, status=400)
+            return
+        mode = "live"
+        notice = ""
+        raw_tests = None
+        if bay.get("demo_case"):
+            try:
+                raw_tests = load_bay_case("plan", bay["demo_case"], ROOT)["tests"]
+                mode = "demo-cache"
+                notice = "Demo case: sample plan from the Bay cache."
+            except (OSError, ValueError, KeyError):
+                raw_tests = None
+        if raw_tests is None and not bay.get("demo_case"):
+            try:
+                raw_tests = draft_plan(case)
+                StepCache(ROOT).save_live(session_id, "bay-plan-%s" % case["case_id"], strip_vin(raw_tests))
+            except MetaAPIError as exc:
+                mode = "manual"
+                notice = (
+                    StepCache(ROOT).notice("plan", exc)
+                    + " Add the tests by hand below; the ranking still works."
+                )
+        if raw_tests is None and bay.get("demo_case"):
+            self._send_json({"ok": False, "error": "demo plan missing"}, status=500)
+            return
+        if raw_tests is not None:
+            bay["plan"] = new_plan(case, raw_tests)
+        else:
+            bay["plan"] = new_plan(case, [])
+        bay["modes"]["plan"] = mode
+        put_session(session_id, session)
+        self._send_json(
+            {
+                "ok": True,
+                "sessionId": session_id,
+                "mode": mode,
+                "notice": notice,
+                "plan": self._bay_plan_view(bay["plan"]),
+            }
+        )
+
+    def _api_bay_result(self, payload):
+        session_id = payload.get("sessionId")
+        session = get_session(session_id) if session_id else None
+        bay = (session or {}).get("bay") or {}
+        plan = bay.get("plan")
+        if plan is None:
+            self._send_json({"ok": False, "error": "draft a plan first"}, status=400)
+            return
+        try:
+            record_result(plan, payload.get("testId"), payload.get("result"), payload.get("note", ""))
+        except KeyError:
+            self._send_json({"ok": False, "error": "unknown test"}, status=400)
+            return
+        except ValueError as exc:
+            self._send_json({"ok": False, "error": str(exc)}, status=400)
+            return
+        put_session(session_id, session)
+        self._send_json({"ok": True, "sessionId": session_id, "plan": self._bay_plan_view(plan)})
+
+    def _api_bay_plan_edit(self, payload):
+        session_id = payload.get("sessionId")
+        session = get_session(session_id) if session_id else None
+        bay = (session or {}).get("bay") or {}
+        plan = bay.get("plan")
+        if plan is None:
+            self._send_json({"ok": False, "error": "draft a plan first"}, status=400)
+            return
+        try:
+            edit_plan(plan, payload.get("tests"), payload.get("order"))
+        except (ValueError, TypeError) as exc:
+            self._send_json({"ok": False, "error": "bad plan edit: %s" % exc}, status=400)
+            return
+        put_session(session_id, session)
+        self._send_json({"ok": True, "sessionId": session_id, "plan": self._bay_plan_view(plan)})
+
+    def _api_bay_parts(self, payload):
+        session_id = payload.get("sessionId")
+        session = get_session(session_id) if session_id else None
+        bay = (session or {}).get("bay") or {}
+        if not bay.get("case"):
+            self._send_json({"ok": False, "error": "create a bay case first"}, status=400)
+            return
+        base = []
+        note = ""
+        if bay.get("demo_case"):
+            try:
+                cached = load_bay_case("parts", bay["demo_case"], ROOT)
+                base = cached.get("parts", [])
+                note = cached.get("note", "")
+            except (OSError, ValueError):
+                pass
+        added = payload.get("add")
+        if isinstance(added, dict):
+            part = normalize_part(added)
+            if part is None:
+                self._send_json({"ok": False, "error": "name the part"}, status=400)
+                return
+            if not part["source"]:
+                part["source"] = "shop-entered"
+            bay.setdefault("added_parts", []).append(part)
+            put_session(session_id, session)
+        self._send_json(
+            {
+                "ok": True,
+                "sessionId": session_id,
+                "parts": base + bay.get("added_parts", []),
+                "note": note,
+            }
+        )
+
+    def _api_bay_labor(self, payload):
+        session_id = payload.get("sessionId")
+        session = get_session(session_id) if session_id else None
+        bay = (session or {}).get("bay") or {}
+        plan = bay.get("plan")
+        if plan is None:
+            self._send_json({"ok": False, "error": "draft a plan first"}, status=400)
+            return
+        standards = bay.setdefault("standards", {})
+        for test_id, entry in (payload.get("standards") or {}).items():
+            if not isinstance(entry, dict):
+                continue
+            try:
+                minutes = float(entry.get("minutes")) if entry.get("minutes") not in (None, "") else None
+            except (TypeError, ValueError):
+                continue
+            if minutes is None:
+                standards.pop(test_id, None)
+            else:
+                standards[test_id] = {
+                    "minutes": minutes,
+                    "source": entry.get("source") or "shop-set estimate",
+                }
+        put_session(session_id, session)
+        self._send_json({"ok": True, "sessionId": session_id, "labor": labor_math(plan, standards)})
+
     # -- chat ------------------------------------------------------------
     def _case_summary(self, session):
         if not session or "harvest" not in session:
@@ -435,10 +704,46 @@ class Handler(BaseHTTPRequestHandler):
         else:
             parts = session["harvest"].get("parts", [])
             lines.append("Harvested %d parts, no verdicts yet." % len(parts))
+        bay = (session or {}).get("bay") or {}
+        case = bay.get("case")
+        if case:
+            if case.get("declined"):
+                lines.append("Bay case %s declined: %s" % (case.get("case_id"), case["decline"]["title"]))
+            else:
+                vehicle = case.get("vehicle", {})
+                lines.append(
+                    "Bay case %s: %s, symptom: %s Codes: %s."
+                    % (
+                        case.get("case_id"),
+                        vehicle.get("category", "?"),
+                        case.get("symptom", "?"),
+                        ", ".join(case.get("codes", [])) or "none",
+                    )
+                )
+                plan = bay.get("plan")
+                if plan:
+                    pending = [t for t in ranked_tests(plan) if t.get("standing") == "pending"]
+                    done = len(plan.get("results", {}))
+                    lines.append(
+                        "Plan: %d of %d tests recorded. Top next: %s."
+                        % (
+                            done,
+                            len(plan.get("tests", [])),
+                            pending[0]["title"] if pending else "none left",
+                        )
+                    )
+                    if plan.get("trail"):
+                        lines.append("Last change: %s" % plan["trail"][-1]["caused_by"])
         return "\n".join(lines)
 
     def _local_chat_answer(self, session, message):
         text = (message or "").lower()
+        bay = (session or {}).get("bay") or {}
+        want_bay = bay.get("case") and any(
+            key in text for key in ("test", "plan", "case", "bay", "creep", "cylinder", "module", "rank")
+        )
+        if want_bay:
+            return self._local_bay_answer(bay, text)
         if "identify" in text or "what car" in text or "what is this car" in text:
             if not session or "harvest" not in session:
                 return "No car yet — upload photos or load the demo car, then press Identify."
@@ -482,6 +787,44 @@ class Handler(BaseHTTPRequestHandler):
                 totals.get("B", {}).get("plain_words", ""),
             )
         return "I can help with this case once it exists: upload photos or load the demo car and run the flow. (Live AI is unreachable, so I am answering from the case file only.)"
+
+    def _local_bay_answer(self, bay, text):
+        case = bay.get("case") or {}
+        if case.get("declined"):
+            return "This case is declined: %s %s" % (
+                case["decline"]["title"],
+                case["decline"]["next_step"],
+            )
+        plan = bay.get("plan")
+        if not plan or not plan.get("tests"):
+            vehicle = case.get("vehicle", {})
+            return "Bay case is open on a %s. Draft the plan to get ranked tests." % (
+                vehicle.get("category", "car")
+            )
+        pending = [t for t in ranked_tests(plan) if t.get("standing") == "pending"]
+        done = len(plan.get("results", {}))
+        if "why" in text or "rank" in text:
+            if not pending:
+                return "Every test is recorded. %d done, %d ruled-out causes." % (
+                    done,
+                    len(plan.get("eliminated", [])),
+                )
+            top = pending[0]
+            parts = top.get("score_parts", {})
+            return "Next up is '%s' with %d points: symptom match %d, code match %d, rules out an expensive job %d, quick %d, shop boost %d, suspected-cause bonus %d. %d of %d tests recorded." % (
+                top["title"],
+                top.get("score", 0),
+                parts.get("symptom_match", 0),
+                parts.get("code_match", 0),
+                parts.get("rules_out_expensive", 0),
+                parts.get("quick", 0),
+                parts.get("shop_boost", 0),
+                parts.get("suspected_cause", 0),
+                done,
+                len(plan.get("tests", [])),
+            )
+        last = plan["trail"][-1]["caused_by"] if plan.get("trail") else "no results yet"
+        return "Bay case: %d of %d tests recorded. %s" % (done, len(plan.get("tests", [])), last)
 
     def _api_chat(self, payload):
         session_id = payload.get("sessionId")

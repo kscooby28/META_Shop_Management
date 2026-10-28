@@ -6,7 +6,43 @@ and know what it is, what it is worth, and what to do next.
 This repo ships the foundation plus the enthusiast (Yard) side's first flow:
 photo in, car identified, harvest map with masks, A/B/C verdicts with visible
 rules, plain-money totals, and a listing draft behind the Approve gate. The
-shop-manager core (the Bay) comes next as a second work order.
+shop-manager core (the Bay) shipped as Work Order 2 on the same scaffold.
+
+## The Bay side (Work Order 2)
+
+The Bay tab on the same page serves the shop's daily driver: structured
+cases, ranked test plans, and labor math, all in plain words.
+
+1. **Bay intake** — a VIN photo fills the blanks (read by Spark, kept in
+   session memory only, never written to disk) or manual entry. Year, make,
+   model, category; trim stays unknown unless a badge is readable. Symptom
+   kept verbatim, fault codes as a list, observations, area, and the
+   service asked for. Decline policies gate intake: the shop does no engine
+   work on one BMW V8 generation it names in config (a no-start counts as
+   potentially engine-related) and no oil changes — matches render a
+   professional decline card with a next step instead of a plan, never an
+   error.
+2. **Test-plan engine** — symptom plus codes produce ranked tests stating
+   what to check, how (Autel MK908 or by hand — never PIWIS), what to
+   expect, and a pass/fail input. Every test shows its score breakdown, so
+   the ranking is visible. The shop can reorder, edit, and add tests.
+3. **Live re-ranking** — each pass/fail result rules causes out or raises
+   suspicion, re-ranks the pending tests, and appends an evidence-trail
+   entry naming exactly what changed and why.
+4. **Job parts list** — shop-entered entries with sources, plain words.
+   No bundled catalog, no invented numbers or prices.
+5. **Labor math** — plan steps at $180/hr from shop standards or shop-set
+   estimates only. Steps with no time on file are named, not guessed.
+6. **Repair notes on demand** — anonymized samples plus the owner's local
+   `shop_kb/` files (that slot ships empty and stays git-ignored). No
+   factory content anywhere.
+
+Demo cases (anonymized samples, verified portions only): the silent module
+(2009 coupe, harness proven by hand, module condemned on evidence,
+matched-set fix with exact index match), the fluid fix (2014 coupe,
+clutch-circuit oil only, flawless hot drive; final creep/rescan gates
+left open, never claimed), and the cylinder that followed (diesel SUV,
++3.02 mg/stroke stays on cylinder 4 after the injector swap).
 
 ## Run it
 
@@ -79,6 +115,9 @@ behind it.
 
 - `server.py` — stdlib HTTP server: static page + JSON/SSE API, sessions.
 - `meta_client.py` — Meta Model API adapter (Spark 1.3, SAM 3.1).
+- `bay.py` — Bay engine: intake validation, decline gate, plan scoring and
+  re-ranking, parts, labor math, local knowledge-base slot.
+- `shop_kb/` — local repair-note slot (ships empty, content git-ignored).
 - `verdict.py` + `rules.json` — visible, changeable A/B/C rules + totals.
 - `comps.py` — sold-comp adapters (mock ships; real one slots in).
 - `listing.py` — drafts + mock post outbox.

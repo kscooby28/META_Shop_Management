@@ -211,6 +211,71 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
 
 #panelToggle { display: none; }
 
+.tab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+.bayform {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.5rem;
+  margin: 0.6rem 0;
+}
+.bayform label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.85rem; color: var(--muted); }
+
+.testcard { border: 1px solid var(--line); border-radius: 10px; padding: 0.8rem 0.9rem; margin-bottom: 0.7rem; }
+.testcard .head { display: flex; gap: 0.7rem; align-items: baseline; flex-wrap: wrap; }
+.rank {
+  display: inline-block;
+  min-width: 2rem; height: 2rem;
+  line-height: 2rem;
+  text-align: center;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 800;
+  flex: none;
+}
+.testcard .tname { font-weight: 700; font-size: 1.02rem; }
+.testcard table { border-collapse: collapse; font-size: 0.85rem; margin: 0.5rem 0; width: 100%; }
+.testcard th, .testcard td { text-align: left; padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.testcard th { color: var(--muted); font-weight: 600; width: 34%; }
+.testcard.eliminated { opacity: 0.6; }
+.testcard.eliminated .tname { text-decoration: line-through; }
+.testcard.doneok { border-color: var(--grade-a); }
+.testcard.donefail { border-color: var(--grade-c); }
+.status {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--wash);
+}
+.status.pass { background: #dff0e3; border-color: var(--grade-a); color: #14522b; }
+.status.fail { background: #f7ddd9; border-color: var(--grade-c); color: #7c271f; }
+.status.out { background: #eee; color: var(--muted); }
+.gatebadge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: #fdf0d3;
+  border: 1px solid #c99a2e;
+  color: #7a5a06;
+}
+
+.decline { border: 2px solid var(--ink); border-radius: 10px; padding: 0.9rem 1rem; background: var(--wash); }
+.decline .dtitle { font-size: 1.1rem; font-weight: 800; margin-bottom: 0.3rem; }
+.decline .next { margin-top: 0.4rem; font-weight: 600; }
+
+.trail { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
+.trail li { border: 1px solid var(--line); border-radius: 8px; padding: 0.45rem 0.7rem; font-size: 0.9rem; }
+.trail .seq { font-weight: 800; margin-right: 0.5rem; }
+
+.kbnote { border: 1px solid var(--line); border-radius: 8px; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; font-size: 0.9rem; }
+.kbnote .src { display: block; font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; }
+
 @media (max-width: 900px) {
   .layout { flex-direction: column; }
   .panel {

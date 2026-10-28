@@ -363,3 +363,79 @@ def chat_stream(case_summary, history, user_message):
         yield chunk
     if not yielded:
         raise MetaAPIError("Spark returned an empty stream", kind="bad_response")
+
+
+VIN_PROMPT = """You read a VIN plate photo for a repair shop. Reply with JSON only:
+{"vin": ..., "year": ..., "make": ..., "model": ..., "trim": ..., "engine": ...,
+"notes": ...}. Read only characters you can actually see; any field you cannot
+honestly fill must be "unknown" with a short note saying so. Never invent trim,
+engine codes, or VIN characters. Trim stays "unknown" unless a badge is clearly
+readable in the photo."""
+
+
+def read_vin_photo(image):
+    """Ask Spark to read a VIN plate. Raises MetaAPIError on any problem."""
+    cfg = settings()
+    raw = _post(
+        "/chat/completions",
+        {
+            "model": cfg["spark_model"],
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": VIN_PROMPT},
+                        {"type": "image_url", "image_url": {"url": _as_data_url(image)}},
+                    ],
+                }
+            ],
+            "response_format": {"type": "json_object"},
+        },
+    )
+    try:
+        text = raw["choices"][0]["message"]["content"]
+        parsed = json.loads(text)
+        assert isinstance(parsed, dict) and isinstance(parsed.get("vin"), str)
+    except (KeyError, IndexError, AssertionError, ValueError, TypeError) as exc:
+        raise MetaAPIError("Spark VIN read unusable: %s" % exc, kind="bad_response")
+    for field in ("year", "make", "model", "trim", "engine"):
+        parsed.setdefault(field, "unknown")
+    parsed["source"] = "spark-live"
+    return parsed
+
+
+PLAN_PROMPT = """You draft a ranked diagnostic test plan for a repair shop that owns an
+Autel MK908 scan tool (live data and special functions) and hand tools. The shop
+does NOT have PIWIS: never write a step that needs it. Given the case as JSON
+(symptom in the customer's own words, fault codes, observations, vehicle),
+reply with JSON only: {"tests": [...]}. Each test: {"title", "what" (what to
+check), "how" (how to check it with the Autel or by hand), "expected" (what a
+good result looks like), "causes" (suspected causes this test addresses),
+"eliminates_on_pass", "eliminates_on_fail", "suspects_on_fail",
+"symptom_match" (true/false), "code_match" (true/false),
+"rules_out_expensive" (true/false), "quick" (true/false)}. Plain words, no
+jargon. Never invent part numbers, prices, torque values, or labor times. If
+the evidence is thin, say so in a test's "what" instead of guessing."""
+
+
+def draft_plan(case):
+    """Ask Spark to draft the ranked test plan. Raises MetaAPIError."""
+    cfg = settings()
+    raw = _post(
+        "/chat/completions",
+        {
+            "model": cfg["spark_model"],
+            "messages": [
+                {"role": "system", "content": PLAN_PROMPT},
+                {"role": "user", "content": json.dumps(case)},
+            ],
+            "response_format": {"type": "json_object"},
+        },
+    )
+    try:
+        text = raw["choices"][0]["message"]["content"]
+        parsed = json.loads(text)
+        assert isinstance(parsed.get("tests"), list) and parsed["tests"]
+    except (KeyError, IndexError, AssertionError, ValueError, TypeError) as exc:
+        raise MetaAPIError("Spark plan draft unusable: %s" % exc, kind="bad_response")
+    return parsed["tests"]

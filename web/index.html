@@ -12,12 +12,15 @@
   <span class="sub">Yard side — point at a car, know what to pull. Built for a Gulf Coast shop.</span>
   <span class="spacer"></span>
   <span id="modePill" class="pill">not started</span>
+  <button id="tabYard" type="button" class="tab active">Yard</button>
+  <button id="tabBay" type="button" class="tab">Bay</button>
   <button id="panelToggle" type="button">Shop Copilot</button>
 </header>
 
 <div class="layout">
 <main class="work">
   <div id="notices"></div>
+  <div id="view-yard">
 
   <section id="sec-intake">
     <h2><span class="step">1</span>Intake — photos in</h2>
@@ -89,6 +92,105 @@
       <button id="btnSaveRules" type="button">Save rules</button>
     </div>
   </section>
+  </div>
+
+  <div id="view-bay" hidden>
+  <section id="sec-bcase">
+    <h2><span class="step">1</span>Bay case — symptom in</h2>
+    <p class="hint">Load a demo case, or describe the car and the symptom in your own words. A VIN photo fills the blanks; manual entry always works.</p>
+    <div class="row">
+      <button type="button" data-baycase="case1">Demo: silent module</button>
+      <button type="button" data-baycase="case2">Demo: fluid fix</button>
+      <button type="button" data-baycase="case3">Demo: cylinder 4</button>
+    </div>
+    <div class="bayform">
+      <label>VIN photo (optional)<input id="bayVin" type="file" accept="image/*"></label>
+      <label>Year<input id="bayYear" type="text" inputmode="numeric"></label>
+      <label>Make<input id="bayMake" type="text"></label>
+      <label>Model<input id="bayModel" type="text"></label>
+      <label>Trim (blank stays unknown)<input id="bayTrim" type="text"></label>
+      <label>Engine (if known)<input id="bayEngine" type="text"></label>
+      <label>Area
+        <select id="bayArea">
+          <option>not sure</option><option>engine</option><option>gearbox</option>
+          <option>electrical</option><option>brakes</option><option>suspension</option>
+          <option>maintenance</option><option>other</option>
+        </select>
+      </label>
+      <label>Service asked for<input id="bayService" type="text" placeholder="e.g. diagnose no-communication"></label>
+    </div>
+    <label>Symptom, in your own words (kept verbatim)<br><textarea id="baySymptom" style="min-height:70px"></textarea></label>
+    <div class="bayform">
+      <label>Fault codes, comma separated<input id="bayCodes" type="text"></label>
+      <label>What you observed, one per line<textarea id="bayObs" style="min-height:60px"></textarea></label>
+    </div>
+    <div class="row" style="margin-top:0.6rem">
+      <button id="btnBayCase" type="button" class="primary">Create case</button>
+    </div>
+    <div id="bayCaseCard" style="margin-top:0.8rem"></div>
+  </section>
+
+  <section id="sec-bplan">
+    <h2><span class="step">2</span>Ranked test plan — record pass or fail</h2>
+    <p class="hint">Each test shows why it sits where it sits. Record a result and the plan re-ranks, naming what changed.</p>
+    <div class="row">
+      <button id="btnBayPlan" type="button">Draft plan</button>
+    </div>
+    <div id="bayPlan" style="margin-top:0.7rem"></div>
+    <details>
+      <summary>Add a test by hand</summary>
+      <div class="bayform">
+        <label>Title<input id="bayTTitle" type="text"></label>
+        <label>What to check<input id="bayTWhat" type="text"></label>
+        <label>How (Autel or by hand)<input id="bayTHow" type="text"></label>
+        <label>Expected result<input id="bayTExp" type="text"></label>
+        <label>Causes it addresses, comma separated<input id="bayTCauses" type="text"></label>
+        <label>Rules out on pass, comma separated<input id="bayTOut" type="text"></label>
+        <label>Suspects on fail, comma separated<input id="bayTSusp" type="text"></label>
+      </div>
+      <div class="row">
+        <label><input id="bayTSym" type="checkbox" checked> matches symptom</label>
+        <label><input id="bayTCode" type="checkbox" checked> matches code</label>
+        <label><input id="bayTExp2" type="checkbox"> rules out an expensive job</label>
+        <label><input id="bayTQuick" type="checkbox" checked> quick</label>
+        <button id="btnBayAddTest" type="button">Add test</button>
+      </div>
+    </details>
+  </section>
+
+  <section id="sec-btrail">
+    <h2><span class="step">3</span>Evidence trail — why the plan moved</h2>
+    <div id="bayTrail"><p class="hint">Results you record appear here with the ranking change each one caused.</p></div>
+  </section>
+
+  <section id="sec-bparts">
+    <h2><span class="step">4</span>Job parts list — sourced entries only</h2>
+    <div id="bayParts"><p class="hint">Parts appear after the plan.</p></div>
+    <div class="row" style="margin-top:0.5rem">
+      <input id="bayPName" type="text" placeholder="Part name" style="flex:2">
+      <input id="bayPNote" type="text" placeholder="Note (fitment, donor rule…)" style="flex:3">
+      <button id="btnBayAddPart" type="button">Add part</button>
+    </div>
+  </section>
+
+  <section id="sec-blabor">
+    <h2><span class="step">5</span>Labor math — $180 an hour, shop times only</h2>
+    <div id="bayLabor"><p class="hint">Labor appears after the plan.</p></div>
+    <div class="row" style="margin-top:0.5rem">
+      <button id="btnBayLabor" type="button">Update labor</button>
+    </div>
+  </section>
+
+  <section id="sec-bkb">
+    <h2><span class="step">6</span>Repair notes — shop knowledge on demand</h2>
+    <p class="hint">Shop-entered notes and anonymized samples only. No factory content lives here.</p>
+    <div class="row">
+      <input id="bayKbQ" type="text" placeholder="Search notes…" style="flex:1">
+      <button id="btnBayKb" type="button">Search</button>
+    </div>
+    <div id="bayKb" style="margin-top:0.6rem"></div>
+  </section>
+  </div>
 </main>
 
 <aside id="panel" class="panel">

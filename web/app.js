@@ -64,6 +64,8 @@ function setPill() {
   if (!modes.length) { pill.textContent = "not started"; pill.className = "pill"; return; }
   if (modes.every((m) => m === "live" || m === "live-adapter")) {
     pill.textContent = "live AI"; pill.className = "pill live";
+  } else if (modes.some((m) => m === "manual")) {
+    pill.textContent = "hand entry (AI unreachable)"; pill.className = "pill demo";
   } else if (modes.every((m) => m !== "live" && m !== "live-adapter")) {
     pill.textContent = "demo cache"; pill.className = "pill demo";
   } else {
@@ -697,3 +699,364 @@ async function init() {
 }
 
 init();
+
+/* ---------- bay side ---------- */
+
+const bay = { case: null, plan: null, parts: [], labor: null, vinPhoto: null, editing: null };
+
+function baySplit(value, byLine) {
+  return (value || "").split(byLine ? "\n" : ",").map((s) => s.trim()).filter(Boolean);
+}
+
+function bayManual() {
+  return {
+    vehicle: {
+      year: $("bayYear").value.trim(),
+      make: $("bayMake").value.trim(),
+      model: $("bayModel").value.trim(),
+      trim: $("bayTrim").value.trim(),
+      engine: $("bayEngine").value.trim(),
+      source_tags: ["manual-entry"],
+    },
+    area: $("bayArea").value,
+    service_requested: $("bayService").value.trim(),
+    symptom: $("baySymptom").value.trim(),
+    codes: baySplit($("bayCodes").value, false),
+    observations: baySplit($("bayObs").value, true),
+  };
+}
+
+function renderBayCase() {
+  const box = $("bayCaseCard");
+  const c = bay.case;
+  if (!c) { box.innerHTML = ""; return; }
+  if (c.declined) {
+    const d = c.decline;
+    box.innerHTML =
+      '<div class="decline"><div class="dtitle">' + esc(d.title) + "</div>" +
+      "<div>" + esc(d.body) + "</div>" +
+      '<div class="next">' + esc(d.next_step) + "</div></div>";
+    return;
+  }
+  const v = c.vehicle;
+  box.innerHTML =
+    '<div class="car-card"><div class="name">' + esc(v.category) + "</div><dl>" +
+    "<dt>Year</dt><dd>" + esc(v.year) + "</dd>" +
+    "<dt>Trim</dt><dd>" + esc(v.trim) + "</dd>" +
+    "<dt>Engine</dt><dd>" + esc(v.engine) + "</dd>" +
+    "<dt>Symptom</dt><dd>“" + esc(c.symptom) + "”</dd>" +
+    "<dt>Codes</dt><dd>" + (c.codes.length ? esc(c.codes.join("; ")) : "none") + "</dd>" +
+    (c.observations.length ? "<dt>Observed</dt><dd>" + esc(c.observations.join("; ")) + "</dd>" : "") +
+    (c.stakes ? "<dt>Stakes</dt><dd>" + esc(c.stakes) + ' <span class="sourced">(' + esc(c.stakes_source) + ")</span></dd>" : "") +
+    "<dt>Source</dt><dd>" + esc((v.source_tags || []).join(", ")) + "</dd>" +
+    "</dl>" +
+    (v.notes || []).map((n) => '<div class="notice">' + esc(n) + "</div>").join("") +
+    "</div>";
+}
+
+function scoreLine(t) {
+  const p = t.score_parts || {};
+  const bits = [];
+  if (p.symptom_match) bits.push("matches symptom +" + p.symptom_match);
+  if (p.code_match) bits.push("matches code +" + p.code_match);
+  if (p.rules_out_expensive) bits.push("rules out an expensive job +" + p.rules_out_expensive);
+  if (p.quick) bits.push("quick +" + p.quick);
+  if (p.shop_boost) bits.push("shop boost +" + p.shop_boost);
+  if (p.suspected_cause) bits.push("suspected cause +" + p.suspected_cause);
+  if (p.eliminated_penalty) bits.push("eliminated " + p.eliminated_penalty);
+  return (t.score || 0) + " points (" + (bits.join(", ") || "no inputs") + ")";
+}
+
+function renderBayPlan() {
+  const box = $("bayPlan");
+  box.innerHTML = "";
+  const plan = bay.plan;
+  if (!plan) return;
+  plan.tests.forEach((t, i) => {
+    const result = plan.results[t.id];
+    const card = document.createElement("div");
+    card.className = "testcard" +
+      (t.standing === "eliminated" ? " eliminated" : "") +
+      (result === "pass" ? " doneok" : "") +
+      (result === "fail" ? " donefail" : "");
+    const status = result
+      ? '<span class="status ' + result + '">' + result.toUpperCase() + "</span>"
+      : t.standing === "eliminated"
+        ? '<span class="status out">RULED OUT</span>'
+        : '<span class="status">PENDING</span>';
+    const gate = t.final_gate ? ' <span class="gatebadge">final gate — still open</span>' : "";
+    if (bay.editing === t.id) {
+      card.innerHTML =
+        '<div class="head"><span class="rank">' + (i + 1) + "</span>" +
+        '<input data-ef="title" type="text" value="' + esc(t.title) + '" style="flex:1"></div>' +
+        '<div class="bayform">' +
+        '<label>What<input data-ef="what" type="text" value="' + esc(t.what) + '"></label>' +
+        '<label>How<input data-ef="how" type="text" value="' + esc(t.how) + '"></label>' +
+        '<label>Expected<input data-ef="expected" type="text" value="' + esc(t.expected) + '"></label>' +
+        '<label>Minutes<input data-ef="minutes" type="number" min="0" value="' + (t.minutes == null ? "" : t.minutes) + '"></label>' +
+        "</div>" +
+        '<div class="row"><button type="button" class="small primary" data-save="' + t.id + '">Save</button>' +
+        '<button type="button" class="small" data-cancel="1">Cancel</button></div>';
+      card.querySelector("[data-save]").addEventListener("click", guard(async () => {
+        const edited = bay.plan.tests.map((x) => {
+          if (x.id !== t.id) return x;
+          const get = (f) => card.querySelector('[data-ef="' + f + '"]').value;
+          const minutes = get("minutes").trim();
+          return Object.assign({}, x, {
+            title: get("title"), what: get("what"), how: get("how"), expected: get("expected"),
+            minutes: minutes === "" ? null : Number(minutes),
+            minutes_source: minutes === "" ? "" : (x.minutes_source || "shop-set estimate"),
+          });
+        });
+        bay.editing = null;
+        await bayEditPlan(edited, null);
+      }));
+      card.querySelector("[data-cancel]").addEventListener("click", () => {
+        bay.editing = null;
+        renderBayPlan();
+      });
+    } else {
+      card.innerHTML =
+        '<div class="head"><span class="rank">' + (i + 1) + "</span>" +
+        '<span class="tname">' + esc(t.title) + "</span>" + status + gate + "</div>" +
+        "<table>" +
+        "<tr><th>What to check</th><td>" + esc(t.what) + "</td></tr>" +
+        "<tr><th>How</th><td>" + esc(t.how) + "</td></tr>" +
+        "<tr><th>Expected</th><td>" + esc(t.expected) + "</td></tr>" +
+        "<tr><th>Why it ranks here</th><td>" + esc(scoreLine(t)) + "</td></tr>" +
+        (t.causes.length ? "<tr><th>Causes</th><td>" + esc(t.causes.join("; ")) + "</td></tr>" : "") +
+        (plan.notes[t.id] ? "<tr><th>Note</th><td>" + esc(plan.notes[t.id]) + "</td></tr>" : "") +
+        "</table>" +
+        '<div class="row">' +
+        '<input data-note type="text" placeholder="result note (optional)" style="flex:1;min-width:140px">' +
+        '<button type="button" class="small" data-res="pass">Pass</button>' +
+        '<button type="button" class="small" data-res="fail">Fail</button>' +
+        '<button type="button" class="small" data-move="-1">↑</button>' +
+        '<button type="button" class="small" data-move="1">↓</button>' +
+        '<button type="button" class="small" data-edit="1">Edit</button>' +
+        "</div>";
+      card.querySelectorAll("[data-res]").forEach((btn) => {
+        btn.addEventListener("click", guard(async () => {
+          await bayRecord(t.id, btn.getAttribute("data-res"), card.querySelector("[data-note]").value);
+        }));
+      });
+      card.querySelectorAll("[data-move]").forEach((btn) => {
+        btn.addEventListener("click", guard(async () => {
+          const order = bay.plan.tests.map((x) => x.id);
+          const at = order.indexOf(t.id);
+          const to = at + Number(btn.getAttribute("data-move"));
+          if (to < 0 || to >= order.length) return;
+          order.splice(at, 1);
+          order.splice(to, 0, t.id);
+          await bayEditPlan(null, order);
+        }));
+      });
+      card.querySelector("[data-edit]").addEventListener("click", () => {
+        bay.editing = t.id;
+        renderBayPlan();
+      });
+    }
+    box.appendChild(card);
+  });
+  renderBayTrail();
+}
+
+function renderBayTrail() {
+  const box = $("bayTrail");
+  const trail = (bay.plan && bay.plan.trail) || [];
+  if (!trail.length) {
+    box.innerHTML = '<p class="hint">Results you record appear here with the ranking change each one caused.</p>';
+    return;
+  }
+  box.innerHTML = '<ul class="trail">' + trail.map((e) =>
+    "<li><span class='seq'>#" + e.seq + "</span>" + esc(e.caused_by) +
+    (e.moved && e.moved.length ? " Moved: " + esc(e.moved.join(", ")) + "." : " Order held.") + "</li>"
+  ).join("") + "</ul>";
+}
+
+function renderBayParts(note) {
+  const box = $("bayParts");
+  if (!bay.parts.length) {
+    box.innerHTML = "<p>" + esc(note || "No parts listed yet.") + "</p>";
+    return;
+  }
+  box.innerHTML = "<ul class='part-list'>" + bay.parts.map((p) =>
+    "<li><strong>" + esc(p.name) + "</strong>" +
+    (p.note ? "<span>" + esc(p.note) + "</span>" : "") +
+    '<span class="tag">' + esc(p.source || "no source") + "</span></li>"
+  ).join("") + "</ul>" + (note ? '<p class="hint">' + esc(note) + "</p>" : "");
+}
+
+function renderBayLabor() {
+  const box = $("bayLabor");
+  const labor = bay.labor;
+  if (!labor) { box.innerHTML = '<p class="hint">Labor appears after the plan.</p>'; return; }
+  box.innerHTML =
+    "<ul class='part-list'>" + labor.lines.map((l) =>
+      "<li data-test='" + l.test_id + "'><strong>" + esc(l.title) + "</strong>" +
+      '<label>min <input data-min type="number" min="0" value="' + (l.minutes == null ? "" : l.minutes) + '" style="width:5.5rem"></label>' +
+      (l.source ? '<span class="tag">' + esc(l.source) + "</span>" : '<span class="missing">no shop time on file</span>') +
+      "</li>"
+    ).join("") + "</ul>" +
+    "<p><strong>" + esc(labor.plain_words) + "</strong></p>";
+}
+
+async function bayCreateCase(demoCase) {
+  const body = { sessionId: state.sessionId };
+  if (demoCase) body.demoCase = demoCase;
+  else {
+    body.manual = bayManual();
+    if (bay.vinPhoto) body.vinPhoto = bay.vinPhoto;
+  }
+  const res = await api("/api/bay/intake", body);
+  state.sessionId = res.sessionId;
+  bay.case = res.case;
+  bay.plan = null;
+  state.modes.bay = res.mode;
+  setPill();
+  if (res.notice) notice(esc(res.notice));
+  renderBayCase();
+  if (res.case.declined) {
+    feed("Bay case declined: " + res.case.decline.title,
+      "tool bay.intake — policy gate → decline card (" + res.mode + ")");
+    return res;
+  }
+  const v = res.case.vehicle;
+  feed("Bay case opened: " + v.category,
+    "tool bay.intake — symptom + " + (res.case.codes || []).length + " code(s) → " + v.category + " (" + res.mode + ")");
+  await bayDraftPlan();
+  return res;
+}
+
+async function bayDraftPlan() {
+  const res = await api("/api/bay/plan", { sessionId: state.sessionId });
+  bay.plan = res.plan;
+  state.modes.bay = res.mode;
+  setPill();
+  if (res.notice) notice(esc(res.notice));
+  renderBayPlan();
+  feed("Drafted " + res.plan.tests.length + " ranked tests",
+    "tool bay.plan — symptom + codes → ranked tests (" + res.mode + ")");
+  await bayParts();
+  await bayLabor({});
+  return res;
+}
+
+async function bayRecord(testId, result, note) {
+  const res = await api("/api/bay/result", { sessionId: state.sessionId, testId, result, note });
+  bay.plan = res.plan;
+  renderBayPlan();
+  const last = res.plan.trail[res.plan.trail.length - 1];
+  feed("Recorded " + result + ": " + (last ? last.caused_by : ""),
+    "tool bay.result — " + testId + " → " + result + ", plan re-ranked");
+  return res;
+}
+
+async function bayEditPlan(tests, order) {
+  const res = await api("/api/bay/plan/edit", { sessionId: state.sessionId, tests, order });
+  bay.plan = res.plan;
+  renderBayPlan();
+  feed("Plan edited, ranking updated", "tool bay.plan.edit — shop edit → re-rank");
+  return res;
+}
+
+async function bayParts(add) {
+  const res = await api("/api/bay/parts", { sessionId: state.sessionId, add });
+  bay.parts = res.parts;
+  renderBayParts(res.note);
+  return res;
+}
+
+async function bayLabor(standards) {
+  const res = await api("/api/bay/labor", { sessionId: state.sessionId, standards });
+  bay.labor = res.labor;
+  renderBayLabor();
+  return res;
+}
+
+async function bayKb() {
+  const q = $("bayKbQ").value.trim();
+  const res = await fetch("/api/bay/kb?q=" + encodeURIComponent(q));
+  const data = await res.json();
+  const box = $("bayKb");
+  if (!data.notes.length) {
+    box.innerHTML = "<p>No notes found. The shop can add its own files under shop_kb/.</p>";
+    return;
+  }
+  box.innerHTML = data.notes.map((n) =>
+    '<div class="kbnote"><strong>' + esc(n.title) + "</strong><div>" + esc(n.body) + "</div>" +
+    '<span class="src">source: ' + esc(n.source) + "</span></div>"
+  ).join("");
+  feed("Looked up " + data.notes.length + " repair note(s)" + (q ? " for '" + q + "'" : ""),
+    "tool bay.kb — shop notes + samples, no factory content");
+}
+
+function bayLaborFromInputs() {
+  const standards = {};
+  document.querySelectorAll("#bayLabor li[data-test]").forEach((li) => {
+    const value = li.querySelector("[data-min]").value.trim();
+    if (value !== "") {
+      standards[li.getAttribute("data-test")] = { minutes: Number(value), source: "shop-set estimate" };
+    }
+  });
+  return standards;
+}
+
+function initBay() {
+  const show = (which) => {
+    $("view-yard").hidden = which !== "yard";
+    $("view-bay").hidden = which !== "bay";
+    $("tabYard").classList.toggle("active", which === "yard");
+    $("tabBay").classList.toggle("active", which === "bay");
+  };
+  $("tabYard").addEventListener("click", () => show("yard"));
+  $("tabBay").addEventListener("click", () => { show("bay"); bayKb(); });
+
+  document.querySelectorAll("[data-baycase]").forEach((btn) => {
+    btn.addEventListener("click", guard(async () => {
+      await bayCreateCase(btn.getAttribute("data-baycase"));
+    }));
+  });
+  $("btnBayCase").addEventListener("click", guard(async () => { await bayCreateCase(null); }));
+  $("btnBayPlan").addEventListener("click", guard(async () => { await bayDraftPlan(); }));
+  $("bayVin").addEventListener("change", guard(async (e) => {
+    const file = (e.target.files || [])[0];
+    if (!file) { bay.vinPhoto = null; return; }
+    const data = await downscale(file);
+    bay.vinPhoto = { name: file.name, data };
+    feed("VIN photo attached (" + file.name + ")", "bay intake — fills blank vehicle fields only");
+  }));
+  $("btnBayAddTest").addEventListener("click", guard(async () => {
+    const title = $("bayTTitle").value.trim();
+    if (!title) { notice("Name the test first."); return; }
+    const tests = (bay.plan ? bay.plan.tests : []).concat([{
+      id: "t-shop-" + Date.now(),
+      title,
+      what: $("bayTWhat").value.trim(),
+      how: $("bayTHow").value.trim(),
+      expected: $("bayTExp").value.trim(),
+      causes: baySplit($("bayTCauses").value, false),
+      eliminates_on_pass: baySplit($("bayTOut").value, false),
+      suspects_on_fail: baySplit($("bayTSusp").value, false),
+      symptom_match: $("bayTSym").checked,
+      code_match: $("bayTCode").checked,
+      rules_out_expensive: $("bayTExp2").checked,
+      quick: $("bayTQuick").checked,
+    }]);
+    await bayEditPlan(tests, null);
+    $("bayTTitle").value = ""; $("bayTWhat").value = "";
+    $("bayTHow").value = ""; $("bayTExp").value = "";
+  }));
+  $("btnBayAddPart").addEventListener("click", guard(async () => {
+    await bayParts({ name: $("bayPName").value, note: $("bayPNote").value });
+    $("bayPName").value = ""; $("bayPNote").value = "";
+    feed("Added a part to the job list", "tool bay.parts — shop-entered entry");
+  }));
+  $("btnBayLabor").addEventListener("click", guard(async () => {
+    await bayLabor(bayLaborFromInputs());
+    feed("Labor math updated", "tool bay.labor — shop times at $180/hr");
+  }));
+  $("btnBayKb").addEventListener("click", guard(bayKb));
+}
+
+initBay();

@@ -3,10 +3,11 @@
 Usage:  python scripts/smoke_demo.py [base_url] [runs]
 Default: http://127.0.0.1:8765, 10 runs.
 
-Each run: session → intake (demo) → harvest → comps → verdicts → listing
-draft → approve → mock post → chat. Asserts the A/B/C spread, plain-money
-totals, the Approve gate (post-before-approve is refused), and SSE chat.
-Exits nonzero on the first failure so "10 out of 10" is a real claim.
+Each yard run: session → intake (demo) → harvest → comps → verdicts →
+listing draft → approve → mock post → chat. Each bay run: session → bay
+intake (demo case 1) → plan → pass → fail → parts → labor → kb, plus an
+N63 no-start decline that must get no plan. Exits nonzero on the first
+failure so "10 out of 10" is a real claim.
 """
 
 import json
@@ -52,6 +53,11 @@ def post_sse(path, body):
             if line.startswith("data:"):
                 events.append(json.loads(line[5:].strip()))
     return events
+
+
+def get(path):
+    with urllib.request.urlopen(BASE + path, timeout=30) as res:
+        return res.status, json.loads(res.read().decode("utf-8"))
 
 
 def check(cond, what):
@@ -113,10 +119,72 @@ def one_run(n):
     print("run %d/%d: PASS (A=%s B=%s)" % (n, RUNS, totals["A"]["high"], totals["B"]["high"]))
 
 
+def bay_run(n):
+    _, session = post("/api/session", {})
+    sid = session["sessionId"]
+
+    _, intake = post("/api/bay/intake", {"sessionId": sid, "demoCase": "case1"})
+    check(intake["mode"] == "demo-cache", "bay %d: intake not cached" % n)
+    check(not intake["case"]["declined"], "bay %d: case1 must not decline" % n)
+    check("BMW" in intake["case"]["vehicle"]["category"], "bay %d: category off" % n)
+    check(intake["case"]["vehicle"]["trim"] == "unknown", "bay %d: trim must stay unknown" % n)
+
+    _, plan = post("/api/bay/plan", {"sessionId": sid})
+    order = [t["id"] for t in plan["plan"]["tests"]]
+    check(order == ["t1", "t2", "t4", "t3", "t5"], "bay %d: ranking wrong: %s" % (n, order))
+    check(plan["plan"]["tests"][0]["score"] == 9, "bay %d: top score wrong" % n)
+
+    _, passed = post(
+        "/api/bay/result", {"sessionId": sid, "testId": "t1", "result": "pass", "note": "12.1V"}
+    )
+    check("no power to module" in passed["plan"]["eliminated"], "bay %d: pass must rule out" % n)
+    check(len(passed["plan"]["trail"]) == 1, "bay %d: trail must name the change" % n)
+
+    _, failed = post("/api/bay/result", {"sessionId": sid, "testId": "t4", "result": "fail"})
+    check("dead module" in failed["plan"]["suspected"], "bay %d: fail must suspect" % n)
+    check(len(failed["plan"]["trail"]) == 2, "bay %d: trail must grow" % n)
+
+    _, parts = post("/api/bay/parts", {"sessionId": sid})
+    check(len(parts["parts"]) == 1, "bay %d: case1 parts wrong" % n)
+    check(parts["parts"][0]["source"], "bay %d: part needs a source" % n)
+
+    _, labor = post("/api/bay/labor", {"sessionId": sid})
+    check("$165" in labor["labor"]["plain_words"], "bay %d: labor math wrong" % n)
+    check("donor set index" in labor["labor"]["plain_words"], "bay %d: missing time must be named" % n)
+
+    _, kb = get("/api/bay/kb?q=creep")
+    check(len(kb["notes"]) == 1, "bay %d: kb search off" % n)
+
+    # Decline path: N63 no-start never gets a plan.
+    _, session2 = post("/api/session", {})
+    sid2 = session2["sessionId"]
+    _, declined = post(
+        "/api/bay/intake",
+        {
+            "sessionId": sid2,
+            "manual": {
+                "vehicle": {"year": 2013, "make": "BMW", "model": "750i", "engine": "N63"},
+                "area": "electrical",
+                "service_requested": "diagnose",
+                "symptom": "crank no start, nothing happens",
+                "codes": [],
+            },
+        },
+    )
+    check(declined["case"]["declined"], "bay %d: N63 no-start must decline" % n)
+    check(declined["case"]["decline"]["next_step"], "bay %d: decline needs a next step" % n)
+    status, _ = post("/api/bay/plan", {"sessionId": sid2})
+    check(status == 400, "bay %d: declined case must get no plan" % n)
+
+    print("bay %d/%d: PASS" % (n, RUNS))
+
+
 def main():
     for n in range(1, RUNS + 1):
         one_run(n)
-    print("ALL %d RUNS PASSED" % RUNS)
+    for n in range(1, RUNS + 1):
+        bay_run(n)
+    print("ALL %d YARD + %d BAY RUNS PASSED" % (RUNS, RUNS))
 
 
 if __name__ == "__main__":
