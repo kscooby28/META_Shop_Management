@@ -38,6 +38,11 @@ A decline card, professional, with a next step. Then the Compare beat:
 both engines side by side on the same case, Muse Spark Open named on
 screen with where it runs. Close.
 
+The guided tour walks these beats in order: a Take the tour entry on
+both home screens, ten taps, no hunting, no keys, every beat on demo
+cache including a forced-demo Compare. It is the recording path and
+the stranger's first-run path in one.
+
 The rule for all future work: every work order from here is judged
 against that spine. Does it play beautifully? Does it work flawlessly?
 Does it take the fewest taps? A yes on all three is the bar.
@@ -146,7 +151,8 @@ Comps grew from a sample board into a real engine, built fresh from a
 plain-words study of valuation patterns. Sold prices in get a
 median-centered range with width from the data's own spread, net money
 after a visible 13.25% fee share, and an advisory money grade with a
-plain-words reason. Thin feeds (fewer than 3 solds), stale solds (older
+plain-words reason, the sold count, and the reliability notes beside
+it. Thin feeds (fewer than 3 solds), stale solds (older
 than 400 days), and contradictory spans (3x or more) are named in notes,
 never smoothed over; empty feeds yield no range at all. Shop-typed
 ranges revalue through the same engine at merge time, and the demo board
@@ -287,7 +293,7 @@ behind it.
 
 - **Decline renderer ships early.** The verdict engine can already render a
   professional decline as a verdict card (never an error), covered by
-  tests — the shop side reuses it next work order.
+  tests — the shop side reuses it in the Bay.
 
 ## Layout
 
@@ -318,6 +324,8 @@ behind it.
   help, and comps value lookups (inventory data itself stays in the browser).
 - `web/gallery.js` — pure strip/viewer model behind the photo gallery.
 - `web/ux.js` — pure usability logic: drafts, guides, empty states, deletes.
+- Guided tour (Work Order 12) — the Take the tour entry on both home
+  screens walks the video spine beats in order on demo cache.
 - `tests/` — Python suites plus a Node driver for the browser logic
   (`tests/test_web_logic.py` runs it; Node is a test dependency).
   `scripts/smoke_demo.py` — 10× end-to-end over Yard, Bay, and inventory.
