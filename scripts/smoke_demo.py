@@ -114,6 +114,8 @@ def one_run(n):
     check(compare["mode13"] == "demo-cache", "run %d: spark 1.3 side must be demo" % n)
     check(compare["modeOpen"] in ("live", "demo-cache"), "run %d: open side unlabeled" % n)
     check(all(r["rule"] for r in compare["rows"]), "run %d: rule grades must pass through" % n)
+    _, tourmode = post("/api/compare", {"sessionId": sid, "demo": True})
+    check(tourmode["modeOpen"] == "demo-cache", "run %d: tour must force demo" % n)
 
     _, wonder = post("/api/wonder", {"sessionId": sid, "kind": "yard", "ref": "p_headlight"})
     check(wonder["escalated"], "run %d: borderline B must escalate" % n)

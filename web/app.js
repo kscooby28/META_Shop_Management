@@ -738,7 +738,8 @@ function renderCompare(res) {
   scrollSoon(box);
 }
 
-async function runCompare() {
+async function runCompare(opts) {
+  const demoOnly = !!(opts && opts.demo);
   if (!state.report || !(state.report.verdicts || []).length) {
     const box = $("compareOut");
     box.innerHTML = "";
@@ -758,7 +759,7 @@ async function runCompare() {
     box.appendChild(div);
     return null;
   }
-  const res = await api("/api/compare", { sessionId: state.sessionId });
+  const res = await api("/api/compare", { sessionId: state.sessionId, demo: demoOnly });
   state.sessionId = res.sessionId;
   renderCompare(res);
   feed("Compared both engines on " + res.rows.length + " parts",
@@ -1096,6 +1097,180 @@ function pressMic(btn, kind, onText) {
 function pokeDraft(box) {
   box.dispatchEvent(new Event("input", { bubbles: true }));
 }
+
+/* ===== guided tour (WO12): demo-path walk, creates nothing external =====
+ * Ten beats in spine order. Actions reuse the same demo calls the video
+ * shows; the tour never approves or posts a listing, never touches rules,
+ * and runs every leg on demo cache. Static tests scan this section: beat
+ * order, exit on every beat, and no approve/post calls.
+ */
+const TOUR_BEATS = [
+  { id: "chooser", view: null, section: null, title: "One question, once",
+    line: "On the very first open, the app asks shop or enthusiast — once, never again — and remembers your answer on this machine." },
+  { id: "register", view: "inventory", section: "sec-icars", title: "Register a parts car",
+    line: "A photo names the car, a VIN photo fills the blanks, one tap registers it — the app never guesses a field it cannot see." },
+  { id: "dme", view: "inventory", section: "sec-iknow", title: "The engine-computer note",
+    line: "On this M3 parts car the app surfaces the engine computer — no EWS handshake needed, which is why E30 owners want it — owner-valued at $200." },
+  { id: "totals", view: "inventory", section: "sec-itotals", title: "Plain-money totals",
+    line: "Totals count only sourced values; unknown parts are named, never guessed into the sum." },
+  { id: "listing", view: "yard", section: "sec-listing", title: "The listing gate",
+    line: "One tap drafts the listing from the photos. Approve is a human tap — the tour shows the draft and stops here." },
+  { id: "ranking", view: "bay", section: "sec-bplan", title: "Ranked test plan",
+    line: "A symptom becomes a ranked test plan; every test shows why it sits where it sits." },
+  { id: "decline", view: "bay", section: "sec-bcase", title: "A professional decline",
+    line: "Jobs the shop will not touch get a clean decline with a next step — never an error, never silence." },
+  { id: "close", view: "bay", section: "sec-bplan", title: "Plan complete",
+    line: "Every test recorded, the plan is complete — the evidence trail shows exactly what each result changed." },
+  { id: "money", view: "yard", section: "sec-verdicts", title: "Money grade",
+    line: "Beside every rule grade, the money grade prices the part from real sold ranges, with count and reliability shown." },
+  { id: "compare", view: "compare", section: "sec-compare", title: "Both engines",
+    line: "Spark 1.3 on the demo leg and Spark Open side by side on the same case — a second look only, rules still decide." },
+];
+
+let tourState = null; // { beat } while the tour runs
+let tourPreview = false;
+
+function tourBar(beat, index) {
+  const bar = document.createElement("div");
+  bar.id = "tourBar";
+  bar.className = "homehead";
+  const strong = document.createElement("strong");
+  strong.textContent = "Tour — beat " + (index + 1) + " of " + TOUR_BEATS.length + ": " + beat.title;
+  bar.appendChild(strong);
+  const span = document.createElement("span");
+  span.className = "hint";
+  span.textContent = beat.line;
+  bar.appendChild(span);
+  const next = document.createElement("button");
+  next.type = "button";
+  next.className = "small primary";
+  next.textContent = index + 1 >= TOUR_BEATS.length ? "Finish" : "Next";
+  next.addEventListener("click", guard(tourNext, "walking…"));
+  bar.appendChild(next);
+  const exit = document.createElement("button");
+  exit.type = "button";
+  exit.className = "small";
+  exit.textContent = "Exit tour";
+  exit.addEventListener("click", () => exitTour());
+  bar.appendChild(exit);
+  return bar;
+}
+
+function placeTourBar(beat, index) {
+  const old = $("tourBar");
+  if (old) old.remove();
+  const bar = tourBar(beat, index);
+  if (beat.id === "chooser") {
+    document.querySelector("#setupOverlay .setup-card").appendChild(bar);
+  } else {
+    const section = document.getElementById(beat.section);
+    section.parentNode.insertBefore(bar, section);
+  }
+  flash(bar);
+}
+
+function endTourPreview() {
+  if (!tourPreview) return;
+  tourPreview = false;
+  $("setupOverlay").hidden = true;
+  $("setupEmail").disabled = false;
+  $("btnSetupShop").disabled = false;
+  $("btnSetupFan").disabled = false;
+}
+
+function startTour() {
+  if (Profile.needsSetup(localStorage)) {
+    notice("Answer the one first-run question first — then take the tour from either home.");
+    return;
+  }
+  tourState = { beat: 0 };
+  feed("Tour started: ten beats, demo cache, nothing leaves this machine", "tour — guided spine walk");
+  showTourBeat();
+}
+
+function exitTour() {
+  const old = $("tourBar");
+  if (old) old.remove();
+  endTourPreview();
+  tourState = null;
+  feed("Tour exited — explore freely from here", "tour — stopped by hand");
+}
+
+async function tourNext() {
+  if (!tourState) return;
+  if (tourState.beat + 1 >= TOUR_BEATS.length) {
+    exitTour();
+    feed("Tour finished: the whole spine, ten beats, nothing approved", "tour — complete");
+    return;
+  }
+  tourState.beat += 1;
+  await showTourBeat();
+}
+
+async function tourEnsureSeed() {
+  if (!invState.cars.length) {
+    $("btnInvSeed").click();
+    for (let i = 0; i < 40 && !invState.cars.length; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  }
+}
+
+async function showTourBeat() {
+  const beat = TOUR_BEATS[tourState.beat];
+  endTourPreview();
+  if (beat.id === "chooser") {
+    $("setupEmail").disabled = true;
+    $("btnSetupShop").disabled = true;
+    $("btnSetupFan").disabled = true;
+    $("setupOverlay").hidden = false;
+    tourPreview = true;
+  } else if (beat.id === "register" || beat.id === "dme" || beat.id === "totals") {
+    showView("inventory");
+    await tourEnsureSeed();
+    if (beat.id === "register") {
+      const d = document.querySelector("#sec-icars details");
+      if (d) d.open = true;
+    }
+  } else if (beat.id === "listing" || beat.id === "money") {
+    showView("yard");
+    if (!state.report || !(state.report.verdicts || []).length) await runAll();
+  } else if (beat.id === "ranking") {
+    showView("bay");
+    if (!bay.case || bay.case.declined || bay.demoCase !== "case1") await bayCreateCase("case1");
+    if (!bay.plan) await bayDraftPlan();
+  } else if (beat.id === "decline") {
+    // Oil-change decline on purpose: same decline mechanics, and no engine
+    // code ever appears on screen, on camera or off.
+    showView("bay");
+    $("bayYear").value = "2015"; $("bayMake").value = "BMW"; $("bayModel").value = "328i";
+    $("bayTrim").value = ""; $("bayEngine").value = "";
+    $("bayService").value = "oil change";
+    $("baySymptom").value = "due for an oil change";
+    $("bayCodes").value = "";
+    await bayCreateCase(null);
+  } else if (beat.id === "close") {
+    showView("bay");
+    await bayCreateCase("case1");
+    for (const t of bay.plan.tests) {
+      if (!bay.plan.results[t.id]) {
+        await bayRecord(t.id, t.id === "t4" ? "fail" : "pass", "tour recording");
+      }
+    }
+  } else if (beat.id === "compare") {
+    showView("compare");
+    await runCompare({ demo: true });
+  }
+  placeTourBar(beat, tourState.beat);
+  const target = beat.id === "listing" ? $("listingCard")
+    : beat.id === "close" ? $("bayTrail")
+    : beat.section ? document.getElementById(beat.section) : null;
+  if (target) {
+    flash(target);
+    if (beat.id !== "compare") scrollSoon(target);
+  }
+}
+/* ===== end guided tour ===== */
 
 async function init() {
   const res = await api("/api/session", {});
@@ -1958,6 +2133,12 @@ function renderInvHome() {
   why.className = "hint";
   why.textContent = "Your parts cars and their parts: what you have, what fits, what it is worth.";
   box.appendChild(why);
+  const tour = document.createElement("button");
+  tour.type = "button";
+  tour.className = "small primary";
+  tour.textContent = "Take the tour";
+  tour.addEventListener("click", () => startTour());
+  box.appendChild(tour);
 }
 
 function renderBayHome() {
@@ -1994,6 +2175,12 @@ function renderBayHome() {
   why.className = "hint";
   why.textContent = "The repair bench: describe a symptom, get a test plan, record pass or fail.";
   box.appendChild(why);
+  const tour = document.createElement("button");
+  tour.type = "button";
+  tour.className = "small primary";
+  tour.textContent = "Take the tour";
+  tour.addEventListener("click", () => startTour());
+  box.appendChild(tour);
 }
 
 function renderGuide(boxId, mode, facts, title) {

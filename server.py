@@ -35,7 +35,7 @@ from inventory import comp_for_label, load_seed
 from listing import build_live_draft, demo_draft, get_post_adapter
 from studio import IMAGE_LIVE, demo_lookup, request_studio_render
 from voice import VOICE_LIVE, transcribe
-from spark_open import compare_grades
+from spark_open import compare_grades, demo_grades
 from wonder import WONDER_LIVE, escalate
 from meta_client import (
     MetaAPIError,
@@ -984,7 +984,13 @@ class Handler(BaseHTTPRequestHandler):
             ],
         }
         part_ids = [v.get("part_id") for v in verdicts]
-        opened = compare_grades(evidence, part_ids, ROOT)
+        if payload.get("demo"):
+            # Tour path: demo leg forced, no live attempt, labeled demo.
+            sample = demo_grades(ROOT)
+            opened = {"grades": sample["grades"], "mode": "demo-cache",
+                      "source": sample["source"], "notice": ""}
+        else:
+            opened = compare_grades(evidence, part_ids, ROOT)
         open_by_id = {g["part_id"]: g for g in opened["grades"]}
         rows = []
         for v in verdicts:
