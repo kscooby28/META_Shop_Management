@@ -35,6 +35,7 @@ from inventory import comp_for_label, load_seed
 from listing import build_live_draft, demo_draft, get_post_adapter
 from studio import IMAGE_LIVE, demo_lookup, request_studio_render
 from voice import VOICE_LIVE, transcribe
+from wonder import WONDER_LIVE, escalate
 from meta_client import (
     MetaAPIError,
     chat_stream,
@@ -203,6 +204,8 @@ class Handler(BaseHTTPRequestHandler):
             self._api_inv_comps(payload)
         elif parsed.path == "/api/voice/note":
             self._api_voice_note(payload)
+        elif parsed.path == "/api/wonder":
+            self._api_wonder(payload)
         else:
             self._send_json({"ok": False, "error": "unknown endpoint"}, status=404)
 
@@ -887,6 +890,61 @@ class Handler(BaseHTTPRequestHandler):
                 "text": result["text"],
                 "source": result["source"],
                 "pinned": pinned,
+            }
+        )
+
+    def _api_wonder(self, payload):
+        session_id, session = self._bay_session(payload)
+        kind = payload.get("kind", "")
+        ref = payload.get("ref", "")
+        hard = bool(payload.get("hard"))
+        if kind == "yard":
+            verdicts = (session.get("verdicts") or {}).get("verdicts", [])
+            evidence = next((v for v in verdicts if v.get("part_id") == ref), None)
+            if evidence is None:
+                self._send_json(
+                    {"ok": False, "error": "run verdicts first, then pick a part"},
+                    status=400,
+                )
+                return
+        elif kind == "bay":
+            plan = (session.get("bay") or {}).get("plan")
+            if not plan:
+                self._send_json(
+                    {"ok": False, "error": "draft a plan first"}, status=400
+                )
+                return
+            evidence = plan
+            ref = (session.get("bay") or {}).get("demo_case") or "plan"
+        else:
+            self._send_json(
+                {"ok": False, "error": "kind must be yard or bay"}, status=400
+            )
+            return
+        try:
+            result = escalate(kind, evidence, ref, ROOT, hard)
+        except MetaAPIError as exc:
+            self._send_json({"ok": False, "error": str(exc)}, status=400)
+            return
+        if result["escalated"] and not WONDER_LIVE:
+            notice = (
+                "Wonder live is off until the key rotation, so this is a demo "
+                "sample opinion. The triggers above are computed from your evidence."
+            )
+        elif not result["escalated"]:
+            notice = "Straightforward on the visible inputs — no second opinion needed."
+        else:
+            notice = ""
+        self._send_json(
+            {
+                "ok": True,
+                "sessionId": session_id,
+                "mode": result["mode"],
+                "notice": notice,
+                "triggers": result["assessment"]["triggers"],
+                "inputs": result["assessment"]["inputs"],
+                "escalated": result["escalated"],
+                "opinion": result["opinion"],
             }
         )
 

@@ -625,8 +625,61 @@ function renderTotals() {
 
 /* ---------- listing factory ---------- */
 
+function agreesLine(agrees) {
+  if (agrees === true) return "Agrees with the primary call.";
+  if (agrees === false) return "Disagrees with the primary call — read both before deciding.";
+  return "Partly agrees — read both before deciding.";
+}
+
+function renderWonder(boxId, res) {
+  // Distinct second-opinion card beside the primary call; never overwrites it.
+  const box = $(boxId);
+  box.innerHTML = "";
+  const trig = document.createElement("p");
+  trig.className = "hint";
+  trig.textContent = res.triggers.length
+    ? "Asked because: " + res.triggers.join("; ") + "."
+    : "No hard triggers on the visible inputs.";
+  box.appendChild(trig);
+  if (!res.escalated || !res.opinion) {
+    const note = document.createElement("div");
+    note.className = "notice";
+    note.textContent = res.notice || "No second opinion needed.";
+    box.appendChild(note);
+    return;
+  }
+  const card = document.createElement("div");
+  card.className = "decline";
+  const badge = res.mode === "live" ? "" : " <span class='demobadge'>DEMO</span>";
+  card.innerHTML =
+    '<div class="dtitle">Second opinion — Wonder Standard' + badge + "</div>" +
+    "<div><strong>" + esc(res.opinion.title || "") + "</strong></div>" +
+    "<div>" + esc(res.opinion.body || "") + "</div>" +
+    (res.opinion.watch ? "<div>Watch: " + esc(res.opinion.watch) + "</div>" : "") +
+    '<div class="next">' + esc(agreesLine(res.opinion.agrees)) + "</div>" +
+    '<p class="hint">Source: ' + esc(res.opinion.source || "?") + "</p>";
+  box.appendChild(card);
+  flash(card);
+}
+
+async function runWonder(kind, ref, hard, boxId) {
+  const res = await api("/api/wonder", {
+    sessionId: state.sessionId, kind, ref, hard,
+  });
+  state.sessionId = res.sessionId;
+  if (res.notice && !res.escalated) notice(esc(res.notice));
+  if (res.notice && res.escalated) feed(res.notice, "tool wonder.route — demo sample opinion");
+  renderWonder(boxId, res);
+  scrollSoon($(boxId));
+  feed(res.escalated ? "Second opinion in view" : "Router passed: straightforward",
+    "tool wonder.route — " + res.triggers.length + " trigger(s) (" + res.mode + ")");
+  return res;
+}
+
 function refreshListingParts() {
   const sel = $("listingPart");
+  const wsel = $("wonderPart");
+  wsel.innerHTML = "";
   sel.innerHTML = "";
   const list = (state.report && state.report.verdicts) || [];
   const order = { A: 0, B: 1, C: 2 };
@@ -636,6 +689,10 @@ function refreshListingParts() {
     opt.value = v.part_id;
     opt.textContent = v.verdict + " — " + v.label;
     sel.appendChild(opt);
+    const wopt = document.createElement("option");
+    wopt.value = v.part_id;
+    wopt.textContent = v.verdict + " — " + v.label;
+    wsel.appendChild(wopt);
   }
 }
 
@@ -983,6 +1040,9 @@ async function init() {
   }, "identifying the car…"));
   $("btnRunAll").addEventListener("click", guard(runAll, "running intake to listing…"));
   $("btnRerun").addEventListener("click", guard(async () => { await runVerdicts(true); }));
+  $("btnWonderYard").addEventListener("click", guard(async () => {
+    await runWonder("yard", $("wonderPart").value, $("wonderHard").checked, "wonderYard");
+  }, "asking the second opinion…"));
   $("btnDraft").addEventListener("click", guard(async () => { await runDraft(); }, "drafting the listing…"));
   $("btnApprove").addEventListener("click", guard(runApprove));
   $("btnPost").addEventListener("click", guard(runPost));
@@ -1405,6 +1465,9 @@ function initBay() {
   });
   $("btnBayCase").addEventListener("click", guard(async () => { await bayCreateCase(null); }, "opening the case…"));
   $("btnBayPlan").addEventListener("click", guard(async () => { await bayDraftPlan(); }, "drafting the plan…"));
+  $("btnWonderBay").addEventListener("click", guard(async () => {
+    await runWonder("bay", "plan", $("bayHard").checked, "wonderBay");
+  }, "asking the second opinion…"));
   async function readBayVin() {
     if (!bay.vinPhoto) throw new Error("attach a VIN photo first");
     const res = await api("/api/inv/vin", { photo: bay.vinPhoto });

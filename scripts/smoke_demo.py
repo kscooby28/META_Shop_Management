@@ -105,6 +105,11 @@ def one_run(n):
     check("sure money" in totals["A"]["plain_words"], "run %d: A must say sure money" % n)
     check("maybe money" in totals["B"]["plain_words"], "run %d: B must say maybe money" % n)
 
+    _, wonder = post("/api/wonder", {"sessionId": sid, "kind": "yard", "ref": "p_headlight"})
+    check(wonder["escalated"], "run %d: borderline B must escalate" % n)
+    check("headlight" in wonder["opinion"]["title"].lower(), "run %d: opinion title off" % n)
+    check("demo-cache" in wonder["opinion"]["source"], "run %d: opinion must be demo-sourced" % n)
+
     _, listing = post("/api/listing", {"sessionId": sid, "partId": "p_diff"})
     draft_id = listing["draftId"]
     check("differential" in listing["draft"]["title"].lower(), "run %d: draft title off" % n)
@@ -156,6 +161,10 @@ def bay_run(n):
     _, failed = post("/api/bay/result", {"sessionId": sid, "testId": "t4", "result": "fail"})
     check("dead module" in failed["plan"]["suspected"], "bay %d: fail must suspect" % n)
     check(len(failed["plan"]["trail"]) == 2, "bay %d: trail must grow" % n)
+
+    _, wonder = post("/api/wonder", {"sessionId": sid, "kind": "bay"})
+    check(wonder["escalated"], "bay %d: split evidence must escalate" % n)
+    check("one suspect standing" in " ".join(wonder["triggers"]), "bay %d: triggers off" % n)
 
     _, parts = post("/api/bay/parts", {"sessionId": sid})
     check(len(parts["parts"]) == 1, "bay %d: case1 parts wrong" % n)

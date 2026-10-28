@@ -58,6 +58,12 @@
     <div class="row">
       <button id="btnRerun" type="button">Re-run verdicts</button>
     </div>
+    <div class="row" style="margin-top:0.6rem">
+      <select id="wonderPart"></select>
+      <label><input id="wonderHard" type="checkbox"> This one is hard</label>
+      <button id="btnWonderYard" type="button" class="small">Second opinion</button>
+    </div>
+    <div id="wonderYard" style="margin-top:0.6rem"></div>
   </section>
 
   <section id="sec-totals">
@@ -155,7 +161,10 @@
     <p class="hint">Each test shows why it sits where it sits. Record a result and the plan re-ranks, naming what changed.</p>
     <div class="row">
       <button id="btnBayPlan" type="button">Draft plan</button>
+      <label><input id="bayHard" type="checkbox"> This case is hard</label>
+      <button id="btnWonderBay" type="button" class="small">Second opinion</button>
     </div>
+    <div id="wonderBay" style="margin-top:0.6rem"></div>
     <div id="bayPlan" style="margin-top:0.7rem"></div>
     <details>
       <summary>Add a test by hand</summary>
