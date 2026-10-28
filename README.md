@@ -130,6 +130,47 @@ survive reloads (browser only); deletes and draft-discards behind one
 plain confirmation; model names kept inside the expandable tool detail;
 and a mobile panel with an obvious open and close.
 
+## Valuation engine + money grade (Work Order 8)
+
+Comps grew from a sample board into a real engine, built fresh from a
+plain-words study of valuation patterns. Sold prices in get a
+median-centered range with width from the data's own spread, net money
+after a visible 13.25% fee share, and an advisory money grade with a
+plain-words reason. Thin feeds (fewer than 3 solds), stale solds (older
+than 400 days), and contradictory spans (3x or more) are named in notes,
+never smoothed over; empty feeds yield no range at all. Shop-typed
+ranges revalue through the same engine at merge time, and the demo board
+carries per-part sold lists behind the same lows and highs the totals
+have always used. The money grade sits beside the rule grade on every
+verdict card; `rules.json` is untouched and remains the single grading
+authority. No live eBay lookup, no scraping, no remembered prices.
+
+## Hybrid architecture
+
+Two model families power this build, split on purpose. Muse Spark 1.3
+through the Meta Model API powers the core reasoning: intake, grounding,
+verdict inputs, listing drafts, chat. Muse Spark Open, the open-weight
+model, runs through Baseten as the Compare stage: after verdicts, the
+same case re-grades through Spark Open side by side with the Spark 1.3
+demo leg, each result labeled by its engine, in the running app under
+the Compare tab. The eval harness compares the legs on the demo set;
+the Compare view is where the open model actually runs.
+
+What runs live today, and what waits:
+
+- Spark Open via Baseten: live when `BASETEN_API_KEY` is present in the
+  local environment, one call per case, demo sample otherwise.
+- Every Meta leg (Spark 1.3, SAM, Image, Voice, Wonder): demo cache
+  until the Meta key rotation is confirmed.
+- Spark Open demo sample and the Spark 1.3 demo leg: always available,
+  always labeled, so the Compare view runs 10 out of 10 with no keys.
+
+The demo beat for the Compare stage: open a graded case, open Compare,
+read the on-screen label naming Muse Spark Open and Baseten, and narrate
+how and where the open model is used — second-look grading after
+verdicts, beside the rule grade, never an overrule. The video shows it,
+this section states it, and the submission points at both.
+
 ## Run it
 
 No dependencies — standard library only.
@@ -138,7 +179,8 @@ No dependencies — standard library only.
     # open http://127.0.0.1:8765 in a browser
 
 The Meta Model API key lives in the local `.env` file (see `.env.example`)
-and is never committed. With no key, no network, or no credits, every step
+and is never committed, and the Baseten key (`BASETEN_API_KEY`) lives there
+too when present. With no key, no network, or no credits, every step
 falls back to the demo-mode cache and the flow still runs end to end.
 
 ## The flow (one web page, five steps)
@@ -182,17 +224,22 @@ behind it.
 
 ## Approach notes (what changed vs the brief, and why)
 
-- **No live eBay sold comps yet.** The brief wants verdict inputs from real
+- **No live eBay sold comps.** The brief wants verdict inputs from real
   SOLD listings; without eBay credentials on hand, a live lookup would be a
-  remembered price wearing a costume. So comps ship as an isolated adapter:
-  the mock returns the tagged sample board in demo mode and honest
-  "no reliable data" in live mode. Shop-typed comps (source-tagged) work
-  today; the real adapter slots into `comps.py` later.
-- **Studio backgrounds deferred.** The listing card crops a cutout preview
-  from the source frame; Muse Image backgrounds stay a later step per the
-  short work order.
-- **Voice notes, Wonder router, eval lab deferred** per the short work
-  order. They are pipeline stages with cache slots waiting, not rewrites.
+  remembered price wearing a costume. So comps ship as an isolated adapter
+  plus a fresh valuation engine: shop-typed ranges and the tagged demo sold
+  board run through median-centered ranges, net-after-fees money, and an
+  advisory money grade. A live eBay adapter stays a stub marked later step.
+- **Studio backgrounds shipped demo-safe.** The listing card shows a studio photo above the cutout preview
+  and falls back to the cutout whenever the studio step is unavailable, so the
+  card never breaks. Live Muse Image waits on the Meta key rotation.
+- **Voice notes, Wonder router shipped demo-safe.** Push-to-talk
+  transcription lands text on a Bay case or an inventory note (text only,
+  no voice loop); hard verdicts and plans get a visible Wonder Standard
+  second opinion that never overwrites the primary call. Both live legs
+  wait on the Meta key rotation. The eval lab harness below compares all
+  four engines on the demo set.
+
 - **Decline renderer ships early.** The verdict engine can already render a
   professional decline as a verdict card (never an error), covered by
   tests — the shop side reuses it next work order.
@@ -205,8 +252,15 @@ behind it.
   re-ranking, parts, labor math, local knowledge-base slot.
 - `shop_kb/` — local repair-note slot (ships empty, content git-ignored).
 - `verdict.py` + `rules.json` — visible, changeable A/B/C rules + totals.
-- `comps.py` — sold-comp adapters (mock ships; real one slots in).
+- `comps.py` — valuation engine (ranges, nets, advisory money grade) plus
+  the mock adapter feed; the live eBay adapter stays a stub.
 - `listing.py` — drafts + mock post outbox.
+- `studio.py`, `voice.py`, `wonder.py` — Image studio, voice notes, and the
+  Wonder second-opinion router; isolated adapters, live flags off.
+- `spark_open.py` — Spark Open via Baseten for the Compare stage; live when
+  `BASETEN_API_KEY` is present, demo sample otherwise.
+- `scripts/eval_lab.py` — offline harness comparing all four engines; its
+  table below regenerates with `--write-readme`.
 - `demo_cache.py` + `demo_cache/*.demo.json` — cache behind every step.
 - `web/` — the one page (`index.html`, `app.js`, `profile.js`,
   `inventory.js`, `styles.css`) + sample frames.
