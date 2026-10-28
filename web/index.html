@@ -9,7 +9,7 @@
 <body>
 <header class="top">
   <h1>Shop AI Copilot</h1>
-  <span class="sub">Yard side — point at a car, know what to pull. Built for a Gulf Coast shop.</span>
+  <span class="sub">The lot: point at a parts car, learn which parts are worth pulling. Built for a Gulf Coast shop.</span>
   <span class="spacer"></span>
   <span id="modePill" class="pill">not started</span>
   <button id="tabYard" type="button" class="tab active">Yard</button>
@@ -140,7 +140,7 @@
     </div>
     <div id="bayVinRow" class="row" style="display:none">
       <img id="bayPlate" alt="VIN plate preview">
-      <button id="btnBayVinRead" type="button">Read plate</button>
+      <button id="btnBayVinRead" type="button">Read VIN</button>
     </div>
     <div id="bayVinCard" style="margin-top:0.5rem"></div>
     <label>Symptom, in your own words (kept verbatim)<br><textarea id="baySymptom" style="min-height:70px" placeholder="e.g. cranks but will not start when hot"></textarea></label>
@@ -253,7 +253,7 @@
         <label>Trim (blank stays unknown)<input id="invCarTrim" type="text" placeholder="leave blank unless a badge shows it"></label>
       </div>
       <div class="row">
-        <button id="btnInvAddCar" type="button" class="primary">Add car</button>
+        <button id="btnInvAddCar" type="button" class="primary">Register car</button>
       </div>
     </details>
   </section>
@@ -298,7 +298,7 @@
         <label>Value $<input id="invPartValue" type="number" min="0" placeholder="blank means unknown"></label>
       </div>
       <div class="row">
-        <button id="btnInvMic" type="button" class="small">Hold to dictate</button>
+        <button id="btnInvMic" type="button" class="small">Hold to dictate a note</button>
         <button id="btnInvComps" type="button">Check comps</button>
         <button id="btnInvAddPart" type="button" class="primary">Attach part</button>
       </div>
@@ -326,7 +326,7 @@
 <div id="setupOverlay" hidden>
   <div class="setup-card">
     <h2>First run: who are you?</h2>
-    <p>This is asked once and never again. Your answer stays on this machine with your profile.</p>
+    <p>This is asked once and never again. Your answer stays on this machine with your profile. Shops get the repair bench; enthusiasts get parts cars and inventory. You can switch later in Settings.</p>
     <label>Your email<br><input id="setupEmail" type="text" placeholder="you@example.com" style="width:100%"></label>
     <div class="row" style="margin-top:0.8rem">
       <button id="btnSetupShop" type="button">I run a shop</button>

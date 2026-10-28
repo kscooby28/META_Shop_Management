@@ -130,6 +130,7 @@ button.approve { min-height: 56px; font-size: 1.05rem; padding-left: 1.4rem; pad
 }
 .guide h3 { margin: 0 0 0.4rem; font-size: 1rem; }
 .guide ol { margin: 0.3rem 0 0.6rem; padding-left: 1.3rem; font-size: 0.9rem; }
+.guide li.done { text-decoration: line-through; color: var(--muted); }
 
 .emptybox {
   border: 1px dashed var(--line);

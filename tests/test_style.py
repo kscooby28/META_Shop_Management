@@ -47,6 +47,7 @@ JS_LIST_RE = re.compile(r"""classList\.(?:add|remove|toggle)\(\s*["']([\w-]+)["'
 JS_SETATTR_RE = re.compile(r"""setAttribute\(\s*["']class["']\s*,\s*["']([\w-]+)["']""")
 JS_SELECTOR_RE = re.compile(r"""querySelector(?:All)?\(\s*["']([^"']+)["']""")
 JS_BARE_RE = re.compile(r"""["']( ?[\w-]+ ?)["']""")
+JS_SPLIT_RE = re.compile(r"""class=(["'])(?:["']\s*\+)?([^"']*?)["']([\w-]+)["']""")
 # Literals that look like classes but are ids, events, attributes, or the
 # word "class" itself; stripped from class statements before extraction.
 JS_NOISE_RES = [
@@ -56,6 +57,7 @@ JS_NOISE_RES = [
     re.compile(r"""addEventListener\(["'][\w-]+["']"""),
     re.compile(r"""showView\(["'][\w-]+["']\)"""),
     re.compile(r"""[!=]==?\s*["'][\w-]+["']"""),
+    re.compile(r"""createElement\(["'][\w-]+["']\)"""),
     re.compile(r"""["']class["']"""),
 ]
 # Two call sites pass a class name as a value instead of writing it at the
@@ -102,8 +104,23 @@ def js_classes():
                     token = lit.strip()
                     if CLASSY.match(token):
                         out.add(token)
-            for chunk in JS_ATTR_RE.findall(line):
+            # Normalize escaped quotes: double-quoted JS strings carry
+            # class=\"...\" which blinds the attribute patterns.
+            clean = line.replace("\\'", "'").replace('\\"', '"')
+            for noise in JS_NOISE_RES:
+                clean = noise.sub("", clean)
+            for chunk in JS_ATTR_RE.findall(clean):
                 out.update(chunk.split())
+            # Split literals: class names built by concatenation, where the
+            # attribute opens in one literal and the name lands in a later
+            # one ("<li class='" + (done ? "done" : "") + ..."). Only the
+            # name right after an unclosed class= counts, so fallback
+            # strings and escaped quotes on the same line stay out.
+            for _, _, token in JS_SPLIT_RE.findall(clean):
+                if token in DYNAMIC:
+                    out.update(DYNAMIC[token])
+                elif CLASSY.match(token):
+                    out.add(token)
             for sel in JS_SELECTOR_RE.findall(line):
                 out.update(DEFINED_RE.findall(sel))
             if '"status ' in line or "'status " in line:
@@ -130,6 +147,11 @@ class StyleConsistencyTest(unittest.TestCase):
         used = html_classes() | js_classes()
         orphans = sorted(defined_classes() - used)
         self.assertEqual(orphans, [], "stylesheet defines unused classes")
+
+    def test_split_literal_classes_found(self):
+        # Regression: guide-step classes built by concatenation ("done")
+        # must be found, or dead-rule pruning deletes live styles.
+        self.assertIn("done", js_classes())
 
     def test_indirect_sites_still_exist(self):
         src = "".join(js_sources().values())

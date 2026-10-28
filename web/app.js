@@ -553,7 +553,7 @@ function renderVerdicts() {
       "<tr><th>Demand</th><td>" + esc(inp.demand) + (inp.demand_source ? ' <span class="sourced">(' + esc(inp.demand_source) + ")</span>" : ' <span class="missing">(no source)</span>') + "</td></tr>" +
       "<tr><th>Price</th><td>" + priceCell + "</td></tr>" +
       "<tr><th>Pull effort</th><td>" + pullCell + "</td></tr>" +
-      (moneyRow(v) ? "<tr><th>Money says</th><td>" + moneyRow(v) + "</td></tr>" : "") +
+      (moneyRow(v) ? "<tr><th>Money grade</th><td>" + moneyRow(v) + "</td></tr>" : "") +
       "</table>" +
       '<div class="override-row"><span>Overrule:</span>' +
       ["", "A", "B", "C"].map((g) =>
@@ -748,7 +748,7 @@ async function runCompare() {
       "<p>Run the Yard flow first — the same case then runs through both engines here.</p>";
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.textContent = "Run the Yard flow";
+    btn.textContent = "Run whole flow";
     btn.addEventListener("click", () => {
       showView("yard");
       document.getElementById("sec-intake").scrollIntoView();
@@ -1543,6 +1543,14 @@ function showView(which) {
   $("tabBay").classList.toggle("active", which === "bay");
   $("tabInventory").classList.toggle("active", which === "inventory");
   $("tabCompare").classList.toggle("active", which === "compare");
+  const subs = {
+    yard: "The lot: point at a parts car, learn which parts are worth pulling.",
+    bay: "The repair bench: symptoms in, test plans out.",
+    inventory: "Your cars and parts: what you have and what it is worth.",
+    compare: "Two engines grade the same case, side by side.",
+  };
+  document.querySelector(".top .sub").textContent =
+    (subs[which] || subs.yard) + " Built for a Gulf Coast shop.";
   flash(document.querySelector(".work"));
 }
 
@@ -1946,6 +1954,10 @@ function renderInvHome() {
     document.getElementById("sec-iparts").scrollIntoView();
   });
   box.appendChild(add);
+  const why = document.createElement("span");
+  why.className = "hint";
+  why.textContent = "Your parts cars and their parts: what you have, what fits, what it is worth.";
+  box.appendChild(why);
 }
 
 function renderBayHome() {
@@ -1978,6 +1990,10 @@ function renderBayHome() {
   kb.textContent = "Knowledge base";
   kb.addEventListener("click", () => document.getElementById("sec-bkb").scrollIntoView());
   box.appendChild(kb);
+  const why = document.createElement("span");
+  why.className = "hint";
+  why.textContent = "The repair bench: describe a symptom, get a test plan, record pass or fail.";
+  box.appendChild(why);
 }
 
 function renderGuide(boxId, mode, facts, title) {

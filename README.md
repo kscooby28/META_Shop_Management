@@ -3,6 +3,13 @@
 Shop software built for the Meta AI Hackathon. Point your phone at any car —
 and know what it is, what it is worth, and what to do next.
 
+For a repair shop, it is the repair bench: describe a symptom, get a
+ranked test plan, record pass or fail. For a car enthusiast with parts
+cars, it is the lot: photograph a car, learn which parts are worth
+pulling and what they will sell for. Both sides share one brain that
+never guesses — every claim carries its source, or the software says
+it lacks reliable data.
+
 This repo ships the foundation plus the enthusiast (Yard) side's first flow:
 photo in, car identified, harvest map with masks, A/B/C verdicts with visible
 rules, plain-money totals, and a listing draft behind the Approve gate. The
@@ -16,7 +23,8 @@ camera: if it does not play on video, it is not done.
 
 Priority order: the video first, the functional repository second. The
 repository exists to make the video true — everything shown on camera
-runs in this repo, end to end, on demo cache.
+runs in this repo, end to end, on demo cache, with zero keys.
+
 
 The video spine, one continuous journey: first-run setup, one question,
 shop or enthusiast. Enthusiast home. Register a parts car by photo and
@@ -175,14 +183,22 @@ this section states it, and the submission points at both.
 
 ## Run it
 
-No dependencies — standard library only.
+No dependencies — standard library only. You need Python 3.10 or newer
+and a browser. No keys, no signup, nothing else: the demo runs on cache.
 
+    git clone https://github.com/kscooby28/META_Shop_Management
+    cd META_Shop_Management
     python server.py
     # open http://127.0.0.1:8765 in a browser
 
-The Meta Model API key lives in the local `.env` file (see `.env.example`)
-and is never committed, and the Baseten key (`BASETEN_API_KEY`) lives there
-too when present. With no key, no network, or no credits, every step
+A working page shows four tabs — Yard, Bay, Inventory, Compare — and, on
+the very first open, one question: shop or enthusiast. Answer it and the
+demo flows run end to end.
+
+Keys are optional. The Meta Model API key lives in the local `.env` file
+(see `.env.example`) and is never committed, and the Baseten key
+(`BASETEN_API_KEY`) lives there too when present. With no key, no
+network, or no credits, every step
 falls back to the demo-mode cache and the flow still runs end to end.
 
 ## The flow (one web page, five steps)
@@ -210,6 +226,31 @@ The right-hand **Shop Copilot** panel holds the chat thread (Spark with
 streaming, case-file answers when offline), starter chips, and a
 plain-language activity feed where every step expands to show the tool call
 behind it.
+
+## Glossary (only what the demo shows)
+
+- **Verdict** — the app's answer to pull it or leave it, with the money
+  beside it. **A** means pull and list now, **B** means worth it if you
+  are standing there, **C** means leave it.
+- **Comp** — one comparable sale: what the same part actually sold for,
+  with its source. The plural **comps** is the pile the price range is
+  built from.
+- **Money grade** — the comps engine's own A/B/C on the money alone,
+  shown beside the rule grade. Advisory, never an overrule.
+- **Re-rank** — the test plan resorting itself as pass/fail results come
+  in, with the evidence trail naming what changed it.
+- **Second look** (Compare) — both engines re-grading the same case side
+  by side. **Second opinion** (Bay/Yard) — one hard call reviewed by
+  Wonder Standard. Different stages, different names on purpose.
+- **Studio photo** — the cleaned listing shot; **cutout** is the raw crop
+  it falls back to. **Mock outbox** — the on-machine outbox demo posts
+  land in; nothing ever leaves the machine from it.
+- **DEMO badge** — this number came from the built-in sample set, not a
+  live call. No badge, no sample: live results never wear it.
+- **VIN** — the car's ID plate; a photo of it fills in year, make, model.
+- **EWS** — the car's factory immobilizer. The demo's engine computer
+  needs no EWS handshake, which is why **E30** owners — keepers of the
+  1980s–early-90s 3-series — want it.
 
 ## Rules that govern this build
 
