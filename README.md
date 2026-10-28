@@ -26,7 +26,9 @@ Inventory with plain-money totals. A listing draft behind the Approve
 gate — nothing posts without a human saying so. Shop home. A Bay case:
 symptom, codes, observations, ranked test plan. A pass and a fail, and
 the plan re-ranks live with the evidence trail naming what changed it.
-A decline card, professional, with a next step. Close.
+A decline card, professional, with a next step. Then the Compare beat:
+both engines side by side on the same case, Muse Spark Open named on
+screen with where it runs. Close.
 
 The rule for all future work: every work order from here is judged
 against that spine. Does it play beautifully? Does it work flawlessly?
@@ -194,11 +196,13 @@ falls back to the demo-mode cache and the flow still runs end to end.
    the frame it came from.
 3. **Verdicts** — each part gets A (pull and list now), B (worth it if you
    are standing there), or C (leave it) from the rules in `rules.json`,
-   shown next to every grade with all rule inputs. One-tap override; your
+   shown next to every grade with all rule inputs, plus an advisory money
+   grade from the comps engine beside it. One-tap override; your
    call feeds back into the totals.
 4. **Plain-money totals** — A parts and B parts added separately, in plain
    words: the sure money and the maybe money. Shop-side math uses $180/hr.
-5. **Listing draft** — honest draft with flaws stated, cutout preview, then
+5. **Listing draft** — honest draft with flaws stated, studio photo over the
+   cutout preview (cutout stays as the fallback), then
    Edit / Approve / Post. Nothing posts without Approve, and this build
    posts only to a local mock outbox — nothing leaves the machine.
 
