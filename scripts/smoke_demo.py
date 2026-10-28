@@ -9,7 +9,11 @@ intake (demo case 1) → plan → pass → fail → parts → labor → kb, plus
 N63 no-start decline that must get no plan. Exits nonzero on the first
 failure so "10 out of 10" is a real claim. Inventory runs cover the demo
 seed, comps hit/miss/no-data, demo photo paths, and a sell-second listing
-draft through approve into the mock outbox.
+draft through approve into the mock outbox. Each spine run walks the video
+journey in order on the server-reachable beats: seed → look-for data →
+comps → listing gate → bay case → re-rank → close → decline. First-run
+setup, registration taps, and totals math live in the browser by design;
+tests/spine_driver.js covers those beats in the same order.
 """
 
 import json
@@ -248,6 +252,80 @@ def inv_run(n):
     print("inv %d/%d: PASS" % (n, RUNS))
 
 
+def spine_run(n):
+    tag = "spine %d" % n
+    _, session = post("/api/session", {})
+    sid = session["sessionId"]
+
+    # Enthusiast home: seed cars, and the M3 look-for note behind them.
+    _, seed = get("/api/inv/seed")
+    cars = seed["seed"]["cars"]
+    check(any("M3" in c.get("label", "") for c in cars), tag + ": M3 seed car missing")
+    notes = seed["seed"]["knowledge"]
+    check(len(notes) == 1 and notes[0]["value"] == 200, tag + ": engine-computer note off")
+    check("EWS" in notes[0]["reason"], tag + ": note must say why, no EWS")
+
+    # Plain-money comps behind the totals, then the listing gate.
+    _, hit = post("/api/inv/comps", {"label": "engine computer", "demo": True})
+    check(hit["comp"]["value"] == 200, tag + ": comp must price the note")
+    _, listing = post(
+        "/api/listing",
+        {
+            "sessionId": sid,
+            "demo": True,
+            "invPart": {"id": "ip-ecu", "label": "engine computer",
+                        "condition": "used, untested", "value": 200,
+                        "valueSource": "demo-sample: owner note"},
+            "invCar": {"year": 1995, "make": "BMW", "model": "M3"},
+        },
+    )
+    draft_id = listing["draftId"]
+    status, _ = post("/api/listing/post", {"sessionId": sid, "draftId": draft_id})
+    check(status == 400, tag + ": gate must block pre-approve post")
+    post("/api/listing/approve", {"sessionId": sid, "draftId": draft_id})
+    _, posted = post("/api/listing/post", {"sessionId": sid, "draftId": draft_id})
+    check(posted["receipt"]["adapter"] == "mock-outbox", tag + ": mock receipt missing")
+
+    # Shop home: case in, plan out, pass and fail re-rank it live.
+    _, intake = post("/api/bay/intake", {"sessionId": sid, "demoCase": "case1"})
+    check(not intake["case"]["declined"], tag + ": case1 must open")
+    _, plan = post("/api/bay/plan", {"sessionId": sid})
+    order = [t["id"] for t in plan["plan"]["tests"]]
+    check(order == ["t1", "t2", "t4", "t3", "t5"], tag + ": ranking wrong")
+    _, passed = post(
+        "/api/bay/result", {"sessionId": sid, "testId": "t1", "result": "pass", "note": "12.1V"}
+    )
+    check(len(passed["plan"]["trail"]) == 1, tag + ": pass must trail")
+    _, failed = post("/api/bay/result", {"sessionId": sid, "testId": "t4", "result": "fail"})
+    check(bool(failed["plan"]["trail"][-1]["moved"]), tag + ": fail must move ranks")
+
+    # Close: every test recorded, the plan is complete.
+    for tid in ("t2", "t3", "t5"):
+        post("/api/bay/result", {"sessionId": sid, "testId": tid, "result": "pass"})
+    _, labor = post("/api/bay/labor", {"sessionId": sid})
+    check("$" in labor["labor"]["plain_words"], tag + ": close needs plain labor")
+
+    # Decline beat: professional verdict, next step, no plan.
+    _, session2 = post("/api/session", {})
+    sid2 = session2["sessionId"]
+    _, declined = post(
+        "/api/bay/intake",
+        {
+            "sessionId": sid2,
+            "manual": {
+                "vehicle": {"year": 2013, "make": "BMW", "model": "750i", "engine": "N63"},
+                "area": "electrical",
+                "service_requested": "diagnose",
+                "symptom": "crank no start, nothing happens",
+                "codes": [],
+            },
+        },
+    )
+    check(declined["case"]["declined"], tag + ": N63 no-start must decline")
+    check(declined["case"]["decline"]["next_step"], tag + ": decline needs a next step")
+    print("spine %d/%d: PASS" % (n, RUNS))
+
+
 def main():
     for n in range(1, RUNS + 1):
         one_run(n)
@@ -255,7 +333,9 @@ def main():
         bay_run(n)
     for n in range(1, RUNS + 1):
         inv_run(n)
-    print("ALL %d YARD + %d BAY + %d INV RUNS PASSED" % (RUNS, RUNS, RUNS))
+    for n in range(1, RUNS + 1):
+        spine_run(n)
+    print("ALL %d YARD + %d BAY + %d INV + %d SPINE RUNS PASSED" % (RUNS, RUNS, RUNS, RUNS))
 
 
 if __name__ == "__main__":

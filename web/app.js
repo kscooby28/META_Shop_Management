@@ -826,6 +826,11 @@ async function runAll() {
   if (best) {
     $("listingPart").value = best.part_id;
     await runDraft(best.part_id);
+    scrollSoon($("listingCard"));
+    flash($("listingCard"));
+  } else {
+    scrollSoon($("totals"));
+    flash($("totals"));
   }
   feed("Flow complete: photo in, verdicts out, listing ready for your approval", null);
 }
@@ -1077,6 +1082,7 @@ function renderBayPlan() {
     box.appendChild(card);
   });
   renderBayTrail();
+  flash(box);
 }
 
 function renderBayTrail() {
@@ -1154,6 +1160,8 @@ async function bayCreateCase(demoCase) {
   if (res.notice) notice(esc(res.notice));
   renderBayCase();
   if (res.case.declined) {
+    scrollSoon($("bayCaseCard"));
+    flash($("bayCaseCard"));
     feed("Bay case declined: " + res.case.decline.title,
       "tool bay.intake — policy gate → decline card (" + res.mode + ")");
     return res;
@@ -1174,6 +1182,7 @@ async function bayDraftPlan() {
   watchFallback(!!bay.demoCase, res.mode);
   if (res.notice) notice(esc(res.notice));
   renderBayPlan();
+  if (!Object.keys(res.plan.results || {}).length) scrollSoon($("bayPlan"));
   feed("Drafted " + res.plan.tests.length + " ranked tests",
     "tool bay.plan — symptom + codes → ranked tests (" + res.mode + ")");
   await bayParts();
@@ -1241,6 +1250,25 @@ function bayLaborFromInputs() {
   return standards;
 }
 
+function flash(el) {
+  if (!el || !el.classList) return;
+  el.classList.remove("flash");
+  void el.offsetWidth; // restart the animation
+  el.classList.add("flash");
+}
+
+function scrollSoon(el) {
+  if (!el || typeof el.scrollIntoView !== "function") return;
+  const calm = typeof matchMedia === "function" &&
+    matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const go = () => {
+    try { el.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" }); }
+    catch (e) { el.scrollIntoView(); }
+  };
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(go);
+  else go();
+}
+
 function showView(which) {
   $("view-yard").hidden = which !== "yard";
   $("view-bay").hidden = which !== "bay";
@@ -1248,6 +1276,7 @@ function showView(which) {
   $("tabYard").classList.toggle("active", which === "yard");
   $("tabBay").classList.toggle("active", which === "bay");
   $("tabInventory").classList.toggle("active", which === "inventory");
+  flash(document.querySelector(".work"));
 }
 
 function initBay() {
@@ -1262,16 +1291,7 @@ function initBay() {
   });
   $("btnBayCase").addEventListener("click", guard(async () => { await bayCreateCase(null); }, "opening the case…"));
   $("btnBayPlan").addEventListener("click", guard(async () => { await bayDraftPlan(); }, "drafting the plan…"));
-  $("bayVin").addEventListener("change", guard(async (e) => {
-    const file = (e.target.files || [])[0];
-    if (!file) { bay.vinPhoto = null; $("bayVinRow").style.display = "none"; return; }
-    const data = await downscale(file);
-    bay.vinPhoto = { name: file.name, data };
-    $("bayPlate").src = data;
-    $("bayVinRow").style.display = "";
-    feed("VIN photo attached (" + file.name + ")", "bay intake — plate shown below, read on your press");
-  }));
-  $("btnBayVinRead").addEventListener("click", guard(async () => {
+  async function readBayVin() {
     if (!bay.vinPhoto) throw new Error("attach a VIN photo first");
     const res = await api("/api/inv/vin", { photo: bay.vinPhoto });
     if (res.notice) notice(esc(res.notice));
@@ -1284,7 +1304,17 @@ function initBay() {
       feed("Vehicle card confirmed into Bay intake", "tool inv.vin — card → form fields");
     });
     feed("Plate read into a vehicle card", "tool inv.vin — plate → card, confirm to fill (" + res.mode + ")");
-  }));
+  }
+  $("bayVin").addEventListener("change", guard(async (e) => {
+    const file = (e.target.files || [])[0];
+    if (!file) { bay.vinPhoto = null; $("bayVinRow").style.display = "none"; return; }
+    const data = await downscale(file);
+    bay.vinPhoto = { name: file.name, data };
+    $("bayPlate").src = data;
+    $("bayVinRow").style.display = "";
+    await readBayVin();
+  }, "reading the plate…"));
+  $("btnBayVinRead").addEventListener("click", guard(readBayVin, "reading the plate…"));
   $("btnBayAddTest").addEventListener("click", guard(async () => {
     const title = $("bayTTitle").value.trim();
     if (!title) { notice("Name the test first."); return; }
@@ -1814,13 +1844,15 @@ function initInventory() {
     invState = added.inv;
     saveInvState();
     renderInventory();
+    scrollSoon($("invCars"));
+    flash($("invCars"));
     $("invCarLabel").value = ""; $("invCarYear").value = "";
     $("invCarMake").value = ""; $("invCarModel").value = ""; $("invCarTrim").value = "";
     UX.clearDraft(localStorage, "invcar");
     feed("Registered " + added.car.label, "tool inv.register — " + added.car.identity.category);
   }));
 
-  $("btnInvCarPhoto").addEventListener("click", guard(async () => {
+  async function identifyInvCarPhoto() {
     const photo = await readPhotoInput($("invCarPhoto"));
     if (!photo) throw new Error("attach a picture first");
     const res = await api("/api/inv/identify", { photo, demo: invSeeded });
@@ -1831,15 +1863,14 @@ function initInventory() {
     if (car.trim && car.trim !== "unknown") $("invCarTrim").value = car.trim;
     feed("Picture identified: " + [car.year, car.make, car.model].filter(Boolean).join(" "),
       "tool inv.identify — photo → car ID (" + res.mode + ")");
-  }));
+  }
+  $("btnInvCarPhoto").addEventListener("click", guard(identifyInvCarPhoto, "identifying the picture…"));
+  $("invCarPhoto").addEventListener("change", guard(async (e) => {
+    if (!(e.target.files || []).length) return;
+    await identifyInvCarPhoto();
+  }, "identifying the picture…"));
 
-  $("invCarVin").addEventListener("change", guard(async (e) => {
-    const file = (e.target.files || [])[0];
-    if (!file) { $("invVinRow").style.display = "none"; return; }
-    $("invVinPlate").src = await downscale(file);
-    $("invVinRow").style.display = "";
-  }));
-  $("btnInvCarVin").addEventListener("click", guard(async () => {
+  async function readInvVin() {
     const photo = await readPhotoInput($("invCarVin"));
     if (!photo) throw new Error("attach a VIN photo first");
     const res = await api("/api/inv/vin", { photo, demo: invSeeded });
@@ -1852,7 +1883,15 @@ function initInventory() {
       feed("Vehicle card confirmed into registration", "tool inv.vin — card → form fields");
     });
     feed("Plate read into a vehicle card", "tool inv.vin — plate → card, confirm to fill (" + res.mode + ")");
-  }));
+  }
+  $("invCarVin").addEventListener("change", guard(async (e) => {
+    const file = (e.target.files || [])[0];
+    if (!file) { $("invVinRow").style.display = "none"; return; }
+    $("invVinPlate").src = await downscale(file);
+    $("invVinRow").style.display = "";
+    await readInvVin();
+  }, "reading the plate…"));
+  $("btnInvCarVin").addEventListener("click", guard(readInvVin, "reading the plate…"));
 
   $("invKnowCar").addEventListener("change", renderInvKnow);
   $("btnInvAddNote").addEventListener("click", guard(async () => {
@@ -1871,7 +1910,7 @@ function initInventory() {
     feed("Knowledge note added", "tool inv.note — owner-supplied, car-pinned");
   }));
 
-  $("btnInvPartPhoto").addEventListener("click", guard(async () => {
+  async function describeInvPart() {
     const photo = await readPhotoInput($("invPartPhoto"));
     if (!photo) throw new Error("attach a part picture first");
     invPartPhotoData = photo.data; // owner's photo, kept in this browser only
@@ -1881,7 +1920,12 @@ function initInventory() {
     if (res.notice) notice(esc(res.notice));
     feed("Part picture described: " + res.part.label,
       "tool inv.part-photo — photo → label + condition (" + res.mode + ")");
-  }));
+  }
+  $("btnInvPartPhoto").addEventListener("click", guard(describeInvPart, "describing the picture…"));
+  $("invPartPhoto").addEventListener("change", guard(async (e) => {
+    if (!(e.target.files || []).length) return;
+    await describeInvPart();
+  }, "describing the picture…"));
 
   $("btnInvComps").addEventListener("click", guard(async () => {
     const label = $("invPartLabel").value.trim();
@@ -1900,7 +1944,24 @@ function initInventory() {
   }));
 
   $("btnInvAddPart").addEventListener("click", guard(async () => {
-    const valueRaw = $("invPartValue").value.trim();
+    let valueRaw = $("invPartValue").value.trim();
+    let valueSource = $("invPartValue").dataset.source || "";
+    const labelRaw = $("invPartLabel").value.trim();
+    if (valueRaw === "" && labelRaw !== "") {
+      // One tap saved: look up comps on attach. A miss stays unknown.
+      try {
+        const lookup = await api("/api/inv/comps", { label: labelRaw, demo: invSeeded });
+        if (lookup.comp.value !== null && lookup.comp.source) {
+          valueRaw = String(lookup.comp.value);
+          valueSource = lookup.comp.source;
+          $("invPartValue").value = valueRaw;
+          feed("Comps filled about $" + valueRaw + " (" + valueSource + ")",
+            "tool inv.comps — auto on attach (" + lookup.mode + ")");
+        }
+      } catch (err) {
+        // Lookup failed: the part still attaches as unknown.
+      }
+    }
     const added = Inventory.attachPart(invState, {
       carId: $("invPartCar").value,
       relation: $("invPartRel").value,
@@ -1908,7 +1969,7 @@ function initInventory() {
       condition: $("invPartCond").value,
       note: $("invPartNote").value,
       value: valueRaw === "" ? null : Number(valueRaw),
-      valueSource: valueRaw === "" ? "" : ($("invPartValue").dataset.source || "owner-entered"),
+      valueSource: valueRaw === "" ? "" : (valueSource || "owner-entered"),
       source_tags: ["owner-entered"],
     });
     if (invPartPhotoData) added.part.photo = invPartPhotoData;
