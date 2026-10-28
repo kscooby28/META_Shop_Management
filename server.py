@@ -27,6 +27,7 @@ from bay import (
     search_kb,
     strip_vin,
     validate_intake,
+    VIN_LIVE,
 )
 from comps import get_adapter as get_comps_adapter
 from demo_cache import StepCache
@@ -511,6 +512,13 @@ class Handler(BaseHTTPRequestHandler):
                 return
             vin_photo = payload.get("vinPhoto")
             if vin_photo:
+                if not VIN_LIVE:
+                    notices.append(
+                        "VIN live read is off until the key rotation, "
+                        "so the case uses manual entry only."
+                    )
+                    vin_photo = None
+            if vin_photo:
                 try:
                     read = read_vin_photo(vin_photo)
                     vehicle = manual.setdefault("vehicle", {})
@@ -743,12 +751,18 @@ class Handler(BaseHTTPRequestHandler):
         self._send_json({"ok": True, "mode": "live", "notice": "", "car": found["car"]})
 
     def _api_inv_vin(self, payload):
-        if payload.get("demo"):
+        if payload.get("demo") or not VIN_LIVE:
+            notice = "Demo sample vehicle; no VIN stored."
+            if payload.get("photo") and not VIN_LIVE and not payload.get("demo"):
+                notice = (
+                    "VIN live read is off until the key rotation, "
+                    "so this is the demo sample. Confirm or edit by hand."
+                )
             return self._send_json(
                 {
                     "ok": True,
                     "mode": "demo-cache",
-                    "notice": "Demo sample vehicle; no VIN stored.",
+                    "notice": notice,
                     "vehicle": load_seed(ROOT)["sampleVin"],
                 }
             )

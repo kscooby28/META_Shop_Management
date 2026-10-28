@@ -157,6 +157,25 @@ def bay_run(n):
     _, kb = get("/api/bay/kb?q=creep")
     check(len(kb["notes"]) == 1, "bay %d: kb search off" % n)
 
+    # VIN live read is off: a plate photo must not trigger any API call,
+    # and the case still opens from manual entry.
+    _, vinoff = post(
+        "/api/bay/intake",
+        {
+            "sessionId": sid,
+            "manual": {
+                "vehicle": {"year": 2011, "make": "BMW", "model": "328i"},
+                "area": "electrical",
+                "service_requested": "diagnose",
+                "symptom": "intermittent no-crank",
+                "codes": [],
+            },
+            "vinPhoto": {"name": "plate.png", "data": "data:image/png;base64,iVBORw0KGgo="},
+        },
+    )
+    check(not vinoff["case"]["declined"], "bay %d: manual case must open" % n)
+    check("key rotation" in vinoff["notice"], "bay %d: must say live read is off" % n)
+
     # Decline path: N63 no-start never gets a plan.
     _, session2 = post("/api/session", {})
     sid2 = session2["sessionId"]

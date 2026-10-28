@@ -13,7 +13,21 @@ const state = {
   draftId: null,
   modes: {},
   overrides: {},   // partId -> A/B/C, survives re-renders until a fresh grade run
+  selectedFrame: null,
 };
+
+function cutoutSVG(src, box, cls) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const [x1, y1, x2, y2] = box;
+  svg.setAttribute("viewBox", x1 + " " + y1 + " " + (x2 - x1) + " " + (y2 - y1));
+  if (cls) svg.setAttribute("class", cls);
+  const img = document.createElementNS("http://www.w3.org/2000/svg", "image");
+  img.setAttribute("href", src);
+  img.setAttribute("x", "0"); img.setAttribute("y", "0");
+  img.setAttribute("width", "1000"); img.setAttribute("height", "1000");
+  svg.appendChild(img);
+  return svg;
+}
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => (
@@ -187,65 +201,121 @@ function gradeOf(partId) {
   return found ? found.verdict : null;
 }
 
-function renderFrames() {
-  const box = $("frames");
-  box.innerHTML = "";
+function frameOrder() {
+  // Walk-around order = upload/seed order, then any extra sighting frames.
+  const seen = [];
+  for (const img of state.images) {
+    if (!seen.includes(img.name)) seen.push(img.name);
+  }
   const parts = (state.harvest && state.harvest.parts) || [];
-  const byFrame = {};
   for (const part of parts) {
     for (const s of (part.sightings || [])) {
-      (byFrame[s.frame] = byFrame[s.frame] || []).push({ part, s });
+      if (!seen.includes(s.frame)) seen.push(s.frame);
     }
   }
+  return seen;
+}
+
+function buildOverlay(items) {
   const colors = { A: "#1e6b3a", B: "#9a6206", C: "#a83a32" };
-  for (const [frame, items] of Object.entries(byFrame)) {
-    const fig = document.createElement("figure");
-    fig.className = "frame";
-    const wrap = document.createElement("div");
-    wrap.className = "imgwrap";
-    const img = document.createElement("img");
-    img.src = frameSrc(frame);
-    img.alt = frame;
-    wrap.appendChild(img);
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("viewBox", "0 0 1000 1000");
-    svg.setAttribute("preserveAspectRatio", "none");
-    svg.setAttribute("class", "overlay");
-    for (const { part, s } of items) {
-      const grade = gradeOf(part.id);
-      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      g.setAttribute("data-part", part.id);
-      if (grade) g.setAttribute("class", "part-" + grade);
-      const color = colors[grade] || "#1e6b3a";
-      if (s.polygon && s.polygon.length >= 3) {
-        const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-        poly.setAttribute("points", s.polygon.map((p) => p.join(",")).join(" "));
-        g.appendChild(poly);
-      }
-      if (s.box) {
-        const [x1, y1, x2, y2] = s.box;
-        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        rect.setAttribute("x", x1); rect.setAttribute("y", y1);
-        rect.setAttribute("width", Math.max(1, x2 - x1));
-        rect.setAttribute("height", Math.max(1, y2 - y1));
-        rect.setAttribute("class", "box");
-        rect.setAttribute("stroke", color);
-        g.appendChild(rect);
-        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        label.setAttribute("x", x1 + 8); label.setAttribute("y", Math.max(40, y1 - 12));
-        label.setAttribute("fill", color);
-        label.textContent = part.label;
-        g.appendChild(label);
-      }
-      svg.appendChild(g);
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 1000 1000");
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.setAttribute("class", "overlay");
+  for (const { part, s } of items) {
+    const grade = gradeOf(part.id);
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute("data-part", part.id);
+    if (grade) g.setAttribute("class", "part-" + grade);
+    const color = colors[grade] || "#1e6b3a";
+    if (s.polygon && s.polygon.length >= 3) {
+      const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+      poly.setAttribute("points", s.polygon.map((p) => p.join(",")).join(" "));
+      g.appendChild(poly);
     }
-    wrap.appendChild(svg);
-    fig.appendChild(wrap);
+    if (s.box) {
+      const [x1, y1, x2, y2] = s.box;
+      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      rect.setAttribute("x", x1); rect.setAttribute("y", y1);
+      rect.setAttribute("width", Math.max(1, x2 - x1));
+      rect.setAttribute("height", Math.max(1, y2 - y1));
+      rect.setAttribute("class", "box");
+      rect.setAttribute("stroke", color);
+      g.appendChild(rect);
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("x", x1 + 8); label.setAttribute("y", Math.max(40, y1 - 12));
+      label.setAttribute("fill", color);
+      label.textContent = part.label;
+      g.appendChild(label);
+    }
+    svg.appendChild(g);
+  }
+  return svg;
+}
+
+function renderStrip() {
+  const box = $("strip");
+  box.innerHTML = "";
+  const frames = Gallery.stripModel(frameOrder().map((n) => ({ name: n, src: frameSrc(n) })));
+  for (const f of frames) {
+    const fig = document.createElement("figure");
+    if (f.name === state.selectedFrame) fig.className = "sel";
+    const img = document.createElement("img");
+    img.src = f.src;
+    img.alt = f.name;
+    fig.appendChild(img);
     const cap = document.createElement("figcaption");
-    cap.textContent = frame + " — " + items.length + " sighting(s)";
+    cap.textContent = f.name;
     fig.appendChild(cap);
+    if (Gallery.isDemoFrame(f.name)) {
+      const badge = document.createElement("span");
+      badge.className = "demobadge";
+      badge.textContent = "DEMO";
+      fig.appendChild(badge);
+    }
+    fig.addEventListener("click", () => {
+      state.selectedFrame = f.name;
+      renderStrip();
+      renderViewer();
+    });
     box.appendChild(fig);
   }
+}
+
+function renderViewer() {
+  const box = $("viewer");
+  box.innerHTML = "";
+  const frame = Gallery.selectFrame(
+    frameOrder().map((n) => ({ name: n, src: frameSrc(n) })),
+    state.selectedFrame
+  );
+  if (!frame) return;
+  state.selectedFrame = frame.name;
+  const parts = (state.harvest && state.harvest.parts) || [];
+  const items = Gallery.sightingsForFrame(parts, frame.name);
+  const wrap = document.createElement("div");
+  wrap.className = "imgwrap";
+  const img = document.createElement("img");
+  img.src = frame.src;
+  img.alt = frame.name;
+  wrap.appendChild(img);
+  wrap.appendChild(buildOverlay(items));
+  box.appendChild(wrap);
+  const cap = document.createElement("figcaption");
+  cap.textContent = frame.name + " — " + items.length + " sighting(s)";
+  if (Gallery.isDemoFrame(frame.name)) {
+    const badge = document.createElement("span");
+    badge.className = "demobadge";
+    badge.textContent = "DEMO FRAME";
+    cap.appendChild(document.createTextNode(" "));
+    cap.appendChild(badge);
+  }
+  box.appendChild(cap);
+}
+
+function renderFrames() {
+  renderStrip();
+  renderViewer();
 }
 
 function renderPartList() {
@@ -254,15 +324,27 @@ function renderPartList() {
   const parts = (state.harvest && state.harvest.parts) || [];
   for (const part of parts) {
     const li = document.createElement("li");
+    li.className = "clickable";
     const grade = gradeOf(part.id);
-    li.innerHTML =
+    const thumb = Gallery.partThumb(part);
+    if (thumb) li.appendChild(cutoutSVG(frameSrc(thumb.frame), thumb.box, "thumb"));
+    li.insertAdjacentHTML("beforeend",
       (grade ? '<span class="grade grade-' + grade + '" style="width:1.5rem;height:1.5rem;line-height:1.5rem;font-size:0.8rem">' + grade + "</span>" : "") +
       "<strong>" + esc(part.label) + "</strong>" +
       "<span>condition: " + esc(part.intact) + "</span>" +
       "<span>count: " + esc(part.count) + "</span>" +
-      (part.sightings || []).map((s) => '<span class="tag">' + esc(s.source_tag) + "</span>").join("");
+      (part.sightings || []).map((s) => '<span class="tag">' + esc(s.source_tag) + "</span>").join(""));
     li.addEventListener("mouseenter", () => highlightPart(part.id, true));
     li.addEventListener("mouseleave", () => highlightPart(part.id, false));
+    if (thumb) {
+      li.addEventListener("click", () => {
+        state.selectedFrame = thumb.frame;
+        renderStrip();
+        renderViewer();
+        highlightPart(part.id, true);
+        document.getElementById("viewer").scrollIntoView({ block: "nearest" });
+      });
+    }
     box.appendChild(li);
   }
 }
@@ -395,6 +477,9 @@ function renderVerdicts() {
         await runVerdicts(true);
       });
     });
+    const hpart = ((state.harvest && state.harvest.parts) || []).find((p) => p.id === v.part_id);
+    const vthumb = hpart ? Gallery.partThumb(hpart) : null;
+    if (vthumb) card.insertBefore(cutoutSVG(frameSrc(vthumb.frame), vthumb.box, "thumb"), card.firstChild);
     box.appendChild(card);
   }
   // Re-color the harvest map now that grades exist.
@@ -424,11 +509,25 @@ async function runVerdicts(fromOverride) {
   return res;
 }
 
+function totalBig(t) {
+  if (t.count === 0) return "$0";
+  if (t.low === null || t.low === undefined) return "—";
+  if (Math.round(t.low) === Math.round(t.high)) return money(t.high);
+  return money(t.low) + "–" + money(t.high);
+}
+
 function renderTotals() {
   const box = $("totals");
   const totals = state.report && state.report.totals;
   if (!totals) { box.innerHTML = '<p class="hint">Totals appear after verdicts.</p>'; return; }
+  const card = (grade, t, cls, label) =>
+    "<div class='totalcard " + cls + "'><div class='lbl'>" + grade + " · " + label +
+    " · " + t.count + " part(s)</div><div class='big'>" + totalBig(t) + "</div></div>";
   box.innerHTML =
+    "<div class='totalgrid'>" +
+    card("A", totals.A, "total-a", "pull and list now") +
+    card("B", totals.B, "total-b", "worth it if standing there") +
+    "</div>" +
     "<p class='sure'>" + esc(totals.A.plain_words) + "</p>" +
     "<p>" + esc(totals.A.shop_time_plain_words) + "</p>" +
     "<p class='sure'>" + esc(totals.B.plain_words) + "</p>" +
@@ -772,6 +871,12 @@ function renderBayPlan() {
   box.innerHTML = "";
   const plan = bay.plan;
   if (!plan) return;
+  const done = Object.keys(plan.results).length;
+  const total = plan.tests.length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  box.insertAdjacentHTML("beforeend",
+    "<p><strong>" + done + " of " + total + " recorded</strong></p>" +
+    "<div class='progress' style='margin-bottom:0.7rem'><div style='width:" + pct + "%'></div></div>");
   plan.tests.forEach((t, i) => {
     const result = plan.results[t.id];
     const card = document.createElement("div");
@@ -1025,10 +1130,26 @@ function initBay() {
   $("btnBayPlan").addEventListener("click", guard(async () => { await bayDraftPlan(); }));
   $("bayVin").addEventListener("change", guard(async (e) => {
     const file = (e.target.files || [])[0];
-    if (!file) { bay.vinPhoto = null; return; }
+    if (!file) { bay.vinPhoto = null; $("bayVinRow").style.display = "none"; return; }
     const data = await downscale(file);
     bay.vinPhoto = { name: file.name, data };
-    feed("VIN photo attached (" + file.name + ")", "bay intake — fills blank vehicle fields only");
+    $("bayPlate").src = data;
+    $("bayVinRow").style.display = "";
+    feed("VIN photo attached (" + file.name + ")", "bay intake — plate shown below, read on your press");
+  }));
+  $("btnBayVinRead").addEventListener("click", guard(async () => {
+    if (!bay.vinPhoto) throw new Error("attach a VIN photo first");
+    const res = await api("/api/inv/vin", { photo: bay.vinPhoto });
+    if (res.notice) notice(esc(res.notice));
+    renderVinCard("bayVinCard", res.vehicle, res.mode, () => {
+      const v = res.vehicle || {};
+      if (v.year && v.year !== "unknown") $("bayYear").value = v.year;
+      if (v.make && !/unknown/i.test(v.make)) $("bayMake").value = v.make.replace(" (demo sample)", "");
+      if (v.model && !/unknown/i.test(v.model)) $("bayModel").value = v.model.replace(" (demo sample)", "");
+      if (v.trim && v.trim !== "unknown") $("bayTrim").value = v.trim;
+      feed("Vehicle card confirmed into Bay intake", "tool inv.vin — card → form fields");
+    });
+    feed("Plate read into a vehicle card", "tool inv.vin — plate → card, confirm to fill (" + res.mode + ")");
   }));
   $("btnBayAddTest").addEventListener("click", guard(async () => {
     const title = $("bayTTitle").value.trim();
@@ -1071,6 +1192,7 @@ const INV_KEY = "copilot.inventory";
 const INV_SEED_KEY = "copilot.invSeeded";
 let invState = Inventory.blankInventory();
 let invSeeded = false;
+let invPartPhotoData = null;
 
 function loadInvState() {
   try {
@@ -1216,7 +1338,19 @@ function renderInvParts() {
     ul.className = "part-list";
     for (const part of mine) {
       const li = document.createElement("li");
-      li.innerHTML =
+      if (part.photo) {
+        const im = document.createElement("img");
+        im.className = "invphoto";
+        im.src = part.photo;
+        im.alt = part.label;
+        li.appendChild(im);
+      } else {
+        const ph = document.createElement("div");
+        ph.className = "invphoto-ph";
+        ph.textContent = (part.label || "?").slice(0, 1).toUpperCase();
+        li.appendChild(ph);
+      }
+      li.insertAdjacentHTML("beforeend",
         "<strong>" + esc(part.label) + "</strong>" +
         '<span class="relbadge">' + esc(part.relation) + " " + esc(car.label) + "</span>" +
         "<span>" + esc(part.condition) + "</span>" +
@@ -1224,7 +1358,7 @@ function renderInvParts() {
         (part.value !== null && part.valueSource
           ? "<span>$" + part.value + ' <span class="sourced">(' + esc(part.valueSource) + ")</span></span>"
           : '<span class="missing">value unknown</span>') +
-        ' <button type="button" class="small" data-list="' + part.id + '">Draft listing</button>';
+        ' <button type="button" class="small" data-list="' + part.id + '">Draft listing</button>');
       li.querySelector("[data-list]").addEventListener("click", guard(async () => {
         await invDraftListing(part.id);
       }));
@@ -1283,6 +1417,32 @@ function readPhotoInput(input) {
   return downscale(file).then((data) => ({ name: file.name, data }));
 }
 
+function renderVinCard(boxId, vehicle, mode, onConfirm) {
+  // Same capture, plate, card, and confirm step in demo and live alike;
+  // only the data source swaps when live turns on. The VIN itself is
+  // never shown here and never stored.
+  const box = $(boxId);
+  box.innerHTML = "";
+  const v = vehicle || {};
+  const category = [v.make, v.model].filter((b) => b && b !== "unknown").join(" · ") || "unknown vehicle";
+  const card = document.createElement("div");
+  card.className = "vincard";
+  card.innerHTML =
+    "<strong>Vehicle card</strong> " +
+    (mode === "live" ? "" : '<span class="demobadge">DEMO</span>') +
+    "<dl>" +
+    "<dt>Year</dt><dd>" + esc(v.year || "unknown") + "</dd>" +
+    "<dt>Make</dt><dd>" + esc(v.make || "unknown") + "</dd>" +
+    "<dt>Model</dt><dd>" + esc(v.model || "unknown") + "</dd>" +
+    "<dt>Trim</dt><dd>" + esc(v.trim || "unknown") + "</dd>" +
+    "<dt>Category</dt><dd>" + esc(category) + "</dd>" +
+    "</dl>" +
+    '<div class="row"><button type="button" class="small primary">Confirm into form</button></div>' +
+    '<p class="hint">Confirm fills the form, or edit any field by hand. The plate photo never leaves this machine in demo.</p>';
+  card.querySelector("button").addEventListener("click", onConfirm);
+  box.appendChild(card);
+}
+
 function initInventory() {
   loadInvState();
   renderInventory();
@@ -1338,16 +1498,25 @@ function initInventory() {
       "tool inv.identify — photo → car ID (" + res.mode + ")");
   }));
 
+  $("invCarVin").addEventListener("change", guard(async (e) => {
+    const file = (e.target.files || [])[0];
+    if (!file) { $("invVinRow").style.display = "none"; return; }
+    $("invVinPlate").src = await downscale(file);
+    $("invVinRow").style.display = "";
+  }));
   $("btnInvCarVin").addEventListener("click", guard(async () => {
     const photo = await readPhotoInput($("invCarVin"));
     if (!photo) throw new Error("attach a VIN photo first");
     const res = await api("/api/inv/vin", { photo, demo: invSeeded });
-    const car = res.vehicle || {};
-    if (car.year && car.year !== "unknown") $("invCarYear").value = car.year;
-    if (car.make && car.make !== "unknown") $("invCarMake").value = car.make;
-    if (car.model && car.model !== "unknown") $("invCarModel").value = car.model;
-    feed("VIN photo read into the form (VIN itself not kept)",
-      "tool inv.vin — plate → vehicle fields (" + res.mode + ")");
+    if (res.notice) notice(esc(res.notice));
+    renderVinCard("invVinCard", res.vehicle, res.mode, () => {
+      const v = res.vehicle || {};
+      if (v.year && v.year !== "unknown") $("invCarYear").value = v.year;
+      if (v.make && !/unknown/i.test(v.make)) $("invCarMake").value = v.make.replace(" (demo sample)", "");
+      if (v.model && !/unknown/i.test(v.model)) $("invCarModel").value = v.model.replace(" (demo sample)", "");
+      feed("Vehicle card confirmed into registration", "tool inv.vin — card → form fields");
+    });
+    feed("Plate read into a vehicle card", "tool inv.vin — plate → card, confirm to fill (" + res.mode + ")");
   }));
 
   $("invKnowCar").addEventListener("change", renderInvKnow);
@@ -1369,6 +1538,7 @@ function initInventory() {
   $("btnInvPartPhoto").addEventListener("click", guard(async () => {
     const photo = await readPhotoInput($("invPartPhoto"));
     if (!photo) throw new Error("attach a part picture first");
+    invPartPhotoData = photo.data; // owner's photo, kept in this browser only
     const res = await api("/api/inv/part-photo", { photo, demo: invSeeded });
     if (res.part.label) $("invPartLabel").value = res.part.label.replace(" (demo sample)", "");
     if (res.part.condition) $("invPartCond").value = res.part.condition;
@@ -1405,12 +1575,15 @@ function initInventory() {
       valueSource: valueRaw === "" ? "" : ($("invPartValue").dataset.source || "owner-entered"),
       source_tags: ["owner-entered"],
     });
+    if (invPartPhotoData) added.part.photo = invPartPhotoData;
     invState = added.inv;
     saveInvState();
     renderInventory();
     $("invPartLabel").value = ""; $("invPartCond").value = "";
     $("invPartNote").value = ""; $("invPartValue").value = "";
     $("invPartValue").dataset.source = "";
+    $("invPartPhoto").value = "";
+    invPartPhotoData = null;
     feed("Attached " + added.part.label + " to " + Inventory.carLabel(invState, added.part.carId),
       "tool inv.attach — part → car (" + added.part.relation + ")");
   }));

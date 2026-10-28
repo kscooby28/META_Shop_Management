@@ -180,6 +180,100 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
 .dest { display: flex; gap: 1rem; margin: 0.6rem 0; font-size: 0.9rem; flex-wrap: wrap; }
 .dest .roadmap { color: var(--muted); font-size: 0.8rem; }
 
+/* ---- Gallery: strip + viewer ---- */
+.strip {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.strip figure { margin: 0; flex: none; width: 96px; cursor: pointer; }
+.strip img {
+  width: 96px; height: 96px;
+  object-fit: cover;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: var(--wash);
+  display: block;
+}
+.strip figure.sel img { border-color: var(--ink); }
+.strip figcaption { font-size: 0.68rem; color: var(--muted); word-break: break-all; }
+.viewer {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--wash);
+  margin-bottom: 0.7rem;
+}
+.viewer .imgwrap { position: relative; aspect-ratio: 1 / 1; max-height: 520px; margin: 0 auto; }
+.viewer img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.viewer svg.overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
+.viewer figcaption {
+  font-size: 0.82rem; color: var(--muted);
+  padding: 0.4rem 0.7rem;
+  border-top: 1px solid var(--line);
+  background: #fff;
+  display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;
+}
+.demobadge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.5rem;
+  border-radius: 4px;
+  background: var(--ink);
+  color: #fff;
+}
+.thumb {
+  width: 64px; height: 64px;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--wash);
+}
+.part-list li.clickable { cursor: pointer; }
+.part-list li.clickable:hover { background: var(--wash); }
+
+/* ---- Visual totals ---- */
+.totalgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin-bottom: 0.6rem; }
+.totalcard { border-radius: 10px; padding: 0.7rem 0.9rem; background: var(--wash); }
+.totalcard .big { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.01em; }
+.totalcard .lbl { font-size: 0.85rem; font-weight: 700; }
+.totalcard.total-a { border: 2px solid var(--grade-a); }
+.totalcard.total-a .big { color: var(--grade-a); }
+.totalcard.total-b { border: 2px solid var(--grade-b); }
+.totalcard.total-b .big { color: var(--grade-b); }
+
+/* ---- Bay checklist ---- */
+.progress { height: 10px; border-radius: 999px; background: var(--wash); border: 1px solid var(--line); overflow: hidden; }
+.progress > div { height: 100%; background: var(--accent); }
+.testcard [data-res] { font-size: 0.95rem; padding: 0.45rem 1rem; }
+
+/* ---- Inventory photos + VIN ---- */
+.invphoto { width: 96px; height: 96px; flex: none; object-fit: cover; border: 1px solid var(--line); border-radius: 8px; }
+.invphoto-ph {
+  width: 96px; height: 96px; flex: none;
+  border-radius: 8px;
+  background: var(--wash);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 2rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+#bayPlate, #invVinPlate {
+  width: 220px; max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--wash);
+}
+.vincard { border: 1px solid var(--line); border-radius: 10px; padding: 0.7rem 0.9rem; background: #fff; }
+.vincard dl { display: grid; grid-template-columns: auto 1fr; gap: 0.15rem 1rem; margin: 0.3rem 0 0.5rem; font-size: 0.9rem; }
+.vincard dt { color: var(--muted); }
+.vincard dd { margin: 0; }
+
 /* ---- Shop Copilot side panel ---- */
 .panel {
   width: 340px;
@@ -315,6 +409,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
 }
 
 @media (max-width: 900px) {
+  .totalgrid { grid-template-columns: 1fr; }
   .layout { flex-direction: column; }
   .panel {
     position: fixed;

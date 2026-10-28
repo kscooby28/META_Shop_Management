@@ -63,6 +63,27 @@ behind the Approve gate, still mock-post only. Demo seed: a driver plus
 two 3-series parts cars and a mid-90s M3 parts car with the owner's
 engine-computer note, all anonymized samples.
 
+## Graphical pass + VIN experience (Work Order 4)
+
+The page went photo-first with no new dependencies: the walk-around is a
+strip in order with a large viewer carrying the masks and boxes; every
+part entry has a cutout thumbnail linking to its source frame; verdict
+cards show cutouts; A/B totals are distinct visual cards above the
+plain-words text; the Bay plan is a checklist with a progress bar and big
+pass/fail states; inventory cards carry owner photos (local only) or a
+placeholder. Demo frames wear a DEMO badge; user photos never become demo
+samples and never leave the machine in demo.
+
+The VIN flow is complete as an experience and demo-only as a data source:
+capture a plate photo, see the plate, get a vehicle card (year, make,
+model, category, honest trim), confirm or edit into Bay intake or
+inventory registration. The VIN itself is never shown, never stored, and
+stripped before every disk write. Live Spark reads stay behind the
+`VIN_LIVE` switch in `bay.py`, which is off until the owner confirms the
+API key rotation — flipping it later changes the data source, not the
+interface. No fake VIN artifact exists anywhere, because a sample VIN
+could collide with a real one.
+
 ## Run it
 
 No dependencies — standard library only.
@@ -145,6 +166,7 @@ behind it.
   `inventory.js`, `styles.css`) + sample frames.
 - `inventory.py` + `demo_cache/inv_seed.demo.json` — demo seed, photo ID
   help, and comps value lookups (inventory data itself stays in the browser).
+- `web/gallery.js` — pure strip/viewer model behind the photo gallery.
 - `tests/` — Python suites plus a Node driver for the browser logic
   (`tests/test_web_logic.py` runs it; Node is a test dependency).
   `scripts/smoke_demo.py` — 10× end-to-end over Yard, Bay, and inventory.

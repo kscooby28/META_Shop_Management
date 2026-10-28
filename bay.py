@@ -15,6 +15,12 @@ from verdict import render_decline
 
 LABOR_RATE = 180
 SHOP_MAKES = ("bmw", "porsche", "volvo")
+
+# Live VIN identification stays OFF until the owner confirms the Meta API key
+# has been rotated. While False, every VIN path serves demo cache / manual
+# entry and never calls the live API. Flipping this flag later changes the
+# data source only; the interface does not change.
+VIN_LIVE = False
 AREAS = ("engine", "gearbox", "electrical", "brakes", "suspension", "maintenance", "other", "not sure")
 
 # Visible keyword lists the decline matcher uses. Small and plain on purpose:
@@ -154,10 +160,15 @@ def build_case(case_id, vehicle, intake):
     }
 
 
+def _is_vin_key(key):
+    lowered = str(key).lower()
+    return lowered == "vin" or lowered.endswith("_vin")
+
+
 def strip_vin(payload):
     """Remove any VIN before a payload is written to disk cache."""
     if isinstance(payload, dict):
-        return {k: strip_vin(v) for k, v in payload.items() if k.lower() != "vin"}
+        return {k: strip_vin(v) for k, v in payload.items() if not _is_vin_key(k)}
     if isinstance(payload, list):
         return [strip_vin(v) for v in payload]
     return payload

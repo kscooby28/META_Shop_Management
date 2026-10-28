@@ -42,8 +42,9 @@
 
   <section id="sec-harvest">
     <h2><span class="step">2</span>Harvest map — parts found</h2>
-    <p class="hint">Masks and boxes drawn over your photos. Every part names the frame it came from.</p>
-    <div id="frames" class="frames"></div>
+    <p class="hint">Walk-around strip in order. Pick a frame to see its masks and boxes, or pick a part to jump to its frame.</p>
+    <div id="strip" class="strip"></div>
+    <div id="viewer" class="viewer"></div>
     <ul id="partList" class="part-list"></ul>
   </section>
 
@@ -124,6 +125,11 @@
       </label>
       <label>Service asked for<input id="bayService" type="text" placeholder="e.g. diagnose no-communication"></label>
     </div>
+    <div id="bayVinRow" class="row" style="display:none">
+      <img id="bayPlate" alt="VIN plate preview">
+      <button id="btnBayVinRead" type="button">Read plate</button>
+    </div>
+    <div id="bayVinCard" style="margin-top:0.5rem"></div>
     <label>Symptom, in your own words (kept verbatim)<br><textarea id="baySymptom" style="min-height:70px"></textarea></label>
     <div class="bayform">
       <label>Fault codes, comma separated<input id="bayCodes" type="text"></label>
@@ -214,6 +220,10 @@
         <label>VIN photo<input id="invCarVin" type="file" accept="image/*"></label>
         <button id="btnInvCarVin" type="button">Read VIN</button>
       </div>
+      <div id="invVinRow" class="row" style="display:none">
+        <img id="invVinPlate" alt="VIN plate preview">
+      </div>
+      <div id="invVinCard" style="margin-top:0.5rem"></div>
       <div class="bayform">
         <label>Name for this car<input id="invCarLabel" type="text" placeholder="My driver"></label>
         <label>Year<input id="invCarYear" type="text" inputmode="numeric"></label>
@@ -314,6 +324,7 @@
 
 <script src="profile.js"></script>
 <script src="inventory.js"></script>
+<script src="gallery.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
