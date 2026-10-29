@@ -1750,18 +1750,17 @@ function scrollSoon(el) {
 }
 
 function showView(which) {
+  $("view-home").hidden = which !== "home";
   $("view-yard").hidden = which !== "yard";
   $("view-bay").hidden = which !== "bay";
   $("view-inventory").hidden = which !== "inventory";
   $("view-compare").hidden = which !== "compare";
-  $("tabYard").classList.toggle("active", which === "yard");
-  $("tabBay").classList.toggle("active", which === "bay");
-  $("tabInventory").classList.toggle("active", which === "inventory");
-  $("tabCompare").classList.toggle("active", which === "compare");
+  $("navHome").classList.toggle("active", which === "home");
   const subs = {
+    home: "Three doors: fix it, strip it, or your own car.",
     yard: "The lot: point at a parts car, learn which parts are worth pulling.",
     bay: "The repair bench: symptoms in, test plans out.",
-    inventory: "Your cars and parts: what you have and what it is worth.",
+    inventory: "Driveway: your cars and parts, what you have and what it is worth.",
     compare: "Two engines grade the same case, side by side.",
   };
   document.querySelector(".top .sub").textContent =
@@ -1769,11 +1768,51 @@ function showView(which) {
   flash(document.querySelector(".work"));
 }
 
+/* Camera-first intake (WO17): each Take-a-photo button opens a hidden
+ * capture input (device camera on phones, picker on desktop); the shot
+ * is handed to the existing upload input untouched, so every flow below
+ * runs exactly as before. Upload stays beside it as the fallback. */
+function twinCamera(camId, targetId, btnId) {
+  $(btnId).addEventListener("click", () => $(camId).click());
+  $(camId).addEventListener("change", guard(async (e) => {
+    const files = e.target.files || [];
+    if (!files.length) return;
+    try {
+      const dt = new DataTransfer();
+      for (const f of files) dt.items.add(f);
+      const target = $(targetId);
+      target.files = dt.files;
+      target.dispatchEvent(new Event("change", { bubbles: true }));
+    } catch (err) {
+      notice("This browser blocked the camera handoff — use Upload instead.");
+    }
+    e.target.value = "";
+  }));
+}
+
+function wireCameras() {
+  twinCamera("fileCamera", "fileInput", "btnPhoto");
+  twinCamera("bayVinCamera", "bayVin", "btnBayVinPhoto");
+  twinCamera("invCarPhotoCamera", "invCarPhoto", "btnInvCarPhotoCam");
+  twinCamera("invCarVinCamera", "invCarVin", "btnInvCarVinCam");
+  twinCamera("invPartPhotoCamera", "invPartPhoto", "btnInvPartPhotoCam");
+}
+
 function initBay() {
-  $("tabYard").addEventListener("click", () => showView("yard"));
-  $("tabBay").addEventListener("click", () => { showView("bay"); bayKb(); });
-  $("tabInventory").addEventListener("click", () => showView("inventory"));
-  $("tabCompare").addEventListener("click", () => showView("compare"));
+  $("navHome").addEventListener("click", () => showView("home"));
+  $("navGear").addEventListener("click", () => {
+    $("settings").open = true;
+    scrollSoon($("settings"));
+  });
+  $("door-bay").addEventListener("click", () => { showView("bay"); bayKb(); });
+  $("door-yard").addEventListener("click", () => showView("yard"));
+  $("door-driveway").addEventListener("click", () => showView("inventory"));
+  $("backYard").addEventListener("click", () => showView("home"));
+  $("backBay").addEventListener("click", () => showView("home"));
+  $("backInv").addEventListener("click", () => showView("home"));
+  $("backCompare").addEventListener("click", () => showView("yard"));
+  $("btnCompareOpen").addEventListener("click", () => showView("compare"));
+  wireCameras();
 
   document.querySelectorAll("[data-baycase]").forEach((btn) => {
     btn.addEventListener("click", guard(async () => {
@@ -1893,6 +1932,10 @@ function renderSettings() {
     box.textContent = "No profile yet — finish first-run setup.";
     return;
   }
+  const line = document.createElement("p");
+  line.className = "screen-line";
+  line.textContent = "Your profile, credentials, and demo switches. Everything here stays on this machine.";
+  box.appendChild(line);
   const span = document.createElement("span");
   span.textContent = p.email + " · " + p.mode;
   box.appendChild(span);
@@ -2074,13 +2117,13 @@ function initIdentity() {
   if (Profile.needsSetup(localStorage)) {
     $("setupOverlay").hidden = false;
   } else {
-    showView(Profile.routeFor(Profile.loadProfile(localStorage).mode));
+    showView("home");
   }
   const choose = (mode) => guard(async () => {
     Profile.saveProfile(localStorage, $("setupEmail").value, mode);
     $("setupOverlay").hidden = true;
     renderSettings();
-    showView(Profile.routeFor(mode));
+    showView("home");
     feed("First-run setup done: " + mode, "profile — stored in this browser only, never sent");
   });
   $("btnSetupShop").addEventListener("click", choose("shop"));

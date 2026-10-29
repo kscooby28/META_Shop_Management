@@ -12,10 +12,8 @@
   <span class="sub">The lot: point at a parts car, learn which parts are worth pulling. Built for a Gulf Coast shop.</span>
   <span class="spacer"></span>
   <span id="modePill" class="pill">not started</span>
-  <button id="tabYard" type="button" class="tab active">Yard</button>
-  <button id="tabBay" type="button" class="tab">Bay</button>
-  <button id="tabInventory" type="button" class="tab">Inventory</button>
-  <button id="tabCompare" type="button" class="tab">Compare</button>
+  <button id="navHome" type="button" class="navbtn active">Home</button>
+  <button id="navGear" type="button" class="navbtn iconbtn" aria-label="Settings">⚙</button>
   <button id="panelToggle" type="button">Shop Copilot</button>
 </header>
 
@@ -25,15 +23,38 @@
   <div id="offlineBar" class="offlinebar" hidden></div>
   <div id="notices"></div>
   <details id="settings">
-    <summary>Settings &amp; profile</summary>
+    <summary><span aria-hidden="true">⚙</span> Settings &amp; profile</summary>
     <div id="settingsBody"></div>
   </details>
+  <div id="view-home" hidden>
+  <p class="screen-line">Three doors: fix a car, strip a parts car, or look after your own. Pick one to start.</p>
+  <div class="doors">
+    <button id="door-bay" type="button" class="door">
+      <span class="door-name">Bay — Fix it</span>
+      <span class="door-why">Turn a symptom into a ranked test plan, then record pass or fail.</span>
+    </button>
+    <button id="door-yard" type="button" class="door">
+      <span class="door-name">Yard — Strip it</span>
+      <span class="door-why">Photograph a parts car, learn which parts are worth pulling and what they sell for.</span>
+    </button>
+    <button id="door-driveway" type="button" class="door">
+      <span class="door-name">Driveway — Your own car</span>
+      <span class="door-why">Register your cars, attach parts, see what you have and what it is worth.</span>
+    </button>
+  </div>
+  </div>
+
   <div id="view-yard">
+  <div class="backbar"><button id="backYard" type="button" class="small">← Home</button></div>
+  <p class="screen-line">The lot: photograph a parts car, learn which parts are worth pulling, draft the listing.</p>
 
   <section id="sec-intake">
     <h2><span class="step">1</span>Intake — photos in</h2>
-    <p class="hint">Upload car photos or walk-around frames. The car is identified only as far as the photos honestly support.</p>
+    <p class="hint">Take walk-around photos or upload frames. The car is identified only as far as the photos honestly support.</p>
     <div class="row">
+      <input id="fileCamera" type="file" accept="image/*" capture="environment" hidden>
+      <button id="btnPhoto" type="button" class="photo">Take a photo</button>
+      <span class="hint">or upload:</span>
       <input id="fileInput" type="file" accept="image/*" multiple>
       <button id="btnDemo" type="button">Load demo car</button>
       <button id="btnIdentify" type="button">Identify car</button>
@@ -70,6 +91,9 @@
   <section id="sec-totals">
     <h2><span class="step">4</span>Plain-money totals</h2>
     <div id="totals" class="totals"><p class="hint">Totals appear after verdicts.</p></div>
+    <div class="row" style="margin-top:0.6rem">
+      <button id="btnCompareOpen" type="button">Compare both engines</button>
+    </div>
   </section>
 
   <section id="sec-listing">
@@ -112,11 +136,18 @@
   </div>
 
   <div id="view-bay" hidden>
+  <div class="backbar"><button id="backBay" type="button" class="small">← Home</button></div>
+  <p class="screen-line">The repair bench: describe the symptom, work the test plan, record pass or fail.</p>
   <div id="bayHome" class="homehead"></div>
   <div id="bayGuide"></div>
   <section id="sec-bcase">
     <h2><span class="step">1</span>Bay case — symptom in</h2>
     <p class="hint">Load a demo case, or describe the car and the symptom in your own words. A VIN photo fills the blanks; manual entry always works.</p>
+    <div class="row">
+      <input id="bayVinCamera" type="file" accept="image/*" capture="environment" hidden>
+      <button id="btnBayVinPhoto" type="button" class="photo">Take a VIN photo</button>
+      <span class="hint">or upload below</span>
+    </div>
     <div class="row">
       <button type="button" data-baycase="case1">Demo: silent module</button>
       <button type="button" data-baycase="case2">Demo: fluid fix</button>
@@ -223,6 +254,8 @@
   </div>
 
   <div id="view-inventory" hidden>
+  <div class="backbar"><button id="backInv" type="button" class="small">← Home</button></div>
+  <p class="screen-line">Driveway — your cars and parts: register cars, attach parts, see what everything is worth.</p>
   <div id="invHome" class="homehead"></div>
   <div id="invGuide"></div>
   <section id="sec-icars">
@@ -236,11 +269,16 @@
     <details>
       <summary>Register a car</summary>
       <div class="row">
+        <input id="invCarPhotoCamera" type="file" accept="image/*" capture="environment" hidden>
+        <button id="btnInvCarPhotoCam" type="button" class="photo">Take a photo</button>
         <label>Picture<input id="invCarPhoto" type="file" accept="image/*"></label>
         <button id="btnInvCarPhoto" type="button">Identify picture</button>
+        <input id="invCarVinCamera" type="file" accept="image/*" capture="environment" hidden>
+        <button id="btnInvCarVinCam" type="button" class="photo">Take a VIN photo</button>
         <label>VIN photo<input id="invCarVin" type="file" accept="image/*"></label>
         <button id="btnInvCarVin" type="button">Read VIN</button>
       </div>
+      <p class="hint">Camera first; the file boxes are the upload fallback.</p>
       <div id="invVinRow" class="row" style="display:none">
         <img id="invVinPlate" alt="VIN plate preview">
       </div>
@@ -288,9 +326,12 @@
         <select id="invPartRel"><option value="came from">came from this car</option><option value="fits">fits this car</option></select>
       </div>
       <div class="row">
+        <input id="invPartPhotoCamera" type="file" accept="image/*" capture="environment" hidden>
+        <button id="btnInvPartPhotoCam" type="button" class="photo">Take a photo</button>
         <label>Part picture<input id="invPartPhoto" type="file" accept="image/*"></label>
         <button id="btnInvPartPhoto" type="button">Describe picture</button>
       </div>
+      <p class="hint">Camera first; the file box is the upload fallback.</p>
       <div class="bayform">
         <label>Part name<input id="invPartLabel" type="text" placeholder="e.g. driver headlight"></label>
         <label>Condition, honestly<input id="invPartCond" type="text" placeholder="e.g. used, lens clear (or unknown)"></label>
@@ -300,7 +341,7 @@
       <div class="row">
         <button id="btnInvMic" type="button" class="small">Hold to dictate a note</button>
         <button id="btnInvComps" type="button">Check comps</button>
-        <button id="btnInvAddPart" type="button" class="primary">Attach part</button>
+        <button id="btnInvAddPart" type="button">Attach part</button>
       </div>
     </details>
   </section>
@@ -312,6 +353,8 @@
   </div>
 
   <div id="view-compare" hidden>
+  <div class="backbar"><button id="backCompare" type="button" class="small">← Yard results</button></div>
+  <p class="screen-line">Two engines grade the same case side by side. Rules decide; this never overrules.</p>
   <section id="sec-compare">
     <h2>Compare — two engines, one case</h2>
     <p class="hint">Where the open model runs: after verdicts, as a second look beside the rule grade. Left column is Muse Spark 1.3 on the demo leg (Meta key rotation pending, no live call). Right column is Muse Spark Open, the open-weight model, running through Baseten — live when a key is present, demo sample otherwise. Rules decide; this view never overrules.</p>
@@ -339,7 +382,7 @@
 <aside id="panel" class="panel">
   <header>
     <div class="panelhead"><h2>Shop Copilot</h2><button id="panelClose" type="button" class="small">Close</button></div>
-    <p>Ask about this case. Every step shows its work below.</p>
+    <p>Ask me about this car or part. I answer from the case file, and I never guess. Every step shows its work below.</p>
   </header>
   <div id="feed" aria-live="polite"></div>
   <div id="thread"></div>

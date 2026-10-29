@@ -64,11 +64,14 @@ ok(out.done && ran === 1, "confirmed delete acts");
 out = UX.guardedDelete(() => false, "Remove?", () => { ran += 1; });
 ok(!out.done && ran === 1, "cancelled delete does nothing");
 
-// ---- navigation skeleton: tabs point at views that exist ----
+// ---- navigation skeleton: doors point at views that exist, backs lead out ----
 const html = fs.readFileSync(path.join(__dirname, "..", "web", "index.html"), "utf-8");
-for (const pair of [["tabYard", "view-yard"], ["tabBay", "view-bay"], ["tabInventory", "view-inventory"]]) {
+for (const pair of [["door-bay", "view-bay"], ["door-yard", "view-yard"], ["door-driveway", "view-inventory"], ["navHome", "view-home"]]) {
   ok(html.indexOf('id="' + pair[0] + '"') >= 0 && html.indexOf('id="' + pair[1] + '"') >= 0,
-    "tab '" + pair[0] + "' has its '" + pair[1] + "' view (a way there and back)");
+    "door '" + pair[0] + "' has its '" + pair[1] + "' view (a way there and back)");
+}
+for (const id of ["backYard", "backBay", "backInv", "backCompare", "btnCompareOpen", "navGear"]) {
+  ok(html.indexOf('id="' + id + '"') >= 0, "navigation control '" + id + "' is on the page (never stranded)");
 }
 ok(html.indexOf('id="settings"') >= 0 && html.indexOf('id="setupOverlay"') >= 0,
   "settings and first-run setup are on the page");
