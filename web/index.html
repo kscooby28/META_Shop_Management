@@ -14,6 +14,7 @@
   <span id="modePill" class="pill">not started</span>
   <button id="navHome" type="button" class="navbtn active">Home</button>
   <button id="navGear" type="button" class="navbtn iconbtn" aria-label="Settings">⚙</button>
+  <button id="navSun" type="button" class="navbtn iconbtn" aria-label="Sunlight mode">☀</button>
   <button id="panelToggle" type="button">Shop Copilot</button>
 </header>
 
@@ -28,6 +29,11 @@
   </details>
   <div id="view-home" hidden>
   <p class="screen-line">Three doors: fix a car, strip a parts car, or look after your own. Pick one to start.</p>
+  <div class="row">
+    <input id="homeHeroCamera" type="file" accept="image/*" capture="environment" hidden>
+    <button id="btnHomePhoto" type="button" class="photo herophoto">Take a photo</button>
+  </div>
+  <p class="camguide">Get the whole car in the frame.<span class="mode-tag">Whole car</span></p>
   <div class="doors">
     <button id="door-bay" type="button" class="door">
       <span class="door-name">Bay — Fix it</span>
@@ -376,6 +382,26 @@
       <button id="btnSetupFan" type="button" class="primary">I'm an enthusiast</button>
     </div>
     <p class="hint">Demo profile: stored in this browser only, never sent anywhere.</p>
+  </div>
+</div>
+
+<div id="confirm" hidden>
+  <div class="confirm-card sheet-up" id="confirmCard" role="dialog" aria-label="Confirm photo">
+    <p class="confirm-guide" id="confirmGuide"></p>
+    <div class="confirm-frame"><img class="confirm-photo" id="confirmPhoto" alt="Photo to confirm"></div>
+    <div class="confirm-strip" id="confirmStrip" hidden></div>
+    <ol class="confirm-steps" id="confirmSteps" hidden></ol>
+    <div id="confirmSkel" hidden></div>
+    <div class="confirm-fail" id="confirmFail" hidden></div>
+    <div class="confirm-done" id="confirmDone" hidden></div>
+    <div class="confirm-actions" id="confirmActions">
+      <button id="btnConfirmRetake" type="button">Retake</button>
+      <button id="btnConfirmUse" type="button" class="primary">Use photo</button>
+    </div>
+    <div class="confirm-actions" id="confirmWorkActions" hidden>
+      <button id="btnConfirmCancel" type="button">Cancel</button>
+      <button id="btnConfirmRetry" type="button">Retry</button>
+    </div>
   </div>
 </div>
 

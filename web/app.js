@@ -1024,11 +1024,17 @@ async function sendChat(message) {
 
 /* ---------- run-all + init ---------- */
 
-async function runAll() {
+async function runAll(tick) {
+  const step = (i) => { if (typeof tick === "function") tick(i); };
   await runIntake();
+  step(0);
   await runHarvest();
+  step(1);
   await runComps();
+  step(2);
   await runVerdicts(false);
+  step(3);
+  revealResults();
   // Auto-draft the most valuable pull-now part: the demo's trust moment.
   const list = (state.report && state.report.verdicts) || [];
   const best = list
@@ -1339,11 +1345,18 @@ async function init() {
     feed("Loaded the demo car (anonymized Yard Case 4)", "intake — 4 sample frames, no customer data");
   }));
 
-  $("btnIdentify").addEventListener("click", guard(async () => {
-    await runIntake();
-    await runHarvest();
-  }, "identifying the car…"));
-  $("btnRunAll").addEventListener("click", guard(runAll, "running intake to listing…"));
+  $("btnIdentify").addEventListener("click", guard(
+    () => withStages("identify", yardPhoto(), async (tick) => {
+      await runIntake();
+      tick(0);
+      await runHarvest();
+      tick(1);
+      revealResults();
+    }),
+    "identifying the car…"));
+  $("btnRunAll").addEventListener("click", guard(
+    () => withStages("yard", yardPhoto(), (tick) => runAll(tick)),
+    "running intake to listing…"));
   $("btnRerun").addEventListener("click", guard(async () => { await runVerdicts(true); }));
   $("btnWonderYard").addEventListener("click", guard(async () => {
     await runWonder("yard", $("wonderPart").value, $("wonderHard").checked, "wonderYard");
@@ -1478,6 +1491,7 @@ function renderBayPlan() {
   plan.tests.forEach((t, i) => {
     const result = plan.results[t.id];
     const card = document.createElement("div");
+    card.setAttribute("data-test", t.id);
     card.className = "testcard" +
       (t.standing === "eliminated" ? " eliminated" : "") +
       (result === "pass" ? " doneok" : "") +
@@ -1671,19 +1685,23 @@ async function bayDraftPlan() {
 }
 
 async function bayRecord(testId, result, note) {
+  const before = snapshotRows($("bayPlan"));
   const res = await api("/api/bay/result", { sessionId: state.sessionId, testId, result, note });
   bay.plan = res.plan;
   renderBayPlan();
   const last = res.plan.trail[res.plan.trail.length - 1];
+  playFlip($("bayPlan"), before, testId, last ? flipNote(last) : "");
   feed("Recorded " + result + ": " + (last ? last.caused_by : ""),
     "tool bay.result — " + testId + " → " + result + ", plan re-ranked");
   return res;
 }
 
 async function bayEditPlan(tests, order) {
+  const before = snapshotRows($("bayPlan"));
   const res = await api("/api/bay/plan/edit", { sessionId: state.sessionId, tests, order });
   bay.plan = res.plan;
   renderBayPlan();
+  playFlip($("bayPlan"), before, null, "");
   feed("Plan edited, ranking updated", "tool bay.plan.edit — shop edit → re-rank");
   return res;
 }
@@ -1750,6 +1768,7 @@ function scrollSoon(el) {
 }
 
 function showView(which) {
+  const from = typeof currentView === "undefined" ? "yard" : currentView;
   $("view-home").hidden = which !== "home";
   $("view-yard").hidden = which !== "yard";
   $("view-bay").hidden = which !== "bay";
@@ -1766,27 +1785,25 @@ function showView(which) {
   document.querySelector(".top .sub").textContent =
     (subs[which] || subs.yard) + " Built for a Gulf Coast shop.";
   flash(document.querySelector(".work"));
+  playViewTransition(document.querySelector(".work"), UX.transitionFor(from, which));
+  currentView = which;
 }
 
 /* Camera-first intake (WO17): each Take-a-photo button opens a hidden
  * capture input (device camera on phones, picker on desktop); the shot
  * is handed to the existing upload input untouched, so every flow below
- * runs exactly as before. Upload stays beside it as the fallback. */
+ * runs exactly as before. Upload stays beside it as the fallback.
+ * WO18 adds the confirm step around that handoff: a guide line before
+ * capture, a full-screen preview after, and only the Use photo tap
+ * moves the flow forward into the same upload path, unchanged. */
 function twinCamera(camId, targetId, btnId) {
+  paintShotGuide(btnId, SHOT_FOR_CAM[camId] || "yard");
   $(btnId).addEventListener("click", () => $(camId).click());
   $(camId).addEventListener("change", guard(async (e) => {
-    const files = e.target.files || [];
-    if (!files.length) return;
-    try {
-      const dt = new DataTransfer();
-      for (const f of files) dt.items.add(f);
-      const target = $(targetId);
-      target.files = dt.files;
-      target.dispatchEvent(new Event("change", { bubbles: true }));
-    } catch (err) {
-      notice("This browser blocked the camera handoff — use Upload instead.");
-    }
+    const files = Array.from(e.target.files || []);
     e.target.value = "";
+    if (!files.length) return;
+    openConfirm(camId, files);
   }));
 }
 
@@ -1796,6 +1813,473 @@ function wireCameras() {
   twinCamera("invCarPhotoCamera", "invCarPhoto", "btnInvCarPhotoCam");
   twinCamera("invCarVinCamera", "invCarVin", "btnInvCarVinCam");
   twinCamera("invPartPhotoCamera", "invPartPhoto", "btnInvPartPhotoCam");
+  twinCamera("homeHeroCamera", "fileInput", "btnHomePhoto");
+}
+
+/* ---------- motion + confirm + sunlight (WO18) ----------
+ * Presentation, navigation, and photo-input only. The flows, grades,
+ * and gates underneath run exactly as before; this section only wraps
+ * them with motion, a confirm step, staged working states, and a
+ * sunlight toggle. No approve, post, or rules call lives here. */
+
+let currentView = "yard";
+
+function calmMotion() {
+  return typeof matchMedia === "function" &&
+    matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function tourActive() {
+  return typeof tourState !== "undefined" && !!tourState;
+}
+
+function playViewTransition(work, cls) {
+  if (!work || !work.classList || calmMotion() || !cls || cls === "none") return;
+  work.classList.remove("page-in-right");
+  work.classList.remove("page-in-left");
+  work.classList.remove("door-fade");
+  void work.offsetWidth;
+  work.classList.add(cls);
+}
+
+/* ---- Bay re-rank FLIP: fail state first, then rows glide ---- */
+let flipRun = 0;
+
+function snapshotRows(box) {
+  const map = {};
+  if (!box || !box.querySelectorAll) return map;
+  box.querySelectorAll(".testcard").forEach((card) => {
+    map[card.getAttribute("data-test")] = card.getBoundingClientRect().top;
+  });
+  return map;
+}
+
+function flipNote(last) {
+  return last.caused_by + (last.moved && last.moved.length
+    ? " Moved: " + last.moved.join(", ") + "."
+    : "");
+}
+
+function playFlip(box, before, focusId, noteText) {
+  const run = ++flipRun;
+  const calm = calmMotion();
+  box.querySelectorAll(".testcard").forEach((card) => {
+    const id = card.getAttribute("data-test");
+    const was = before[id];
+    const now = card.getBoundingClientRect().top;
+    const moved = typeof was === "number" && Math.abs(now - was) > 2;
+    if (id === focusId && noteText) {
+      const p = document.createElement("p");
+      p.className = "moved-note";
+      p.textContent = noteText;
+      card.appendChild(p);
+    }
+    if (id === focusId || moved) card.classList.add("moved-flash");
+    if (moved && !calm) {
+      card.classList.add("flip-glide");
+      card.style.transform = "translateY(" + Math.round(was - now) + "px)";
+    }
+  });
+  if (calm) return; // reduced motion: instant reorder plus the highlight only
+  const raf = typeof requestAnimationFrame === "function"
+    ? requestAnimationFrame
+    : (fn) => setTimeout(fn, 16);
+  raf(() => {
+    if (run !== flipRun) return; // interruptible: a newer render wins
+    box.querySelectorAll(".flip-glide").forEach((card) => { card.style.transform = ""; });
+    setTimeout(() => {
+      if (run !== flipRun) return;
+      box.querySelectorAll(".flip-glide").forEach((card) => card.classList.remove("flip-glide"));
+    }, UX.Motion.flipMs + 60);
+  });
+}
+
+/* ---- camera confirm: guide before, preview after, Use moves on ---- */
+const SHOT_FOR_CAM = {
+  fileCamera: "yard",
+  homeHeroCamera: "hero",
+  bayVinCamera: "bayvin",
+  invCarPhotoCamera: "carphoto",
+  invCarVinCamera: "carvin",
+  invPartPhotoCamera: "part",
+};
+const TARGET_FOR_CAM = {
+  fileCamera: "fileInput",
+  homeHeroCamera: "fileInput",
+  bayVinCamera: "bayVin",
+  invCarPhotoCamera: "invCarPhoto",
+  invCarVinCamera: "invCarVin",
+  invPartPhotoCamera: "invPartPhoto",
+};
+const AUTO_SHOT = { bayvin: 1, carvin: 1, carphoto: 1, part: 1 };
+
+let confirmState = null;
+
+function paintShotGuide(btnId, shot) {
+  const btn = $(btnId);
+  if (!btn || !btn.parentNode) return;
+  const next = btn.nextElementSibling;
+  if (next && next.classList && next.classList.contains("camguide")) return;
+  const g = UX.guideFor(shot);
+  const p = document.createElement("p");
+  p.className = "camguide";
+  p.textContent = g.guide;
+  const tag = document.createElement("span");
+  tag.className = "mode-tag";
+  tag.textContent = g.modeLabel;
+  p.appendChild(tag);
+  btn.parentNode.insertBefore(p, next);
+}
+
+function renderConfirmStrip() {
+  const strip = $("confirmStrip");
+  strip.innerHTML = "";
+  const st = confirmState;
+  if (!st) { strip.hidden = true; return; }
+  if (UX.guideFor(st.shot).mode !== "whole") { strip.hidden = true; return; }
+  strip.hidden = false;
+  st.shots.forEach((s, i) => {
+    const img = document.createElement("img");
+    img.className = "thumb";
+    img.alt = "Angle " + (i + 1);
+    if (s.url) img.src = s.url;
+    strip.appendChild(img);
+  });
+  const add = document.createElement("button");
+  add.type = "button";
+  add.className = "small";
+  add.textContent = "Add another angle";
+  add.addEventListener("click", () => $(st.camId).click());
+  strip.appendChild(add);
+}
+
+function openConfirm(camId, files) {
+  const shot = SHOT_FOR_CAM[camId] || "yard";
+  if (!confirmState || confirmState.camId !== camId || confirmState.replaceNext) {
+    closeConfirm();
+    confirmState = { camId, shot, shots: [], replaceNext: false };
+  }
+  confirmState.replaceNext = false;
+  for (const file of files) {
+    let url = null;
+    try { url = URL.createObjectURL(file); } catch (err) { url = null; }
+    confirmState.shots.push({ file, url });
+  }
+  const g = UX.guideFor(shot);
+  const guide = $("confirmGuide");
+  guide.textContent = g.guide;
+  const tag = document.createElement("span");
+  tag.className = "mode-tag";
+  tag.textContent = g.modeLabel;
+  guide.appendChild(tag);
+  const latest = confirmState.shots[confirmState.shots.length - 1];
+  $("confirmPhoto").src = latest.url || "";
+  renderConfirmStrip();
+  $("confirmSteps").hidden = true;
+  $("confirmSkel").hidden = true;
+  $("confirmFail").hidden = true;
+  $("confirmDone").hidden = true;
+  $("confirmActions").hidden = false;
+  $("confirmWorkActions").hidden = true;
+  const box = $("confirm");
+  const first = box.hidden;
+  box.hidden = false;
+  if (first && !calmMotion()) {
+    const card = $("confirmCard");
+    card.classList.remove("sheet-up");
+    void card.offsetWidth;
+    card.classList.add("sheet-up");
+  }
+}
+
+function closeConfirm() {
+  $("confirm").hidden = true;
+  confirmState = null;
+}
+
+function confirmRetake() {
+  const st = confirmState;
+  if (!st || !st.camId) { closeConfirm(); return; }
+  st.replaceNext = true;
+  $(st.camId).click();
+}
+
+function confirmUse() {
+  const st = confirmState;
+  if (!st || !st.shots.length) { closeConfirm(); return; }
+  try {
+    const dt = new DataTransfer();
+    for (const s of st.shots) dt.items.add(s.file);
+    const target = $(TARGET_FOR_CAM[st.camId]);
+    target.files = dt.files;
+    target.dispatchEvent(new Event("change", { bubbles: true }));
+  } catch (err) {
+    notice("This browser blocked the camera handoff — use Upload instead.");
+    closeConfirm();
+    return;
+  }
+  if (st.shot === "hero") {
+    const rect = $("confirmPhoto").getBoundingClientRect();
+    const url = st.shots[st.shots.length - 1].url;
+    closeConfirm();
+    showView("yard");
+    heroExpand(rect, url);
+    return;
+  }
+  if (AUTO_SHOT[st.shot]) {
+    // Auto-analyzing shot: keep the photo on screen. The analysis
+    // wrapper takes this overlay into its working state next.
+    $("confirmActions").hidden = true;
+    $("confirmWorkActions").hidden = true;
+    return;
+  }
+  closeConfirm();
+  flash($("thumbs"));
+}
+
+/* ---- photo becomes screen: the capture expands into the app ---- */
+function heroExpand(rect, url) {
+  if (!rect || !url || calmMotion()) return;
+  const box = $("thumbs");
+  const target = box ? box.getBoundingClientRect() : null;
+  const img = document.createElement("img");
+  img.className = "hero-clone";
+  img.alt = "";
+  img.src = url;
+  img.style.left = rect.left + "px";
+  img.style.top = rect.top + "px";
+  img.style.width = Math.max(1, rect.width) + "px";
+  img.style.height = Math.max(1, rect.height) + "px";
+  document.body.appendChild(img);
+  const dx = target ? (target.left + target.width / 2 - (rect.left + rect.width / 2)) : 0;
+  const dy = target ? (target.top + 60 - (rect.top + rect.height / 2)) : 0;
+  const s = target && rect.width > 0
+    ? Math.min(3, Math.max(1.2, (target.width || rect.width) / rect.width))
+    : 1.6;
+  const raf = typeof requestAnimationFrame === "function"
+    ? requestAnimationFrame
+    : (fn) => setTimeout(fn, 16);
+  raf(() => {
+    img.style.transform = "translate(" + Math.round(dx) + "px," + Math.round(dy) +
+      "px) scale(" + s.toFixed(2) + ")";
+    img.style.opacity = "0";
+    setTimeout(() => {
+      if (img.parentNode) img.parentNode.removeChild(img);
+    }, UX.Motion.pageMs + 80);
+  });
+}
+
+function yardPhoto() {
+  return state.images.length ? state.images[0].src : null;
+}
+
+/* ---- staged work: photo stays, ladder decides what else shows ---- */
+let workRerun = null;
+let workCancelled = false;
+
+function openWorking(photoSrc, steps) {
+  const box = $("confirm");
+  const wasHidden = box.hidden;
+  box.hidden = false;
+  if (photoSrc) $("confirmPhoto").src = photoSrc;
+  $("confirmGuide").textContent = "Working on your photo — it stays here until the result lands.";
+  const list = $("confirmSteps");
+  list.innerHTML = "";
+  steps.forEach((s) => {
+    const li = document.createElement("li");
+    li.className = "confirm-step";
+    li.textContent = s;
+    list.appendChild(li);
+  });
+  list.hidden = true; // ladder: quiet first, steps only past 2s
+  const skel = $("confirmSkel");
+  skel.innerHTML = "";
+  skel.hidden = true;
+  $("confirmFail").hidden = true;
+  $("confirmDone").hidden = true;
+  $("confirmActions").hidden = true;
+  $("confirmWorkActions").hidden = false;
+  if (wasHidden && !calmMotion()) {
+    const card = $("confirmCard");
+    card.classList.remove("sheet-up");
+    void card.offsetWidth;
+    card.classList.add("sheet-up");
+  }
+  const items = Array.from(list.children);
+  return {
+    showSkel() {
+      if (box.hidden) return;
+      skel.innerHTML = '<div class="skel"><div class="skel-bar"></div>' +
+        '<div class="skel-bar"></div><div class="skel-bar"></div>' +
+        '<div class="skel-bar short"></div></div>';
+      skel.hidden = false;
+    },
+    showSteps() {
+      if (box.hidden) return;
+      list.hidden = false;
+    },
+    tick(i) {
+      const li = items[i];
+      if (!li || li.className !== "confirm-step") return;
+      li.className = "confirm-step done";
+      li.textContent = steps[i] + " — done";
+    },
+    finishOk() {
+      if (box.hidden) return;
+      const done = $("confirmDone");
+      done.innerHTML = "";
+      done.appendChild(document.createTextNode("Done — the result is below."));
+      const close = document.createElement("button");
+      close.type = "button";
+      close.className = "small";
+      close.textContent = "Close";
+      close.addEventListener("click", () => closeConfirm());
+      done.appendChild(close);
+      skel.hidden = true;
+      list.hidden = true;
+      done.hidden = false;
+      $("confirmWorkActions").hidden = true;
+    },
+    finishFail(flow, photo, err) {
+      if (box.hidden) return;
+      const kind = UX.classifyFailure(err && err.message);
+      saveShotDraft(flow, photo, err);
+      const fail = $("confirmFail");
+      fail.innerHTML = "";
+      const line = document.createElement("p");
+      line.textContent = UX.failureLine(kind);
+      fail.appendChild(line);
+      const kept = document.createElement("p");
+      kept.className = "hint";
+      kept.textContent = "Your photo is saved with the draft — nothing is lost.";
+      fail.appendChild(kept);
+      const row = document.createElement("div");
+      row.className = "row";
+      const st = confirmState;
+      const again = document.createElement("button");
+      again.type = "button";
+      again.className = "small";
+      again.textContent = "Retake";
+      again.addEventListener("click", () => {
+        if (st && st.camId) {
+          st.replaceNext = true;
+          $(st.camId).click();
+        } else {
+          closeConfirm();
+        }
+      });
+      row.appendChild(again);
+      if (kind === "low") {
+        const keep = document.createElement("button");
+        keep.type = "button";
+        keep.className = "small";
+        keep.textContent = "Keep as unknown";
+        keep.addEventListener("click", () => closeConfirm());
+        row.appendChild(keep);
+      }
+      fail.appendChild(row);
+      skel.hidden = true;
+      list.hidden = true;
+      fail.hidden = false;
+      $("confirmWorkActions").hidden = true;
+      feed("Step hit a snag: " + (err && err.message), null);
+    },
+  };
+}
+
+function saveShotDraft(flow, photoSrc, err) {
+  const small = typeof photoSrc === "string" && photoSrc.length < 150000 &&
+    photoSrc.indexOf("blob:") !== 0;
+  const draft = {
+    at: new Date().toISOString(),
+    error: err && err.message ? err.message : "unknown error",
+    photo: small ? photoSrc : null,
+    photoSaved: small,
+  };
+  try {
+    UX.saveDraft(localStorage, "shot-" + flow, draft);
+  } catch (storeErr) {
+    try {
+      draft.photo = null;
+      draft.photoSaved = false;
+      UX.saveDraft(localStorage, "shot-" + flow, draft);
+    } catch (err2) { /* storage full; the message still stands */ }
+  }
+}
+
+async function withStages(flow, photoSrc, work) {
+  if (tourActive()) return work(() => {});
+  const M = UX.Motion;
+  const overlay = openWorking(photoSrc, UX.stagesFor(flow));
+  workCancelled = false;
+  workRerun = () => withStages(flow, photoSrc, work);
+  const quietTimer = setTimeout(() => overlay.showSkel(), M.quietMs);
+  const stageTimer = setTimeout(() => overlay.showSteps(), M.skeletonMs);
+  const stop = () => { clearTimeout(quietTimer); clearTimeout(stageTimer); };
+  try {
+    const out = await work((i) => overlay.tick(i));
+    stop();
+    if (!workCancelled) overlay.finishOk();
+    return out;
+  } catch (err) {
+    stop();
+    if (!workCancelled) overlay.finishFail(flow, photoSrc, err);
+    else feed("Step hit a snag: " + err.message, null);
+    return null;
+  }
+}
+
+/* ---- staged reveal: what, worth, next, details — in that order ---- */
+let revealRun = 0;
+
+function revealResults() {
+  const run = ++revealRun;
+  const boxes = [$("carCard"), $("totals"), $("verdicts"), $("listingCard")].filter((box) => {
+    if (!box) return false;
+    if (box.style && box.style.display === "none") return false;
+    return (box.textContent || "").trim().length > 0;
+  });
+  if (!boxes.length || calmMotion() || tourActive()) return;
+  const M = UX.Motion;
+  boxes.forEach((box, i) => {
+    box.classList.add("reveal");
+    setTimeout(() => {
+      if (run === revealRun) box.setAttribute("data-on", "1");
+    }, i * M.revealStepMs);
+  });
+  setTimeout(() => {
+    if (run !== revealRun) return;
+    boxes.forEach((box) => box.setAttribute("data-on", "1"));
+  }, M.maxMs);
+}
+
+/* ---- sunlight mode: one tap, header or settings, browser-local ---- */
+function applySunlight() {
+  const on = UX.loadSunlight(localStorage);
+  document.body.classList.toggle("sunlight", on);
+  const nav = $("navSun");
+  if (nav) nav.classList.toggle("active", on);
+  const box = $("sunToggle");
+  if (box) box.checked = on;
+}
+
+function initMotion() {
+  applySunlight();
+  $("navSun").addEventListener("click", () => {
+    UX.saveSunlight(localStorage, !UX.loadSunlight(localStorage));
+    applySunlight();
+    renderSettings();
+    feed("Sunlight mode " + (UX.loadSunlight(localStorage) ? "on" : "off"),
+      "settings — display only, stays in this browser");
+  });
+  $("btnConfirmRetake").addEventListener("click", () => confirmRetake());
+  $("btnConfirmUse").addEventListener("click", () => confirmUse());
+  $("btnConfirmCancel").addEventListener("click", () => {
+    workCancelled = true;
+    workRerun = null;
+    closeConfirm();
+  });
+  $("btnConfirmRetry").addEventListener("click", () => { if (workRerun) workRerun(); });
 }
 
 function initBay() {
@@ -1845,7 +2329,11 @@ function initBay() {
     bay.vinPhoto = { name: file.name, data };
     $("bayPlate").src = data;
     $("bayVinRow").style.display = "";
-    await readBayVin();
+    await withStages("vin", data, async (tick) => {
+      tick(0);
+      await readBayVin();
+      tick(1);
+    });
   }, "reading the plate…"));
   $("btnBayVinRead").addEventListener("click", guard(readBayVin, "reading the plate…"));
   $("btnBayAddTest").addEventListener("click", guard(async () => {
@@ -1977,6 +2465,20 @@ function renderSettings() {
   off.appendChild(offBox);
   off.appendChild(document.createTextNode(" Force offline demo"));
   box.appendChild(off);
+  const sun = document.createElement("label");
+  const sunBox = document.createElement("input");
+  sunBox.type = "checkbox";
+  sunBox.id = "sunToggle";
+  sunBox.checked = UX.loadSunlight(localStorage);
+  sunBox.addEventListener("change", () => {
+    UX.saveSunlight(localStorage, sunBox.checked);
+    applySunlight();
+    feed(sunBox.checked ? "Sunlight mode on" : "Sunlight mode off",
+      "settings — display only, stays in this browser");
+  });
+  sun.appendChild(sunBox);
+  sun.appendChild(document.createTextNode(" Sunlight mode — bold type, solid surfaces for glare"));
+  box.appendChild(sun);
   const walk = document.createElement("button");
   walk.type = "button";
   walk.className = "small";
@@ -2560,10 +3062,20 @@ function initInventory() {
     feed("Picture identified: " + [car.year, car.make, car.model].filter(Boolean).join(" "),
       "tool inv.identify — photo → car ID (" + res.mode + ")");
   }
-  $("btnInvCarPhoto").addEventListener("click", guard(identifyInvCarPhoto, "identifying the picture…"));
+  async function identifyInvCarPhotoStaged() {
+    const file = ($("invCarPhoto").files || [])[0];
+    let photo = null;
+    if (file) { try { photo = await downscale(file); } catch (err) { photo = null; } }
+    await withStages("identify", photo, async (tick) => {
+      tick(0);
+      await identifyInvCarPhoto();
+      tick(1);
+    });
+  }
+  $("btnInvCarPhoto").addEventListener("click", guard(identifyInvCarPhotoStaged, "identifying the picture…"));
   $("invCarPhoto").addEventListener("change", guard(async (e) => {
     if (!(e.target.files || []).length) return;
-    await identifyInvCarPhoto();
+    await identifyInvCarPhotoStaged();
   }, "identifying the picture…"));
 
   async function readInvVin() {
@@ -2580,14 +3092,21 @@ function initInventory() {
     });
     feed("Plate read into a vehicle card", "tool inv.vin — plate → card, confirm to fill (" + res.mode + ")");
   }
+  async function readInvVinStaged() {
+    await withStages("vin", $("invVinPlate").src || null, async (tick) => {
+      tick(0);
+      await readInvVin();
+      tick(1);
+    });
+  }
   $("invCarVin").addEventListener("change", guard(async (e) => {
     const file = (e.target.files || [])[0];
     if (!file) { $("invVinRow").style.display = "none"; return; }
     $("invVinPlate").src = await downscale(file);
     $("invVinRow").style.display = "";
-    await readInvVin();
+    await readInvVinStaged();
   }, "reading the plate…"));
-  $("btnInvCarVin").addEventListener("click", guard(readInvVin, "reading the plate…"));
+  $("btnInvCarVin").addEventListener("click", guard(readInvVinStaged, "reading the plate…"));
   pressMic($("btnInvMic"), "inv", (res) => {
     const box = $("invPartNote");
     box.value = box.value ? box.value + " " + res.text : res.text;
@@ -2623,10 +3142,20 @@ function initInventory() {
     feed("Part picture described: " + res.part.label,
       "tool inv.part-photo — photo → label + condition (" + res.mode + ")");
   }
-  $("btnInvPartPhoto").addEventListener("click", guard(describeInvPart, "describing the picture…"));
+  async function describeInvPartStaged() {
+    const file = ($("invPartPhoto").files || [])[0];
+    let photo = null;
+    if (file) { try { photo = await downscale(file); } catch (err) { photo = null; } }
+    await withStages("part", photo, async (tick) => {
+      tick(0);
+      await describeInvPart();
+      tick(1);
+    });
+  }
+  $("btnInvPartPhoto").addEventListener("click", guard(describeInvPartStaged, "describing the picture…"));
   $("invPartPhoto").addEventListener("change", guard(async (e) => {
     if (!(e.target.files || []).length) return;
-    await describeInvPart();
+    await describeInvPartStaged();
   }, "describing the picture…"));
 
   $("btnInvComps").addEventListener("click", guard(async () => {
@@ -2721,6 +3250,7 @@ function restoreDraft(key, ids) {
 }
 
 function initUx() {
+  initMotion();
   updateOffline();
   // Paint every state on load so empties guide instead of blanking.
   renderViewer();
