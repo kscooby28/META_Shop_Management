@@ -29,6 +29,12 @@
   </details>
   <div id="view-home" hidden>
   <p class="screen-line">Three doors: fix a car, strip a parts car, or look after your own. Pick one to start.</p>
+  <div class="hero" aria-label="This parts car, from the walk-around">
+    <img src="demo/frame1.svg" alt="Demo walk-around frame 1">
+    <img src="demo/frame2.svg" alt="Demo walk-around frame 2">
+    <img src="demo/frame3.svg" alt="Demo walk-around frame 3">
+    <img src="demo/frame4.svg" alt="Demo walk-around frame 4">
+  </div>
   <div class="row">
     <input id="homeHeroCamera" type="file" accept="image/*" capture="environment" hidden>
     <button id="btnHomePhoto" type="button" class="photo herophoto">Take a photo</button>
@@ -241,7 +247,7 @@
   </section>
 
   <section id="sec-blabor">
-    <h2><span class="step">5</span>Labor math — $180 an hour, shop times only</h2>
+    <h2><span class="step">5</span>Labor math — <span class="money">$180</span> an hour, shop times only</h2>
     <div id="bayLabor"><p class="hint">Labor appears after the plan.</p></div>
     <div class="row" style="margin-top:0.5rem">
       <button id="btnBayLabor" type="button">Update labor</button>

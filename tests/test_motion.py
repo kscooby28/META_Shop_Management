@@ -341,8 +341,11 @@ class SunlightTest(unittest.TestCase):
     def test_type_floors(self):
         block = sunlight_block()
         ui, meta = block.split("body.sunlight .thumbs figcaption", 1)
-        self.assertIn("font-size: 16px; font-weight: 700;", ui)
-        self.assertIn("font-size: 12px; font-weight: 700;", meta)
+        self.assertIn("font-size: var(--sun-ui); font-weight: 700;", ui)
+        self.assertIn("font-size: var(--sun-meta); font-weight: 700;", meta)
+        root = root_tokens()
+        self.assertIn("--sun-ui: 16px;", root)
+        self.assertIn("--sun-meta: 12px;", root)
         for cls in (".hint", ".status", ".verdict table", ".msg", "#chips button"):
             self.assertIn(cls, ui, cls)
         for cls in (".strip figcaption", ".demobadge", ".msg .mode", ".part-list .tag"):

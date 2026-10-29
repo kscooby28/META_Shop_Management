@@ -107,12 +107,21 @@ function notice(html) {
   box.appendChild(div);
 }
 
+const EMPTY_ART = {
+  gallery: "demo/frame1.svg",
+  parts: "demo/frame2.svg",
+  verdicts: "demo/frame3.svg",
+};
+
 function emptyInto(box, key, onAction) {
   const e = UX.emptyState(key);
   box.innerHTML = "";
   const div = document.createElement("div");
   div.className = "emptybox";
-  div.innerHTML = '<div class="etitle">' + esc(e.title) + "</div><p>" + esc(e.message) + "</p>";
+  div.innerHTML = (EMPTY_ART[key]
+    ? '<img src="' + EMPTY_ART[key] + '" alt="">'
+    : "") +
+    '<div class="etitle">' + esc(e.title) + "</div><p>" + esc(e.message) + "</p>";
   const btn = document.createElement("button");
   btn.type = "button";
   btn.textContent = e.action;
@@ -407,10 +416,9 @@ function renderPartList() {
     const thumb = Gallery.partThumb(part);
     if (thumb) li.appendChild(cutoutSVG(frameSrc(thumb.frame), thumb.box, "thumb"));
     li.insertAdjacentHTML("beforeend",
-      (grade ? '<span class="grade grade-' + grade + '" style="width:1.5rem;height:1.5rem;line-height:1.5rem;font-size:0.8rem">' + grade + "</span>" : "") +
+      (grade ? '<span class="grade grade-sm grade-' + grade + '">' + grade + "</span>" : "") +
       "<strong>" + esc(part.label) + "</strong>" +
       "<span>condition: " + esc(part.intact) + "</span>" +
-      "<span>count: " + esc(part.count) + "</span>" +
       (part.sightings || []).map((s) => '<span class="tag">' + esc(s.source_tag) + "</span>").join(""));
     li.addEventListener("mouseenter", () => highlightPart(part.id, true));
     li.addEventListener("mouseleave", () => highlightPart(part.id, false));
@@ -505,6 +513,12 @@ function money(v) {
   return v == null ? "" : "$" + Math.round(v);
 }
 
+function amberMoney(escText) {
+  // Money reads amber everywhere. Runs on already-escaped text: only a
+  // dollar sign followed by digits is wrapped, never markup, never words.
+  return escText.replace(/\$[\d,–-]+/g, (m) => '<span class="money">' + m + "</span>");
+}
+
 function moneyRow(v) {
   const inp = v.inputs;
   if (!inp.money_grade) return "";
@@ -515,7 +529,7 @@ function moneyRow(v) {
     ? " " + inp.sold_count + " sold(s)."
     : " Sold count unknown.";
   const notes = (inp.valuation_notes || []).join(" ");
-  return esc(inp.money_grade + " — " + inp.money_reason + nets + count + (notes ? " " + notes : "")) +
+  return amberMoney(esc(inp.money_grade + " — " + inp.money_reason + nets + count + (notes ? " " + notes : ""))) +
     ' <span class="sourced">(' + esc(inp.price_source || "no source") + ")</span>";
 }
 
@@ -536,7 +550,7 @@ function renderVerdicts() {
     card.className = "verdict";
     card.setAttribute("data-part", v.part_id);
     const priceCell = inp.price_known
-      ? esc(money(inp.price_low) + (inp.price_high && inp.price_high !== inp.price_low ? " to " + money(inp.price_high) : "")) +
+      ? amberMoney(esc(money(inp.price_low) + (inp.price_high && inp.price_high !== inp.price_low ? " to " + money(inp.price_high) : ""))) +
         ' <span class="sourced">(' + esc(inp.price_source) + ")</span>"
       : '<span class="missing">no reliable price</span>';
     const pullCell = inp.pull_minutes != null
@@ -631,11 +645,11 @@ function renderTotals() {
     card("A", totals.A, "total-a", "pull and list now") +
     card("B", totals.B, "total-b", "worth it if standing there") +
     "</div>" +
-    "<p class='sure'>" + esc(totals.A.plain_words) + "</p>" +
-    "<p>" + esc(totals.A.shop_time_plain_words) + "</p>" +
-    "<p class='sure'>" + esc(totals.B.plain_words) + "</p>" +
-    "<p>" + esc(totals.B.shop_time_plain_words) + "</p>" +
-    "<p>" + esc(totals.excluded_note) + "</p>";
+    "<p class='sure'>" + amberMoney(esc(totals.A.plain_words)) + "</p>" +
+    "<p>" + amberMoney(esc(totals.A.shop_time_plain_words)) + "</p>" +
+    "<p class='sure'>" + amberMoney(esc(totals.B.plain_words)) + "</p>" +
+    "<p>" + amberMoney(esc(totals.B.shop_time_plain_words)) + "</p>" +
+    "<p>" + amberMoney(esc(totals.excluded_note)) + "</p>";
 }
 
 /* ---------- listing factory ---------- */
@@ -707,6 +721,7 @@ function renderCompare(res) {
   const agree = res.rows.filter((r) =>
     r.grade13 !== "?" && r.gradeOpen !== "?" && r.grade13 === r.gradeOpen).length;
   const head = document.createElement("p");
+  head.className = "compare-head";
   head.innerHTML = "<strong>" + agree + " of " + res.rows.length +
     " second looks agree.</strong> " +
     '<span class="hint">Rules decide; agreement is information, not a verdict.</span>';
@@ -1431,7 +1446,11 @@ function renderBayCase() {
   }
   const v = c.vehicle;
   box.innerHTML =
-    '<div class="car-card"><div class="name">' + esc(v.category) + "</div><dl>" +
+    '<div class="car-card">' +
+    (bay.vinPhoto && bay.vinPhoto.data
+      ? '<img class="casephoto" alt="Case car photo" src="' + bay.vinPhoto.data + '">'
+      : "") +
+    '<div class="name">' + esc(v.category) + "</div><dl>" +
     "<dt>Year</dt><dd>" + esc(v.year) + "</dd>" +
     "<dt>Trim</dt><dd>" + esc(v.trim) + "</dd>" +
     "<dt>Engine</dt><dd>" + esc(v.engine) + "</dd>" +
@@ -1497,10 +1516,10 @@ function renderBayPlan() {
       (result === "pass" ? " doneok" : "") +
       (result === "fail" ? " donefail" : "");
     const status = result
-      ? '<span class="status ' + result + '">' + result.toUpperCase() + "</span>"
+      ? '<span class="status ' + result + '">' + (result === "pass" ? "✓ PASS" : result === "fail" ? "✕ FAIL" : result.toUpperCase()) + "</span>"
       : t.standing === "eliminated"
         ? '<span class="status out">RULED OUT</span>'
-        : '<span class="status">PENDING</span>';
+        : '<span class="status">○ PENDING</span>';
     const gate = t.final_gate ? ' <span class="gatebadge">final gate — still open</span>' : "";
     if (bay.editing === t.id) {
       card.innerHTML =
@@ -2424,9 +2443,12 @@ function renderSettings() {
   line.className = "screen-line";
   line.textContent = "Your profile, credentials, and demo switches. Everything here stays on this machine.";
   box.appendChild(line);
+  const card = document.createElement("div");
+  card.className = "homehead";
+  box.appendChild(card);
   const span = document.createElement("span");
   span.textContent = p.email + " · " + p.mode;
-  box.appendChild(span);
+  card.appendChild(span);
   const other = p.mode === "shop" ? "enthusiast" : "shop";
   const btn = document.createElement("button");
   btn.type = "button";
@@ -2438,7 +2460,7 @@ function renderSettings() {
     showView(Profile.routeFor(other));
     feed("Mode switched to " + other + " in settings", "profile — deliberate change, persisted locally");
   }));
-  box.appendChild(btn);
+  card.appendChild(btn);
   const reset = document.createElement("button");
   reset.type = "button";
   reset.className = "small";
@@ -2450,7 +2472,7 @@ function renderSettings() {
     localStorage.removeItem(Credentials.KEY);
     location.reload();
   });
-  box.appendChild(reset);
+  card.appendChild(reset);
   const off = document.createElement("label");
   const offBox = document.createElement("input");
   offBox.type = "checkbox";
@@ -2464,7 +2486,7 @@ function renderSettings() {
   });
   off.appendChild(offBox);
   off.appendChild(document.createTextNode(" Force offline demo"));
-  box.appendChild(off);
+  card.appendChild(off);
   const sun = document.createElement("label");
   const sunBox = document.createElement("input");
   sunBox.type = "checkbox";
@@ -2478,7 +2500,7 @@ function renderSettings() {
   });
   sun.appendChild(sunBox);
   sun.appendChild(document.createTextNode(" Sunlight mode — bold type, solid surfaces for glare"));
-  box.appendChild(sun);
+  card.appendChild(sun);
   const walk = document.createElement("button");
   walk.type = "button";
   walk.className = "small";
@@ -2488,7 +2510,7 @@ function renderSettings() {
     UX.showGuide(localStorage, "enthusiast");
     renderGuides();
   });
-  box.appendChild(walk);
+  card.appendChild(walk);
   renderCreds(box);
 }
 
@@ -2665,8 +2687,8 @@ function renderInvCars() {
       '<div class="cname">' + esc(car.label) + "</div>" +
       '<div class="ident">' + esc([car.identity.year, car.identity.make, car.identity.model].join(" ")) +
       " · trim " + esc(car.identity.trim) + " · " + esc(car.identity.category) + "</div>" +
-      '<div class="ident">' + mine.length + " part(s). " + esc(Inventory.plainTotals(t, "parts")) + "</div>" +
-      '<div class="ident">sources: ' + esc(car.source_tags.join(", ")) + "</div>";
+      '<div class="ident">' + mine.length + " part(s). " + amberMoney(esc(Inventory.plainTotals(t, "parts"))) + "</div>" +
+      '<details class="rowmore"><summary>Sources</summary><div>sources: ' + esc(car.source_tags.join(", ")) + "</div></details>";
     const rm = document.createElement("button");
     rm.type = "button";
     rm.className = "small";
@@ -2708,7 +2730,7 @@ function renderInvKnow() {
   }
   box.innerHTML = "<ul class='part-list'>" + notes.map((n) =>
     "<li><strong>Look for the " + esc(n.part) + "</strong><span>" + esc(n.reason) + "</span>" +
-    (n.value !== null ? "<span>about $" + n.value + "</span>" : "<span>value unknown</span>") +
+    (n.value !== null ? '<span>about <span class="money">$' + n.value + "</span></span>" : "<span>value unknown</span>") +
     '<span class="tag">' + esc(n.source) + "</span></li>"
   ).join("") + "</ul>";
 }
@@ -2750,12 +2772,19 @@ function renderInvParts() {
       li.insertAdjacentHTML("beforeend",
         "<strong>" + esc(part.label) + "</strong>" +
         '<span class="relbadge">' + esc(part.relation) + " " + esc(car.label) + "</span>" +
-        "<span>" + esc(part.condition) + "</span>" +
-        (part.note ? "<span>" + esc(part.note) + "</span>" : "") +
         (part.value !== null && part.valueSource
-          ? "<span>$" + part.value + ' <span class="sourced">(' + esc(part.valueSource) + ")</span></span>"
+          ? '<span><span class="money">$' + part.value + '</span> <span class="sourced">(' + esc(part.valueSource) + ")</span></span>"
           : '<span class="missing">value unknown</span>') +
         ' <button type="button" class="small" data-list="' + part.id + '">Draft listing</button>');
+      const more = document.createElement("details");
+      more.className = "rowmore";
+      const sum = document.createElement("summary");
+      sum.textContent = "Condition and note";
+      more.appendChild(sum);
+      const cond = document.createElement("div");
+      cond.textContent = part.condition + (part.note ? " — " + part.note : "");
+      more.appendChild(cond);
+      li.insertBefore(more, li.querySelector("[data-list]"));
       li.querySelector("[data-list]").addEventListener("click", guard(async () => {
         await invDraftListing(part.id);
       }));
@@ -2792,7 +2821,14 @@ function renderInvTotals() {
     box.innerHTML = '<p class="hint">Totals appear once parts exist.</p>';
     return;
   }
-  box.innerHTML = "<p><strong>" + esc(Inventory.plainTotals(Inventory.overallTotals(invState), "parts")) + "</strong></p>";
+  const sentence = Inventory.plainTotals(Inventory.overallTotals(invState), "parts");
+  const cut = sentence.indexOf(" across ");
+  if (cut < 0) {
+    box.innerHTML = "<p><strong>" + esc(sentence) + "</strong></p>";
+  } else {
+    box.innerHTML = '<div class="big-money">' + esc(sentence.slice(0, cut)) + "</div>" +
+      "<p><strong>" + esc(sentence.slice(cut + 1)) + "</strong></p>";
+  }
   if (invSeeded) {
     const line = document.createElement("p");
     line.appendChild(demoBadge());
