@@ -499,3 +499,13 @@ One attempt per failed leg, plus one Spark image-payload test. Results in `eval_
 
 Pooled live vs rules updated: 22/30 (WO16 5/8 plus follow-up Spark 11/15 plus follow-up Baseten yard 6/7; no part counted twice). All four legs CLOSED: no further retry follows from this order.
 <!-- EVAL-META-FOLLOWUP:END -->
+
+<!-- EVAL-SAM-PNG:START -->
+### SAM PNG resend: one segment call on yard frame 1 as PNG
+
+Step 0: faithful PNG rendered in-session (headless Chrome screenshot of web/demo/frame1.svg at native 1000x1000, 37497 bytes, sha256 e993bcd9bbe8ee4eb390b916ee81ceb507e3a2cb7226202c67e08765bc58a59b). No redraw, no substitution.
+
+The call: HTTP 200 in 7931 ms, request ID 11204ad8-1c5c-4b0d-bca2-517e1e7411ae, stream complete, but zero output deltas — verdict responded-empty. The path and PNG media are fully accepted (no 404, no 400); SAM returned no geometry for "driver mirror" on the line drawing.
+
+SAM is NOT proven live (no geometry), so no rewire order follows and nothing follows. Leg closed. VIN_LIVE stays False. Full record in `eval_sam_png_results.json`.
+<!-- EVAL-SAM-PNG:END -->

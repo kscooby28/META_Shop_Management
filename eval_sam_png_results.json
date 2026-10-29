@@ -1,0 +1,65 @@
+{
+  "order": "SAM PNG resend: one segment call on yard frame 1 as PNG",
+  "baseline_followup": {
+    "path": "POST /v1/responses, model sam-3.1",
+    "svg_rejection": "HTTP 400 invalid_request_error: unsupported media type image/svg+xml",
+    "svg_request_id": "74ff9f0d-656a-4b63-97f6-1469943a201e"
+  },
+  "api_base": "https://api.meta.ai/v1",
+  "sam_model": "sam-3.1",
+  "key_cause": "",
+  "png": {
+    "png_ok": true,
+    "cause": "",
+    "svg_sha256": "9e443f58f84c740c9b9cef97612ca0338070dba886ac7a018619abe01c439094",
+    "png": {
+      "method": "headless-browser screenshot at native size",
+      "browser": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+      "browser_version": "",
+      "mime": "image/png",
+      "bytes": 37497,
+      "sha256": "e993bcd9bbe8ee4eb390b916ee81ceb507e3a2cb7226202c67e08765bc58a59b",
+      "dims": "1000x1000",
+      "data_url_chars": 50018
+    },
+    "calls_blocked": false,
+    "latency_ms": 937
+  },
+  "call": {
+    "live_ok": true,
+    "call_sent": true,
+    "latency_ms": 7931,
+    "cause": "",
+    "frame": "demo-frame-1",
+    "phrase": "driver mirror",
+    "image_mime": "image/png",
+    "request_id": "11204ad8-1c5c-4b0d-bca2-517e1e7411ae",
+    "http_status": 200,
+    "stream_complete": true,
+    "event_types": [
+      "response.completed",
+      "response.content_part.added",
+      "response.content_part.done",
+      "response.created",
+      "response.in_progress",
+      "response.output_item.added",
+      "response.output_item.done",
+      "response.output_text.done"
+    ],
+    "delta_count": 0,
+    "output_len": 0,
+    "output_head": "",
+    "output_truncated": false,
+    "demo_sightings_for_phrase": 1,
+    "verdict": "responded-empty",
+    "parse_note": "raw output_text recorded, not parsed to boxes: no parser in stdlib"
+  },
+  "sam_proven_live": false,
+  "leg": "closed: responded-empty",
+  "rewire_follows": false,
+  "vin_live": false,
+  "vin_reason": "segmentation only, not VIN plates; no demo VIN plate images exist, so 0 live VIN calls sent",
+  "live_vin_calls_sent": 0,
+  "live_calls_sent_total": 1,
+  "model_list_calls_sent": 0
+}
