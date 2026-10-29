@@ -104,7 +104,7 @@ class AccentDisciplineTest(unittest.TestCase):
                  ".strip figure.sel img", ".progress > div", ".msg.user",
                  ".gatebadge", ".moved-flash", ".moved-note", ".mode-tag",
                  ".confirm-frame", ".navbtn.active", ".pill.demo",
-                 ".door:hover")
+                 ".door:hover", ".grade-B", ".totalcard.total-b")
 
     def test_amber_only_money_and_primary(self):
         plain = css_no_comments()
@@ -176,21 +176,26 @@ class SunlightSolidTest(unittest.TestCase):
 
 
 class HeroTest(unittest.TestCase):
-    def test_home_photo_hero_from_own_frames(self):
+    # WO20 supersedes the strip hero with the landing scene: the scene is
+    # illustration (SVG, never a photo), the demo frames leave the home
+    # view, and the entrances carry the doors below the scene.
+    def test_home_landing_scene(self):
         html = read("index.html")
         home = html[html.index('id="view-home"'):html.index('id="view-yard"')]
-        hero = home[home.index('<div class="hero"'):home.index("</div>", home.index('<div class="hero"'))]
-        for frame in ("demo/frame1.svg", "demo/frame2.svg", "demo/frame3.svg",
-                      "demo/frame4.svg"):
-            self.assertIn(frame, hero, frame)
-        self.assertNotIn("http", hero)
-        self.assertEqual(html.count("demo/frame"), 4)
-        self.assertLess(home.index("screen-line"), home.index('<div class="hero"'))
-        self.assertLess(home.index('<div class="hero"'), home.index('class="doors"'))
+        scene = home[home.index('<div class="scene"'):home.index('id="btnHomePhoto"')]
+        self.assertIn("<svg", scene)
+        self.assertIn("Illustrated shop street", scene)
+        self.assertNotIn("<img", scene)
+        self.assertNotIn("demo/frame", home)
+        self.assertNotIn("http", scene)
+        self.assertLess(home.index("screen-line"), home.index('<div class="scene"'))
+        self.assertLess(home.index('<div class="scene"'),
+                        home.index('class="tilegrid entrances"'))
 
-    def test_hero_css_exists(self):
-        self.assertIn(".hero img", css_no_comments())
-        self.assertIn("object-fit: cover", rule_body(".hero img"))
+    def test_scene_css_exists(self):
+        self.assertIn("display: block", rule_body(".backdrop"))
+        self.assertIn("var(--radius-card)", rule_body(".backdrop"))
+        self.assertIn("6.5rem", rule_body(".doorart"))
 
 
 class MoneyTest(unittest.TestCase):
@@ -284,8 +289,8 @@ class CompareHeadTest(unittest.TestCase):
 class SettingsCardTest(unittest.TestCase):
     def test_profile_controls_grouped_in_card(self):
         app = read("app.js")
-        self.assertIn('card.className = "homehead";', app)
-        self.assertIn("card.appendChild(walk);", app)
+        self.assertIn('card.className = "gcard homehead";', app)
+        self.assertIn("demoCard.appendChild(walk);", app)
         self.assertIn("flex-basis: 100%",
                       rule_body("#settingsBody .homehead"))
 
@@ -354,13 +359,18 @@ class LeftAloneTest(unittest.TestCase):
     """Audit findings marked already-modern: prove zero regression."""
 
     def test_doors_structure_kept(self):
+        # WO20: doors are graphical entrances (art on top, labels below);
+        # ids, routing, words, and the ink hover all stand.
         door = rule_body(".door")
         for_keep = ("display: flex;", "flex-direction: column;",
-                    "min-height: 7rem;", "2px solid var(--line);")
+                    "min-height: 12rem;", "2px solid var(--line);",
+                    "overflow: hidden;")
         for text in for_keep:
             self.assertIn(text, door, text)
         self.assertIn("border-color: var(--ink);",
                       rule_body(".door:hover"))
+        self.assertIn("var(--text-title)", rule_body(".door-name"))
+        self.assertIn("var(--text-body)", rule_body(".door-why"))
 
     def test_grade_pills_kept(self):
         self.assertIn(".grade-A { background: var(--grade-a); }",

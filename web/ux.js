@@ -128,6 +128,41 @@ const UX = (() => {
       message: "No comps back this one. Enter your own number or leave it unknown.",
       action: "Enter a value",
     },
+    totals: {
+      title: "No totals yet",
+      message: "Grade the harvest and the plain-money totals land here.",
+      action: "Run whole flow",
+    },
+    baytests: {
+      title: "No tests yet",
+      message: "Add the first by hand below and the ranking takes it from there.",
+      action: "Add a test",
+    },
+    baykb: {
+      title: "No notes found",
+      message: "Describe the case first — matches land here when there is something to match.",
+      action: "Go to case form",
+    },
+    baytrail: {
+      title: "No results yet",
+      message: "Results you record appear here with the ranking change each one caused.",
+      action: "Back to the plan",
+    },
+    invnotes: {
+      title: "No notes for this car",
+      message: "Add what you know below — the software will not invent any.",
+      action: "Add a note",
+    },
+    compare: {
+      title: "No case to compare yet",
+      message: "Run the Yard flow first — the same case then runs through both engines here.",
+      action: "Run whole flow",
+    },
+    setup: {
+      title: "No profile yet",
+      message: "Finish first-run setup to unlock settings.",
+      action: "Open setup",
+    },
   };
 
   function emptyState(key) {

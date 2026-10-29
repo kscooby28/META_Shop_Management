@@ -98,9 +98,11 @@ class CameraTest(unittest.TestCase):
     def test_camera_buttons_say_photo(self):
         html = read("web/index.html")
         for _, _, btn in self.PAIRS:
-            tag = re.search(r'<button[^>]*id="%s"[^>]*>([^<]*)</button>' % btn, html)
-            self.assertIsNotNone(tag, btn)
-            self.assertIn("photo", tag.group(1).lower(), btn)
+            body = re.search(r'<button[^>]*id="%s"[^>]*>(.*?)</button>' % btn,
+                             html, re.S)
+            self.assertIsNotNone(body, btn)
+            text = re.sub(r"<[^>]+>", "", body.group(1))
+            self.assertIn("photo", text.lower(), btn)
 
     def test_every_camera_wired_to_its_fallback(self):
         app = read("web/app.js")

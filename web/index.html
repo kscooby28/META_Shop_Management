@@ -12,7 +12,7 @@
   <span class="sub">The lot: point at a parts car, learn which parts are worth pulling. Built for a Gulf Coast shop.</span>
   <span class="spacer"></span>
   <span id="modePill" class="pill">not started</span>
-  <button id="navHome" type="button" class="navbtn active">Home</button>
+  <button id="navHome" type="button" class="navbtn active"><span aria-hidden="true">⌂</span> Home</button>
   <button id="navGear" type="button" class="navbtn iconbtn" aria-label="Settings">⚙</button>
   <button id="navSun" type="button" class="navbtn iconbtn" aria-label="Sunlight mode">☀</button>
   <button id="panelToggle" type="button">Shop Copilot</button>
@@ -29,46 +29,115 @@
   </details>
   <div id="view-home" hidden>
   <p class="screen-line">Three doors: fix a car, strip a parts car, or look after your own. Pick one to start.</p>
-  <div class="hero" aria-label="This parts car, from the walk-around">
-    <img src="demo/frame1.svg" alt="Demo walk-around frame 1">
-    <img src="demo/frame2.svg" alt="Demo walk-around frame 2">
-    <img src="demo/frame3.svg" alt="Demo walk-around frame 3">
-    <img src="demo/frame4.svg" alt="Demo walk-around frame 4">
+  <div class="scene" id="homeScene">
+    <svg class="sceneart backdrop" viewBox="0 0 360 190" role="img" aria-label="Illustrated shop street: parked cars, the shop, a home garage, and the yard gate">
+      <rect x="0" y="0" width="360" height="190" class="f-bg"/>
+      <rect x="0" y="150" width="360" height="40" class="f-surface"/>
+      <line x1="0" y1="150" x2="360" y2="150" class="s-ink" stroke-width="2"/>
+      <g aria-hidden="true">
+        <rect x="18" y="108" width="86" height="30" rx="8" class="f-muted"/>
+        <polygon points="36,108 86,108 76,90 46,90" class="f-line"/>
+        <circle cx="36" cy="140" r="10" class="f-line"/>
+        <circle cx="86" cy="140" r="10" class="f-line"/>
+        <rect x="130" y="108" width="86" height="30" rx="8" class="f-paper s-line" stroke-width="2"/>
+        <polygon points="148,108 198,108 188,90 158,90" class="f-line"/>
+        <circle cx="148" cy="140" r="10" class="f-line"/>
+        <circle cx="198" cy="140" r="10" class="f-line"/>
+        <rect x="242" y="108" width="86" height="30" rx="8" class="f-muted"/>
+        <polygon points="260,108 310,108 300,90 270,90" class="f-line"/>
+        <circle cx="260" cy="140" r="10" class="f-line"/>
+        <circle cx="310" cy="140" r="10" class="f-line"/>
+      </g>
+      <g aria-hidden="true">
+        <rect x="18" y="18" width="110" height="64" class="f-surface s-line" stroke-width="2"/>
+        <rect x="18" y="18" width="110" height="20" class="f-ink"/>
+        <text x="73" y="33" text-anchor="middle" class="f-bg stext">Shop</text>
+        <rect x="52" y="48" width="42" height="34" class="f-paper s-line" stroke-width="2"/>
+        <rect x="140" y="30" width="80" height="52" class="f-surface s-line" stroke-width="2"/>
+        <rect x="148" y="38" width="64" height="44" class="f-paper s-line" stroke-width="2"/>
+        <line x1="148" y1="52" x2="212" y2="52" class="s-line" stroke-width="2"/>
+        <line x1="148" y1="66" x2="212" y2="66" class="s-line" stroke-width="2"/>
+        <rect x="232" y="30" width="110" height="52" class="f-bg s-line" stroke-width="2"/>
+        <line x1="244" y1="30" x2="244" y2="82" class="s-muted" stroke-width="3"/>
+        <line x1="262" y1="30" x2="262" y2="82" class="s-muted" stroke-width="3"/>
+        <line x1="280" y1="30" x2="280" y2="82" class="s-muted" stroke-width="3"/>
+        <line x1="298" y1="30" x2="298" y2="82" class="s-muted" stroke-width="3"/>
+        <line x1="316" y1="30" x2="316" y2="82" class="s-muted" stroke-width="3"/>
+        <line x1="334" y1="30" x2="334" y2="82" class="s-muted" stroke-width="3"/>
+      </g>
+    </svg>
+    <div class="tilegrid entrances">
+      <button id="door-bay" type="button" class="door entrance">
+        <svg class="sceneart doorart" viewBox="0 0 120 64" aria-hidden="true">
+          <rect x="0" y="0" width="120" height="64" class="f-surface"/>
+          <rect x="14" y="10" width="92" height="16" class="f-ink"/>
+          <text x="60" y="22" text-anchor="middle" class="f-bg stext">Shop</text>
+          <rect x="38" y="28" width="44" height="30" class="f-paper s-line" stroke-width="2"/>
+          <line x1="60" y1="28" x2="60" y2="58" class="s-line" stroke-width="2"/>
+        </svg>
+        <span class="tbody"><span class="door-name">Bay — Fix it</span>
+        <span class="door-why">Turn a symptom into a ranked test plan, then record pass or fail.</span></span>
+      </button>
+      <button id="door-yard" type="button" class="door entrance">
+        <svg class="sceneart doorart" viewBox="0 0 120 64" aria-hidden="true">
+          <rect x="0" y="0" width="120" height="64" class="f-surface"/>
+          <rect x="8" y="8" width="104" height="48" class="f-bg s-line" stroke-width="2"/>
+          <line x1="24" y1="8" x2="24" y2="56" class="s-muted" stroke-width="3"/>
+          <line x1="44" y1="8" x2="44" y2="56" class="s-muted" stroke-width="3"/>
+          <line x1="64" y1="8" x2="64" y2="56" class="s-muted" stroke-width="3"/>
+          <line x1="84" y1="8" x2="84" y2="56" class="s-muted" stroke-width="3"/>
+          <line x1="104" y1="8" x2="104" y2="56" class="s-muted" stroke-width="3"/>
+        </svg>
+        <span class="tbody"><span class="door-name">Yard — Strip it</span>
+        <span class="door-why">Photograph a parts car, learn which parts are worth pulling and what they sell for.</span></span>
+      </button>
+      <button id="door-driveway" type="button" class="door entrance">
+        <svg class="sceneart doorart" viewBox="0 0 120 64" aria-hidden="true">
+          <rect x="0" y="0" width="120" height="64" class="f-surface"/>
+          <rect x="22" y="8" width="76" height="48" class="f-paper s-line" stroke-width="2"/>
+          <line x1="22" y1="24" x2="98" y2="24" class="s-line" stroke-width="2"/>
+          <line x1="22" y1="40" x2="98" y2="40" class="s-line" stroke-width="2"/>
+          <circle cx="60" cy="48" r="3" class="f-line"/>
+        </svg>
+        <span class="tbody"><span class="door-name">Driveway — Your own car</span>
+        <span class="door-why">Register your cars, attach parts, see what you have and what it is worth.</span></span>
+      </button>
+    </div>
   </div>
   <div class="row">
     <input id="homeHeroCamera" type="file" accept="image/*" capture="environment" hidden>
     <button id="btnHomePhoto" type="button" class="photo herophoto">Take a photo</button>
   </div>
   <p class="camguide">Get the whole car in the frame.<span class="mode-tag">Whole car</span></p>
-  <div class="doors">
-    <button id="door-bay" type="button" class="door">
-      <span class="door-name">Bay — Fix it</span>
-      <span class="door-why">Turn a symptom into a ranked test plan, then record pass or fail.</span>
-    </button>
-    <button id="door-yard" type="button" class="door">
-      <span class="door-name">Yard — Strip it</span>
-      <span class="door-why">Photograph a parts car, learn which parts are worth pulling and what they sell for.</span>
-    </button>
-    <button id="door-driveway" type="button" class="door">
-      <span class="door-name">Driveway — Your own car</span>
-      <span class="door-why">Register your cars, attach parts, see what you have and what it is worth.</span>
-    </button>
-  </div>
   </div>
 
   <div id="view-yard">
-  <div class="backbar"><button id="backYard" type="button" class="small">← Home</button></div>
+  <div class="backbar"><button id="backYard" type="button" class="small"><span aria-hidden="true">◧</span> Yard · ← Home</button></div>
   <p class="screen-line">The lot: photograph a parts car, learn which parts are worth pulling, draft the listing.</p>
 
   <section id="sec-intake">
     <h2><span class="step">1</span>Intake — photos in</h2>
     <p class="hint">Take walk-around photos or upload frames. The car is identified only as far as the photos honestly support.</p>
-    <div class="row">
+    <div class="tilegrid">
       <input id="fileCamera" type="file" accept="image/*" capture="environment" hidden>
-      <button id="btnPhoto" type="button" class="photo">Take a photo</button>
-      <span class="hint">or upload:</span>
-      <input id="fileInput" type="file" accept="image/*" multiple>
-      <button id="btnDemo" type="button">Load demo car</button>
+      <button id="btnPhoto" type="button" class="photo gtile">
+        <span class="ticon" aria-hidden="true">◉</span>
+        <span class="tbody"><span class="tword">Take a photo</span>
+        <span class="tfield">Camera first</span></span>
+      </button>
+      <input id="fileInput" type="file" accept="image/*" multiple hidden>
+      <label class="gtile" for="fileInput">
+        <span class="ticon" aria-hidden="true">⇪</span>
+        <span class="tbody"><span class="tword">Upload frames</span>
+        <span class="tfield">From this device</span></span>
+      </label>
+      <button id="btnDemo" type="button" class="gtile">
+        <img class="timg" src="demo/frame1.svg" alt="Demo car frame">
+        <span class="tbody"><span class="tword">Load demo car</span>
+        <span class="tfield">Labeled demo frames</span></span>
+      </button>
+    </div>
+    <div class="row" style="margin-top:0.6rem">
       <button id="btnIdentify" type="button">Identify car</button>
       <button id="btnRunAll" type="button" class="primary">Run whole flow</button>
     </div>
@@ -115,7 +184,7 @@
       <select id="listingPart"></select>
       <button id="btnDraft" type="button">Draft listing</button>
     </div>
-    <div id="listingCard" style="display:none">
+    <div id="listingCard" class="gatecard" style="display:none">
       <div id="studioBox" class="cutout" style="display:none"></div>
       <div class="cutout">
         <svg id="cutoutSvg" viewBox="0 0 100 100" role="img" aria-label="Part cutout preview"></svg>
@@ -148,17 +217,26 @@
   </div>
 
   <div id="view-bay" hidden>
-  <div class="backbar"><button id="backBay" type="button" class="small">← Home</button></div>
+  <div class="backbar"><button id="backBay" type="button" class="small"><span aria-hidden="true">⚒</span> Bay · ← Home</button></div>
   <p class="screen-line">The repair bench: describe the symptom, work the test plan, record pass or fail.</p>
   <div id="bayHome" class="homehead"></div>
   <div id="bayGuide"></div>
   <section id="sec-bcase">
     <h2><span class="step">1</span>Bay case — symptom in</h2>
     <p class="hint">Load a demo case, or describe the car and the symptom in your own words. A VIN photo fills the blanks; manual entry always works.</p>
-    <div class="row">
+    <div class="tilegrid">
       <input id="bayVinCamera" type="file" accept="image/*" capture="environment" hidden>
-      <button id="btnBayVinPhoto" type="button" class="photo">Take a VIN photo</button>
-      <span class="hint">or upload below</span>
+      <button id="btnBayVinPhoto" type="button" class="photo gtile">
+        <span class="ticon" aria-hidden="true">◉</span>
+        <span class="tbody"><span class="tword">Take a VIN photo</span>
+        <span class="tfield">Camera first</span></span>
+      </button>
+      <input id="bayVin" type="file" accept="image/*" hidden>
+      <label class="gtile" for="bayVin">
+        <span class="ticon" aria-hidden="true">⇪</span>
+        <span class="tbody"><span class="tword">Upload VIN photo</span>
+        <span class="tfield">From this device</span></span>
+      </label>
     </div>
     <div class="row">
       <button type="button" data-baycase="case1">Demo: silent module</button>
@@ -166,7 +244,6 @@
       <button type="button" data-baycase="case3">Demo: cylinder 4</button>
     </div>
     <div class="bayform">
-      <label>VIN photo (optional)<input id="bayVin" type="file" accept="image/*"></label>
       <label>Year<input id="bayYear" type="text" inputmode="numeric" placeholder="e.g. 2009"></label>
       <label>Make<input id="bayMake" type="text" placeholder="e.g. BMW"></label>
       <label>Model<input id="bayModel" type="text" placeholder="e.g. 335i"></label>
@@ -266,7 +343,7 @@
   </div>
 
   <div id="view-inventory" hidden>
-  <div class="backbar"><button id="backInv" type="button" class="small">← Home</button></div>
+  <div class="backbar"><button id="backInv" type="button" class="small"><span aria-hidden="true">⌂</span> Driveway · ← Home</button></div>
   <p class="screen-line">Driveway — your cars and parts: register cars, attach parts, see what everything is worth.</p>
   <div id="invHome" class="homehead"></div>
   <div id="invGuide"></div>
@@ -280,17 +357,37 @@
     <div id="invCars" style="margin-top:0.7rem"></div>
     <details>
       <summary>Register a car</summary>
-      <div class="row">
+      <div class="tilegrid">
         <input id="invCarPhotoCamera" type="file" accept="image/*" capture="environment" hidden>
-        <button id="btnInvCarPhotoCam" type="button" class="photo">Take a photo</button>
-        <label>Picture<input id="invCarPhoto" type="file" accept="image/*"></label>
-        <button id="btnInvCarPhoto" type="button">Identify picture</button>
+        <button id="btnInvCarPhotoCam" type="button" class="photo gtile">
+          <span class="ticon" aria-hidden="true">◉</span>
+          <span class="tbody"><span class="tword">Take a photo</span>
+          <span class="tfield">Camera first</span></span>
+        </button>
+        <input id="invCarPhoto" type="file" accept="image/*" hidden>
+        <label class="gtile" for="invCarPhoto">
+          <span class="ticon" aria-hidden="true">⇪</span>
+          <span class="tbody"><span class="tword">Upload picture</span>
+          <span class="tfield">From this device</span></span>
+        </label>
         <input id="invCarVinCamera" type="file" accept="image/*" capture="environment" hidden>
-        <button id="btnInvCarVinCam" type="button" class="photo">Take a VIN photo</button>
-        <label>VIN photo<input id="invCarVin" type="file" accept="image/*"></label>
+        <button id="btnInvCarVinCam" type="button" class="photo gtile">
+          <span class="ticon" aria-hidden="true">◉</span>
+          <span class="tbody"><span class="tword">Take a VIN photo</span>
+          <span class="tfield">Camera first</span></span>
+        </button>
+        <input id="invCarVin" type="file" accept="image/*" hidden>
+        <label class="gtile" for="invCarVin">
+          <span class="ticon" aria-hidden="true">⇪</span>
+          <span class="tbody"><span class="tword">Upload VIN photo</span>
+          <span class="tfield">From this device</span></span>
+        </label>
+      </div>
+      <div class="row" style="margin-top:0.6rem">
+        <button id="btnInvCarPhoto" type="button">Identify picture</button>
         <button id="btnInvCarVin" type="button">Read VIN</button>
       </div>
-      <p class="hint">Camera first; the file boxes are the upload fallback.</p>
+      <p class="hint">Camera first; upload tiles open the file picker.</p>
       <div id="invVinRow" class="row" style="display:none">
         <img id="invVinPlate" alt="VIN plate preview">
       </div>
@@ -337,13 +434,24 @@
         <select id="invPartCar"></select>
         <select id="invPartRel"><option value="came from">came from this car</option><option value="fits">fits this car</option></select>
       </div>
-      <div class="row">
+      <div class="tilegrid">
         <input id="invPartPhotoCamera" type="file" accept="image/*" capture="environment" hidden>
-        <button id="btnInvPartPhotoCam" type="button" class="photo">Take a photo</button>
-        <label>Part picture<input id="invPartPhoto" type="file" accept="image/*"></label>
+        <button id="btnInvPartPhotoCam" type="button" class="photo gtile">
+          <span class="ticon" aria-hidden="true">◉</span>
+          <span class="tbody"><span class="tword">Take a photo</span>
+          <span class="tfield">Camera first</span></span>
+        </button>
+        <input id="invPartPhoto" type="file" accept="image/*" hidden>
+        <label class="gtile" for="invPartPhoto">
+          <span class="ticon" aria-hidden="true">⇪</span>
+          <span class="tbody"><span class="tword">Upload part picture</span>
+          <span class="tfield">From this device</span></span>
+        </label>
+      </div>
+      <div class="row" style="margin-top:0.6rem">
         <button id="btnInvPartPhoto" type="button">Describe picture</button>
       </div>
-      <p class="hint">Camera first; the file box is the upload fallback.</p>
+      <p class="hint">Camera first; the upload tile opens the file picker.</p>
       <div class="bayform">
         <label>Part name<input id="invPartLabel" type="text" placeholder="e.g. driver headlight"></label>
         <label>Condition, honestly<input id="invPartCond" type="text" placeholder="e.g. used, lens clear (or unknown)"></label>
@@ -365,9 +473,9 @@
   </div>
 
   <div id="view-compare" hidden>
-  <div class="backbar"><button id="backCompare" type="button" class="small">← Yard results</button></div>
+  <div class="backbar"><button id="backCompare" type="button" class="small"><span aria-hidden="true">⇄</span> Compare · ← Yard results</button></div>
   <p class="screen-line">Two engines grade the same case side by side. Rules decide; this never overrules.</p>
-  <section id="sec-compare">
+  <section id="sec-compare" class="neutralpanel">
     <h2>Compare — two engines, one case</h2>
     <p class="hint">Where the open model runs: after verdicts, as a second look beside the rule grade. Left column is Muse Spark 1.3 on the demo leg (Meta key rotation pending, no live call). Right column is Muse Spark Open, the open-weight model, running through Baseten — live when a key is present, demo sample otherwise. Rules decide; this view never overrules.</p>
     <div class="row">
@@ -383,9 +491,17 @@
     <h2>First run: who are you?</h2>
     <p>This is asked once and never again. Your answer stays on this machine with your profile. Shops get the repair bench; enthusiasts get parts cars and inventory. You can switch later in Settings.</p>
     <label>Your email<br><input id="setupEmail" type="text" placeholder="you@example.com" style="width:100%"></label>
-    <div class="row" style="margin-top:0.8rem">
-      <button id="btnSetupShop" type="button">I run a shop</button>
-      <button id="btnSetupFan" type="button" class="primary">I'm an enthusiast</button>
+    <div class="tilegrid" style="margin-top:0.8rem">
+      <button id="btnSetupShop" type="button" class="gtile">
+        <span class="ticon" aria-hidden="true">⚒</span>
+        <span class="tbody"><span class="tword">I run a shop</span>
+        <span class="tfield">Repair bench first</span></span>
+      </button>
+      <button id="btnSetupFan" type="button" class="primary gtile">
+        <span class="ticon" aria-hidden="true">⌂</span>
+        <span class="tbody"><span class="tword">I'm an enthusiast</span>
+        <span class="tfield">Parts cars first</span></span>
+      </button>
     </div>
     <p class="hint">Demo profile: stored in this browser only, never sent anywhere.</p>
   </div>
@@ -401,8 +517,16 @@
     <div class="confirm-fail" id="confirmFail" hidden></div>
     <div class="confirm-done" id="confirmDone" hidden></div>
     <div class="confirm-actions" id="confirmActions">
-      <button id="btnConfirmRetake" type="button">Retake</button>
-      <button id="btnConfirmUse" type="button" class="primary">Use photo</button>
+      <button id="btnConfirmRetake" type="button" class="gtile">
+        <img class="timg" alt="">
+        <span class="tbody"><span class="tword">Retake</span>
+        <span class="tfield">Shoot it again</span></span>
+      </button>
+      <button id="btnConfirmUse" type="button" class="primary gtile">
+        <span class="ticon" aria-hidden="true">✓</span>
+        <span class="tbody"><span class="tword">Use photo</span>
+        <span class="tfield">Drop it into the case</span></span>
+      </button>
     </div>
     <div class="confirm-actions" id="confirmWorkActions" hidden>
       <button id="btnConfirmCancel" type="button">Cancel</button>
@@ -419,9 +543,9 @@
   <div id="feed" aria-live="polite"></div>
   <div id="thread"></div>
   <div id="chips">
-    <button type="button" data-chip="Identify this car">Identify this car</button>
-    <button type="button" data-chip="Why is this part a B?">Why is this part a B?</button>
-    <button type="button" data-chip="Draft the listing">Draft the listing</button>
+    <button type="button" class="gtile" data-chip="Identify this car"><span class="ticon" aria-hidden="true">◉</span><span class="tbody"><span class="tword">Identify this car</span></span></button>
+    <button type="button" class="gtile" data-chip="Why is this part a B?"><span class="ticon" aria-hidden="true">?</span><span class="tbody"><span class="tword">Why is this part a B?</span></span></button>
+    <button type="button" class="gtile" data-chip="Draft the listing"><span class="ticon" aria-hidden="true">✎</span><span class="tbody"><span class="tword">Draft the listing</span></span></button>
   </div>
   <form id="chatForm">
     <input id="chatInput" type="text" placeholder="Ask about this case…" autocomplete="off">

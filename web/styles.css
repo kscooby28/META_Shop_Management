@@ -14,11 +14,11 @@
   --accent-dim: #c9852a;
   --accent-ink: #1c1408;
   --grade-a: #3fa46f;
-  --grade-b: #d29a3a;
+  --grade-b: #9aa05c;
   --grade-c: #d4695e;
   --chip: #2e2820;
   --tint-a: rgba(63, 164, 111, 0.25);
-  --tint-b: rgba(210, 154, 58, 0.25);
+  --tint-b: rgba(154, 160, 92, 0.25);
   --tint-c: rgba(212, 105, 94, 0.22);
   --scrim: rgba(0, 0, 0, 0.62);
   --shadow: rgba(0, 0, 0, 0.45);
@@ -136,37 +136,33 @@ body {
 }
 .row { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
 
-/* Three doors home */
-.doors { display: grid; grid-template-columns: 1fr; gap: 0.9rem; }
+/* Landing scene (WO20 item 2): illustrated shop street plus three
+ * graphical entrances. Entrances are scene elements, never primary. */
+.scene { margin: 0 0 1rem; }
+.backdrop {
+  width: 100%; height: auto; display: block;
+  border: 1px solid var(--line); border-radius: var(--radius-card);
+  background: var(--paper); margin-bottom: 0.7rem;
+}
+.entrances { margin-top: 0.7rem; }
 .door {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  align-items: flex-start;
   text-align: left;
-  padding: 1.2rem 1.3rem;
-  min-height: 7rem;
+  padding: 0;
+  min-height: 12rem;
   background: var(--surface);
   border: 2px solid var(--line);
   border-radius: var(--radius-card);
   box-shadow: inset 0 1px 0 var(--line);
+  overflow: hidden;
 }
 .door:hover { border-color: var(--ink); background: var(--surface); }
+.doorart { width: 100%; height: 6.5rem; display: block; flex: none; }
+.door .tbody { padding: 0.7rem 0.9rem 0.9rem; display: flex; flex-direction: column; gap: 0.25rem; }
 .door-name { font-size: var(--text-title); font-weight: 800; }
 .door-why { font-size: var(--text-body); font-weight: 400; color: var(--muted); }
-
-/* Home photo hero: the app's own demo frames, doors below */
-.hero { display: flex; gap: 0.6rem; margin: 0 0 1rem; }
-.hero img {
-  flex: 1;
-  min-width: 0;
-  height: 110px;
-  object-fit: cover;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--paper);
-  display: block;
-}
+.entrance { cursor: pointer; }
 
 button {
   font: inherit;
@@ -181,8 +177,6 @@ button {
   cursor: pointer;
 }
 button:hover { background: var(--chip); }
-button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-button.primary:hover { background: var(--accent-dim); }
 button.photo {
   min-height: 56px;
   font-size: var(--text-title);
@@ -270,6 +264,14 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
 .thumbs img { width: 150px; height: 150px; object-fit: cover; border: 1px solid var(--line); border-radius: var(--radius-small); background: var(--paper); }
 .thumbs figcaption { font-size: var(--text-meta); color: var(--muted); word-break: break-all; }
 
+/* ---- Tour journey line (WO20 item 9): display only. Dots are not
+ * buttons — the tour advances one beat per Next tap, nothing else. */
+.jline { display: flex; gap: 0.35rem; align-items: center; flex-basis: 100%; }
+.jdot { width: 0.7rem; height: 0.7rem; border-radius: var(--radius-round); border: 1px solid var(--line); background: var(--paper); }
+.jdot.done { background: var(--muted); }
+.jdot.now { background: var(--ink); border-color: var(--ink); }
+.jdest { font-size: var(--text-meta); color: var(--muted); margin-left: 0.3rem; }
+
 .car-card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-small); box-shadow: inset 0 1px 0 var(--line); padding: 0.7rem 0.9rem; }
 .car-card .name { font-size: var(--text-title); font-weight: 700; }
 .car-card dl { display: grid; grid-template-columns: auto 1fr; gap: 0.15rem 1rem; margin: 0.4rem 0 0; font-size: var(--text-body); }
@@ -317,6 +319,11 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
 .grade-B { background: var(--grade-b); }
 .grade-C { background: var(--grade-c); }
 .verdict .pname { font-weight: 700; font-size: var(--text-title); }
+.verdict .vword { font-weight: 800; font-size: var(--text-body); }
+.verdict .vprice { font-weight: 800; font-size: var(--text-body); }
+.verdict .vpull { font-size: var(--text-body); color: var(--muted); }
+.override-row .gradecard { flex: 1 1 150px; }
+.gatecard { border: 2px solid var(--ink); border-radius: var(--radius-card); box-shadow: inset 0 1px 0 var(--line); padding: 1rem 1.1rem; background: var(--surface); }
 .verdict .rule { font-size: var(--text-body); color: var(--muted); }
 .verdict table { border-collapse: collapse; font-size: var(--text-body); margin: 0.5rem 0; width: 100%; }
 .verdict th, .verdict td { text-align: left; padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -496,6 +503,13 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
   flex: none;
 }
 .testcard .tname { font-weight: 700; font-size: var(--text-title); }
+.testcard .tmeta { font-size: var(--text-body); color: var(--muted); }
+.verdictbtn { flex: 1; }
+.verdictbtn[data-res="pass"] { border-color: var(--grade-a); }
+.verdictbtn[data-res="pass"] .ticon { color: var(--grade-a); border-color: var(--grade-a); }
+.verdictbtn[data-res="fail"] { border-color: var(--grade-c); }
+.verdictbtn[data-res="fail"] .ticon { color: var(--grade-c); border-color: var(--grade-c); }
+.movers { margin-top: 0.4rem; }
 .testcard table { border-collapse: collapse; font-size: var(--text-body); margin: 0.5rem 0; width: 100%; }
 .testcard th, .testcard td { text-align: left; padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
 .testcard th { color: var(--muted); font-weight: 600; width: 34%; }
@@ -526,9 +540,17 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
   color: var(--ink);
 }
 .compare-head { font-size: var(--text-title); }
+.pccard { border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: inset 0 1px 0 var(--line); padding: 0.8rem 0.9rem; margin-bottom: 0.7rem; background: var(--surface); }
+.pccard .pchead { display: flex; gap: 0.7rem; align-items: center; margin-bottom: 0.5rem; font-size: var(--text-title); font-weight: 700; }
+.engines { display: grid; gap: 0.6rem; grid-template-columns: 1fr 1fr; }
+.enginecol { border: 1px solid var(--line); border-radius: var(--radius-small); padding: 0.6rem 0.7rem; background: var(--paper); }
+.enginelabel { font-size: var(--text-body); font-weight: 800; margin-bottom: 0.4rem; }
+@media (max-width: 700px) { .wideonly { display: none; } }
+@media (min-width: 701px) { .narrowonly { display: none; } }
 
 .decline { border: 2px solid var(--ink); border-radius: var(--radius-card); box-shadow: inset 0 1px 0 var(--line); padding: 0.9rem 1rem; background: var(--paper); }
 .decline .dtitle { font-size: var(--text-title); font-weight: 800; margin-bottom: 0.3rem; }
+.decline .dmark { margin-right: 0.4rem; color: var(--grade-c); }
 .decline .next { margin-top: 0.4rem; font-weight: 600; }
 
 .trail { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
@@ -691,6 +713,95 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
 }
 .herophoto { width: 100%; min-height: 64px; font-size: var(--text-title); }
 
+/* ---- Graphical-choice system (WO20 item 1): one tile language, one card
+ * language, segmented choices, option sheets. Tokens only; motion reuses
+ * the WO18 keyframes (none added); scene art uses token fills so sunlight
+ * remaps it. Imagery rules: scene and door art is app illustration
+ * (allowed); car and part photos are evidence (own demo frames or owner
+ * photos only — never stock, never AI cars as inventory). */
+.tilegrid { display: grid; gap: 0.7rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.gtile {
+  display: flex; gap: 0.7rem; align-items: center; text-align: left;
+  min-height: 56px; padding: 0.7rem 0.9rem; cursor: pointer;
+  font: inherit; color: var(--ink);
+  background: var(--paper); border: 2px solid var(--line);
+  border-radius: var(--radius-card); box-shadow: inset 0 1px 0 var(--line);
+}
+.gtile:hover { background: var(--chip); }
+.gtile[aria-pressed="true"] { border-color: var(--ink); background: var(--surface); }
+.gtile .ticon {
+  flex: none; width: 2.5rem; height: 2.5rem; line-height: 2.5rem; text-align: center;
+  font-size: var(--text-title); font-weight: 800;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius-small); color: var(--ink);
+}
+.gtile .tbody { min-width: 0; }
+.gtile .tword { font-size: var(--text-title); font-weight: 800; }
+.gtile .tfield { font-size: var(--text-body); color: var(--muted); }
+.gtile img.timg {
+  flex: none; width: 4rem; height: 4rem; object-fit: cover;
+  border: 1px solid var(--line); border-radius: var(--radius-small);
+  background: var(--surface); display: block;
+}
+/* Primary wins ties on tile-primaries (the Use tile stays amber); inner
+ * tile text inherits the amber-ink label, adding no accent references. */
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button.primary:hover { background: var(--accent-dim); }
+button.primary .tbody, button.primary .tword, button.primary .tfield { color: inherit; }
+button.primary .ticon { background: transparent; border-color: currentcolor; color: inherit; }
+.gcard {
+  border: 1px solid var(--line); border-radius: var(--radius-card);
+  box-shadow: inset 0 1px 0 var(--line);
+  padding: 1rem 1.1rem; margin-bottom: 0.7rem; background: var(--surface);
+}
+.gcard .ctitle { font-size: var(--text-title); font-weight: 800; margin: 0 0 0.3rem; }
+.gcard p { font-size: var(--text-body); color: var(--muted); margin: 0.2rem 0 0.5rem; }
+.seg { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.seg button { flex: 1; white-space: nowrap; }
+.seg button[aria-pressed="true"] { border-color: var(--ink); background: var(--surface); }
+.gsheet {
+  position: fixed; left: 0.5rem; right: 0.5rem; bottom: 0.5rem; z-index: 80;
+  background: var(--surface); border: 2px solid var(--line);
+  border-radius: var(--radius-card); box-shadow: inset 0 1px 0 var(--line);
+  max-height: 70vh; overflow-y: auto; padding: 1rem 1.1rem 1.3rem;
+  animation: sheetup var(--t-sheet) var(--ease);
+}
+.gsheet[hidden] { display: none; }
+.gsheet .gtitle { font-size: var(--text-title); font-weight: 800; margin: 0 0 0.6rem; }
+.gsheet .gopts { display: grid; gap: 0.5rem; }
+.gsheet .gopts button.gtile { width: 100%; }
+.sceneart .f-bg { fill: var(--bg); }
+.sceneart .f-surface { fill: var(--surface); }
+.sceneart .f-paper { fill: var(--paper); }
+.sceneart .f-ink { fill: var(--ink); }
+.sceneart .f-muted { fill: var(--muted); }
+.sceneart .f-line { fill: var(--line); }
+.sceneart .s-ink { stroke: var(--ink); }
+.sceneart .s-line { stroke: var(--line); }
+.sceneart .s-muted { stroke: var(--muted); }
+.sceneart .stext { font-size: var(--text-meta); font-weight: 800; }
+
+/* ---- Setting system (WO20 item 3): one band per space, swapped on
+ * entrance tap, persisted per mode. Token fills remap in sunlight. */
+.settingband {
+  margin: 0 0 1rem; border: 1px solid var(--line);
+  border-radius: var(--radius-card); overflow: hidden;
+  background: var(--paper);
+}
+.settingband[hidden] { display: none; }
+.settingband svg { width: 100%; height: 110px; display: block; }
+.neutralpanel { border-top: 2px solid var(--line); }
+
+/* ---- Capture staging (WO20 item 4): the working view. The setting
+ * frames the evidence photo; the photo itself is never substituted.
+ * No caption here may claim where the car physically is. */
+.staged { border-top: 4px solid var(--line); }
+body[data-setting="shop"] .staged { border-top-color: var(--ink); }
+.workview { font-size: var(--text-meta); color: var(--muted); margin-top: 0.4rem; flex-basis: 100%; }
+
+/* Tabular numerals for every money readout (WO20 item 10). */
+.money, .big-money, .totalcard .big { font-variant-numeric: tabular-nums; }
+
 /* ---- Sunlight mode: bold type, solid surfaces, zero translucency ---- */
 body.sunlight {
   --bg: var(--sun-bg);
@@ -719,6 +830,7 @@ body.sunlight .pill,
 body.sunlight .work h2 .step,
 body.sunlight .hint,
 body.sunlight .notice,
+body.sunlight .door-name,
 body.sunlight .door-why,
 body.sunlight button,
 body.sunlight button.small,
@@ -733,6 +845,9 @@ body.sunlight textarea,
 body.sunlight .car-card dl,
 body.sunlight .part-list li,
 body.sunlight .verdict .rule,
+body.sunlight .verdict .vword,
+body.sunlight .verdict .vprice,
+body.sunlight .verdict .vpull,
 body.sunlight .verdict table,
 body.sunlight .override-row,
 body.sunlight .comp-row,
@@ -740,10 +855,13 @@ body.sunlight .totalcard .lbl,
 body.sunlight .rules-form .rule,
 body.sunlight .rules-form .explain,
 body.sunlight .dest,
+body.sunlight .testcard .tmeta,
 body.sunlight .testcard table,
 body.sunlight .testcard [data-res],
 body.sunlight .status,
 body.sunlight .gatebadge,
+body.sunlight .pccard .pchead,
+body.sunlight .enginelabel,
 body.sunlight .trail li,
 body.sunlight .kbnote,
 body.sunlight #settings,
@@ -759,7 +877,14 @@ body.sunlight .moved-note,
 body.sunlight .camguide,
 body.sunlight .confirm-guide,
 body.sunlight .confirm-step,
-body.sunlight .rowmore { font-size: var(--sun-ui); font-weight: 700; }
+body.sunlight .rowmore,
+body.sunlight .gtile .tword,
+body.sunlight .gtile .tfield,
+body.sunlight .gtile .ticon,
+body.sunlight .gcard .ctitle,
+body.sunlight .gcard p,
+body.sunlight .seg button,
+body.sunlight .gsheet .gtitle { font-size: var(--sun-ui); font-weight: 700; }
 body.sunlight .thumbs figcaption,
 body.sunlight .part-list .tag,
 body.sunlight .sourced,
@@ -770,10 +895,12 @@ body.sunlight .demobadge,
 body.sunlight .kbnote .src,
 body.sunlight .relbadge,
 body.sunlight #feed .tool,
-body.sunlight .msg .mode { font-size: var(--sun-meta); font-weight: 700; }
+body.sunlight .msg .mode,
+body.sunlight .workview,
+body.sunlight .jdest { font-size: var(--sun-meta); font-weight: 700; }
 
 @media (min-width: 900px) {
-  .doors { grid-template-columns: 1fr 1fr 1fr; }
+  .entrances { grid-template-columns: 1fr 1fr 1fr; }
 }
 @media (max-width: 900px) {
   .work { max-width: none; padding: 0.9rem; }
@@ -801,6 +928,7 @@ body.sunlight .msg .mode { font-size: var(--sun-meta); font-weight: 700; }
   .flip-glide { transition: none; }
   .moved-flash { animation: none; }
   .reveal { transition: none; opacity: 1; }
+  .gsheet { animation: none; }
   .skel { animation: none; }
   .hero-clone { transition: none; }
   button:active { transform: none; }

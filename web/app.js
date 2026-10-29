@@ -111,6 +111,19 @@ const EMPTY_ART = {
   gallery: "demo/frame1.svg",
   parts: "demo/frame2.svg",
   verdicts: "demo/frame3.svg",
+  baycase: "demo/frame1.svg",
+  bayplan: "demo/frame4.svg",
+  bayparts: "demo/frame4.svg",
+  invcars: "demo/frame1.svg",
+  invparts: "demo/frame4.svg",
+  comps: "demo/frame2.svg",
+  totals: "demo/frame2.svg",
+  baytests: "demo/frame3.svg",
+  baykb: "demo/frame1.svg",
+  baytrail: "demo/frame3.svg",
+  invnotes: "demo/frame3.svg",
+  compare: "demo/frame4.svg",
+  setup: "demo/frame1.svg",
 };
 
 function emptyInto(box, key, onAction) {
@@ -391,6 +404,7 @@ function renderViewer() {
     cap.appendChild(badge);
   }
   box.appendChild(cap);
+  stageWorkview(box);
 }
 
 function renderFrames() {
@@ -556,10 +570,25 @@ function renderVerdicts() {
     const pullCell = inp.pull_minutes != null
       ? esc(inp.pull_minutes + " min") + ' <span class="sourced">(' + esc(inp.pull_source) + ")</span>"
       : '<span class="missing">no pull-time note</span>';
+    const gradeWord = { A: "Pull now", B: "Worth it", C: "Leave it" }[v.verdict] || v.verdict;
+    const gradeBtn = (g) =>
+      g === ""
+        ? '<button type="button" class="gtile gradecard" data-override="">' +
+          '<span class="ticon" aria-hidden="true">○</span>' +
+          '<span class="tbody"><span class="tword">Rule grade</span>' +
+          '<span class="tfield">clear override</span></span></button>'
+        : '<button type="button" class="gtile gradecard" data-override="' + g + '">' +
+          '<span class="grade grade-sm grade-' + g + '">' + g + "</span>" +
+          '<span class="tbody"><span class="tword">' + ({ A: "Pull now", B: "Worth it", C: "Leave it" }[g]) + "</span>" +
+          '<span class="tfield">' + priceCell + "</span></span></button>";
     card.innerHTML =
       '<div class="head"><span class="grade grade-' + v.verdict + '">' + v.verdict + "</span>" +
       '<span class="pname">' + esc(v.label) + "</span>" +
-      '<span class="rule">' + esc(v.verdict_means) + " — rule: " + esc(v.rule_name) + ". " + esc(v.rule_explain) + "</span></div>" +
+      '<span class="vword">' + esc(gradeWord) + "</span>" +
+      '<span class="vprice">' + priceCell + "</span>" +
+      '<span class="vpull">' + pullCell + "</span></div>" +
+      '<details class="rowmore"><summary>Evidence and inputs</summary>' +
+      '<div class="rule">' + esc(v.verdict_means) + " — rule: " + esc(v.rule_name) + ". " + esc(v.rule_explain) + "</div>" +
       "<table>" +
       "<tr><th>Condition in photo</th><td>" + esc(inp.intact) + "</td></tr>" +
       "<tr><th>Frames seen</th><td>" + esc(inp.frames_seen) + " (" + esc((inp.frames || []).join(", ")) + ")</td></tr>" +
@@ -568,11 +597,9 @@ function renderVerdicts() {
       "<tr><th>Price</th><td>" + priceCell + "</td></tr>" +
       "<tr><th>Pull effort</th><td>" + pullCell + "</td></tr>" +
       (moneyRow(v) ? "<tr><th>Money grade</th><td>" + moneyRow(v) + "</td></tr>" : "") +
-      "</table>" +
+      "</table></details>" +
       '<div class="override-row"><span>Overrule:</span>' +
-      ["", "A", "B", "C"].map((g) =>
-        '<button type="button" class="small" data-override="' + g + '">' + (g === "" ? "clear" : g) + "</button>"
-      ).join("") +
+      ["", "A", "B", "C"].map(gradeBtn).join("") +
       '<input type="hidden" data-f="override" value="">' +
       (v.overridden ? '<span class="sourced">you overruled this grade</span>' : "") +
       "</div>" +
@@ -600,6 +627,7 @@ function renderVerdicts() {
   // Re-color the harvest map now that grades exist.
   renderFrames();
   renderPartList();
+  box.querySelectorAll('select[data-f="demand"]').forEach((sel) => segify(sel));
 }
 
 async function runVerdicts(fromOverride) {
@@ -634,7 +662,13 @@ function totalBig(t) {
 function renderTotals() {
   const box = $("totals");
   const totals = state.report && state.report.totals;
-  if (!totals) { box.innerHTML = '<p class="hint">Totals appear after verdicts.</p>'; return; }
+  if (!totals) {
+    emptyInto(box, "totals", () => {
+      document.getElementById("sec-intake").scrollIntoView();
+      $("btnRunAll").click();
+    });
+    return;
+  }
   const card = (grade, t, cls, label) =>
     "<div class='totalcard " + cls + "'><div class='lbl'>" + grade + " · " + label +
     " · " + t.count + " part(s)</div><div class='big'>" + totalBig(t) + "</div></div>";
@@ -713,6 +747,7 @@ function gradePill(grade) {
 }
 
 function renderCompare(res) {
+  // Neutral panel over the current setting: one version, not three.
   const box = $("compareOut");
   box.innerHTML = "";
   const modeTag = (mode) => mode === "live"
@@ -741,15 +776,32 @@ function renderCompare(res) {
     table.appendChild(tr);
   }
   const wrap = document.createElement("div");
-  wrap.className = "verdict";
+  wrap.className = "verdict wideonly";
   wrap.appendChild(table);
   box.appendChild(wrap);
+  const cards = document.createElement("div");
+  cards.className = "narrowonly";
+  for (const r of res.rows) {
+    const pc = document.createElement("div");
+    pc.className = "pccard";
+    pc.innerHTML = '<div class="pchead"><strong>' + esc(r.label) + "</strong>" +
+      gradePill(r.rule) + "</div>" +
+      '<div class="engines">' +
+      '<div class="enginecol"><div class="enginelabel">Muse Spark 1.3' + modeTag(res.mode13) + "</div>" +
+      gradePill(r.grade13) + ' <span class="hint">' + esc(r.reason13) + "</span></div>" +
+      '<div class="enginecol"><div class="enginelabel">Muse Spark Open, open-weight via Baseten' + modeTag(res.modeOpen) + "</div>" +
+      gradePill(r.gradeOpen) + ' <span class="hint">' + esc(r.reasonOpen) + "</span></div>" +
+      "</div>";
+    cards.appendChild(pc);
+  }
+  box.appendChild(cards);
   const foot = document.createElement("p");
   foot.className = "hint";
   foot.textContent = res.notice13 + (res.noticeOpen ? " " + res.noticeOpen : "") +
     " Open-model source: " + (res.sourceOpen || "?");
   box.appendChild(foot);
   flash(wrap);
+  flash(cards);
   scrollSoon(box);
 }
 
@@ -757,21 +809,11 @@ async function runCompare(opts) {
   const demoOnly = !!(opts && opts.demo);
   if (!state.report || !(state.report.verdicts || []).length) {
     const box = $("compareOut");
-    box.innerHTML = "";
-    const div = document.createElement("div");
-    div.className = "emptybox";
-    div.innerHTML = "<div class='etitle'>No case to compare yet.</div>" +
-      "<p>Run the Yard flow first — the same case then runs through both engines here.</p>";
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = "Run whole flow";
-    btn.addEventListener("click", () => {
+    emptyInto(box, "compare", () => {
       showView("yard");
       document.getElementById("sec-intake").scrollIntoView();
       $("btnRunAll").click();
     });
-    div.appendChild(btn);
-    box.appendChild(div);
     return null;
   }
   const res = await api("/api/compare", { sessionId: state.sessionId, demo: demoOnly });
@@ -800,6 +842,7 @@ function refreshListingParts() {
     wopt.textContent = v.verdict + " — " + v.label;
     wsel.appendChild(wopt);
   }
+  syncPickers();
 }
 
 function renderStudio(studio, mode) {
@@ -1057,6 +1100,7 @@ async function runAll(tick) {
     .sort((a, b) => ((b.inputs.price_high || 0) - (a.inputs.price_high || 0)))[0];
   if (best) {
     $("listingPart").value = best.part_id;
+    syncPickers();
     await runDraft(best.part_id);
     scrollSoon($("listingCard"));
     flash($("listingCard"));
@@ -1202,6 +1246,23 @@ function tourBar(beat, index) {
   span.className = "hint";
   span.textContent = beat.line;
   bar.appendChild(span);
+  const journey = document.createElement("div");
+  journey.className = "jline";
+  journey.setAttribute("role", "img");
+  journey.setAttribute("aria-label", "Tour beat " + (index + 1) + " of " + TOUR_BEATS.length);
+  TOUR_BEATS.forEach((b, i) => {
+    const d = document.createElement("span");
+    d.className = "jdot";
+    if (i === index) d.classList.add("now");
+    if (i < index) d.classList.add("done");
+    d.setAttribute("aria-hidden", "true");
+    journey.appendChild(d);
+  });
+  const dest = document.createElement("span");
+  dest.className = "jdest";
+  dest.textContent = index + 1 < TOUR_BEATS.length ? "Next: " + TOUR_BEATS[index + 1].title : "Last beat";
+  journey.appendChild(dest);
+  bar.appendChild(journey);
   const next = document.createElement("button");
   next.type = "button";
   next.className = "small primary";
@@ -1239,6 +1300,10 @@ function endTourPreview() {
   $("btnSetupFan").disabled = false;
 }
 
+/* The tour starts past the doors: entries sit on the Bay and inventory
+ * homes, so the door tap is the video opening shot, not a beat. Beats
+ * render in the setting current at entry; the tour never swaps settings,
+ * never approves, never posts. */
 function startTour() {
   if (Profile.needsSetup(localStorage)) {
     notice("Answer the one first-run question first — then take the tour from either home.");
@@ -1438,7 +1503,7 @@ function renderBayCase() {
   if (c.declined) {
     const d = c.decline;
     box.innerHTML =
-      '<div class="decline"><div class="dtitle">' + esc(d.title) + "</div>" +
+      '<div class="decline"><div class="dtitle"><span class="dmark" aria-hidden="true">⊘</span>' + esc(d.title) + "</div>" +
       "<div>" + esc(d.body) + "</div>" +
       '<div class="next">' + esc(d.next_step) + "</div></div>" +
       voiceNotesHtml(c);
@@ -1463,6 +1528,9 @@ function renderBayCase() {
     voiceNotesHtml(c) +
     (v.notes || []).map((n) => '<div class="notice">' + esc(n) + "</div>").join("") +
     "</div>";
+  if (bay.vinPhoto && bay.vinPhoto.data) {
+    stageWorkview(box.querySelector(".car-card"));
+  }
   if (isDemoMode(state.modes.bayIntake)) {
     box.querySelector(".name").appendChild(document.createTextNode(" "));
     box.querySelector(".name").appendChild(demoBadge());
@@ -1496,7 +1564,7 @@ function renderBayPlan() {
     return;
   }
   if (!plan.tests.length) {
-    box.innerHTML = "<p class='hint'>No tests yet — add the first by hand below and the ranking takes it from there.</p>";
+    emptyInto(box, "baytests", () => { $("bayTTitle").focus(); });
     renderBayTrail();
     return;
   }
@@ -1552,21 +1620,32 @@ function renderBayPlan() {
         renderBayPlan();
       });
     } else {
+      const tmeta = (t.minutes == null ? "shop time unknown" : t.minutes + " min") +
+        " · " + (t.score || 0) + " pts";
       card.innerHTML =
         '<div class="head"><span class="rank">' + (i + 1) + "</span>" +
-        '<span class="tname">' + esc(t.title) + "</span>" + status + gate + "</div>" +
+        '<span class="tname">' + esc(t.title) + "</span>" + status + gate +
+        '<span class="tmeta">' + esc(tmeta) + "</span></div>" +
         "<table>" +
         "<tr><th>What to check</th><td>" + esc(t.what) + "</td></tr>" +
         "<tr><th>How</th><td>" + esc(t.how) + "</td></tr>" +
         "<tr><th>Expected</th><td>" + esc(t.expected) + "</td></tr>" +
-        "<tr><th>Why it ranks here</th><td>" + esc(scoreLine(t)) + "</td></tr>" +
+        "</table>" +
+        '<details class="rowmore"><summary>Why it ranks here</summary><table>' +
+        "<tr><th>Score</th><td>" + esc(scoreLine(t)) + "</td></tr>" +
         (t.causes.length ? "<tr><th>Causes</th><td>" + esc(t.causes.join("; ")) + "</td></tr>" : "") +
         (plan.notes[t.id] ? "<tr><th>Note</th><td>" + esc(plan.notes[t.id]) + "</td></tr>" : "") +
-        "</table>" +
+        "</table></details>" +
         '<div class="row">' +
         '<input data-note type="text" placeholder="result note (optional)" style="flex:1;min-width:140px">' +
-        '<button type="button" class="small" data-res="pass">Pass</button>' +
-        '<button type="button" class="small" data-res="fail">Fail</button>' +
+        '<button type="button" class="gtile verdictbtn" data-res="pass">' +
+        '<span class="ticon" aria-hidden="true">✓</span>' +
+        '<span class="tbody"><span class="tword">Pass</span></span></button>' +
+        '<button type="button" class="gtile verdictbtn" data-res="fail">' +
+        '<span class="ticon" aria-hidden="true">✕</span>' +
+        '<span class="tbody"><span class="tword">Fail</span></span></button>' +
+        "</div>" +
+        '<div class="row movers">' +
         '<button type="button" class="small" data-move="-1">↑</button>' +
         '<button type="button" class="small" data-move="1">↓</button>' +
         '<button type="button" class="small" data-edit="1">Edit</button>' +
@@ -1602,7 +1681,9 @@ function renderBayTrail() {
   const box = $("bayTrail");
   const trail = (bay.plan && bay.plan.trail) || [];
   if (!trail.length) {
-    box.innerHTML = '<p class="hint">Results you record appear here with the ranking change each one caused.</p>';
+    emptyInto(box, "baytrail", () => {
+      document.getElementById("sec-bplan").scrollIntoView();
+    });
     return;
   }
   const plan = bay.plan;
@@ -1652,7 +1733,7 @@ function renderBayLabor() {
       (l.source ? '<span class="tag">' + esc(l.source) + "</span>" : '<span class="missing">no shop time on file</span>') +
       "</li>"
     ).join("") + "</ul>" +
-    "<p><strong>" + esc(labor.plain_words) + "</strong></p>";
+    "<p><strong>" + amberMoney(esc(labor.plain_words)) + "</strong></p>";
 }
 
 async function bayCreateCase(demoCase) {
@@ -1745,7 +1826,10 @@ async function bayKb() {
   const data = await res.json();
   const box = $("bayKb");
   if (!data.notes.length) {
-    box.innerHTML = "<p>No notes found. The shop can add its own files under shop_kb/.</p>";
+    emptyInto(box, "baykb", () => {
+      document.getElementById("sec-bcase").scrollIntoView();
+      $("baySymptom").focus();
+    });
     return;
   }
   box.innerHTML = data.notes.map((n) =>
@@ -1893,6 +1977,12 @@ function playFlip(box, before, focusId, noteText) {
       p.textContent = noteText;
       card.appendChild(p);
     }
+    if (moved && id !== focusId) {
+      const p = document.createElement("p");
+      p.className = "moved-note";
+      p.textContent = "Moved " + (now > was ? "down" : "up") + " in the ranking.";
+      card.appendChild(p);
+    }
     if (id === focusId || moved) card.classList.add("moved-flash");
     if (moved && !calm) {
       card.classList.add("flip-glide");
@@ -1966,8 +2056,13 @@ function renderConfirmStrip() {
   });
   const add = document.createElement("button");
   add.type = "button";
-  add.className = "small";
+  add.className = "gtile";
   add.textContent = "Add another angle";
+  const plus = document.createElement("span");
+  plus.className = "ticon";
+  plus.setAttribute("aria-hidden", "true");
+  plus.textContent = "+";
+  add.insertBefore(plus, add.firstChild);
   add.addEventListener("click", () => $(st.camId).click());
   strip.appendChild(add);
 }
@@ -1993,6 +2088,11 @@ function openConfirm(camId, files) {
   guide.appendChild(tag);
   const latest = confirmState.shots[confirmState.shots.length - 1];
   $("confirmPhoto").src = latest.url || "";
+  const retakeThumb = document.querySelector("#btnConfirmRetake img.timg");
+  if (retakeThumb && latest.url) {
+    retakeThumb.src = latest.url;
+    retakeThumb.alt = "Shot to retake";
+  }
   renderConfirmStrip();
   $("confirmSteps").hidden = true;
   $("confirmSkel").hidden = true;
@@ -2302,18 +2402,18 @@ function initMotion() {
 }
 
 function initBay() {
-  $("navHome").addEventListener("click", () => showView("home"));
+  $("navHome").addEventListener("click", () => { applySetting("home"); showView("home"); });
   $("navGear").addEventListener("click", () => {
     $("settings").open = true;
     scrollSoon($("settings"));
   });
-  $("door-bay").addEventListener("click", () => { showView("bay"); bayKb(); });
-  $("door-yard").addEventListener("click", () => showView("yard"));
-  $("door-driveway").addEventListener("click", () => showView("inventory"));
-  $("backYard").addEventListener("click", () => showView("home"));
-  $("backBay").addEventListener("click", () => showView("home"));
-  $("backInv").addEventListener("click", () => showView("home"));
-  $("backCompare").addEventListener("click", () => showView("yard"));
+  $("door-bay").addEventListener("click", (e) => { doorPress(e.currentTarget); applySetting("bay"); showView("bay"); bayKb(); });
+  $("door-yard").addEventListener("click", (e) => { doorPress(e.currentTarget); applySetting("yard"); showView("yard"); });
+  $("door-driveway").addEventListener("click", (e) => { doorPress(e.currentTarget); applySetting("inventory"); showView("inventory"); });
+  $("backYard").addEventListener("click", () => { applySetting("home"); showView("home"); });
+  $("backBay").addEventListener("click", () => { applySetting("home"); showView("home"); });
+  $("backInv").addEventListener("click", () => { applySetting("home"); showView("home"); });
+  $("backCompare").addEventListener("click", () => { applySetting("yard"); showView("yard"); });
   $("btnCompareOpen").addEventListener("click", () => showView("compare"));
   wireCameras();
 
@@ -2403,6 +2503,208 @@ function initBay() {
   });
 }
 
+
+/* ---------- graphical choices (WO20): doors, settings, staging, pickers ---------- */
+function doorPress(btn) {
+  if (!btn || !btn.classList || calmMotion()) return;
+  btn.classList.remove("door-fade");
+  void btn.offsetWidth;
+  btn.classList.add("door-fade");
+}
+
+/* Setting system (WO20 item 3): the entrance tap swaps the whole visual
+ * context and it persists per mode. Chrome only: this touches the body
+ * dataset and the band art, never the case, so a setting change cannot
+ * lose the open case, its grades, or its totals. Compare is neutral and
+ * keeps whatever setting is current. */
+var SETTING_FOR_VIEW = { home: "home", bay: "shop", yard: "yard", inventory: "garage", compare: null };
+var SETTING_BANDS = {
+  shop: '<svg class="sceneart" viewBox="0 0 360 110" role="img" aria-label="Illustrated shop interior: lift, workbench, tool wall">' +
+    '<rect x="0" y="0" width="360" height="110" class="f-bg"/>' +
+    '<rect x="0" y="86" width="360" height="24" class="f-surface"/>' +
+    '<rect x="30" y="20" width="10" height="66" class="f-line"/><rect x="110" y="20" width="10" height="66" class="f-line"/>' +
+    '<rect x="30" y="20" width="90" height="8" class="f-muted"/>' +
+    '<rect x="170" y="56" width="90" height="12" class="f-paper"/><rect x="178" y="68" width="8" height="18" class="f-line"/><rect x="244" y="68" width="8" height="18" class="f-line"/>' +
+    '<rect x="290" y="24" width="52" height="40" class="f-line"/>' +
+    '<circle cx="300" cy="34" r="3" class="f-muted"/><circle cx="312" cy="34" r="3" class="f-muted"/><circle cx="324" cy="34" r="3" class="f-muted"/>' +
+    '<circle cx="300" cy="46" r="3" class="f-muted"/><circle cx="312" cy="46" r="3" class="f-muted"/><circle cx="324" cy="46" r="3" class="f-muted"/>' +
+    '<rect x="170" y="10" width="90" height="10" class="f-ink"/></svg>',
+  yard: '<svg class="sceneart" viewBox="0 0 360 110" role="img" aria-label="Illustrated yard lot: fence, parts cars, daylight">' +
+    '<rect x="0" y="0" width="360" height="110" class="f-bg"/>' +
+    '<rect x="0" y="86" width="360" height="24" class="f-surface"/>' +
+    '<circle cx="316" cy="24" r="12" class="f-muted"/>' +
+    '<rect x="0" y="52" width="360" height="6" class="f-line"/>' +
+    '<rect x="20" y="40" width="6" height="46" class="f-line"/><rect x="120" y="40" width="6" height="46" class="f-line"/><rect x="220" y="40" width="6" height="46" class="f-line"/><rect x="320" y="40" width="6" height="46" class="f-line"/>' +
+    '<rect x="40" y="62" width="80" height="20" rx="6" class="f-muted"/><circle cx="58" cy="84" r="7" class="f-line"/><circle cx="102" cy="84" r="7" class="f-line"/>' +
+    '<rect x="200" y="62" width="80" height="20" rx="6" class="f-paper"/><circle cx="218" cy="84" r="7" class="f-line"/><circle cx="262" cy="84" r="7" class="f-line"/></svg>',
+  garage: '<svg class="sceneart" viewBox="0 0 360 110" role="img" aria-label="Illustrated home garage: one car, shelves, warm lamp">' +
+    '<rect x="0" y="0" width="360" height="110" class="f-bg"/>' +
+    '<rect x="0" y="86" width="360" height="24" class="f-surface"/>' +
+    '<rect x="30" y="58" width="110" height="24" rx="8" class="f-muted"/>' +
+    '<polygon points="52,58 118,58 106,44 64,44" class="f-line"/>' +
+    '<circle cx="54" cy="84" r="8" class="f-line"/><circle cx="116" cy="84" r="8" class="f-line"/>' +
+    '<rect x="180" y="30" width="8" height="56" class="f-line"/><rect x="262" y="30" width="8" height="56" class="f-line"/>' +
+    '<rect x="180" y="44" width="90" height="6" class="f-paper"/><rect x="180" y="64" width="90" height="6" class="f-paper"/>' +
+    '<rect x="190" y="32" width="16" height="12" class="f-muted"/><rect x="230" y="52" width="16" height="12" class="f-muted"/>' +
+    '<circle cx="318" cy="26" r="9" class="f-ink"/></svg>'
+};
+function renderSettingBand(s) {
+  var work = document.querySelector(".work");
+  if (!work) return;
+  var band = $("settingBand");
+  if (!band) {
+    band = document.createElement("div");
+    band.id = "settingBand";
+    band.className = "settingband";
+    work.insertBefore(band, work.firstChild);
+  }
+  if (!SETTING_BANDS[s]) { band.hidden = true; return; }
+  band.hidden = false;
+  band.innerHTML = SETTING_BANDS[s];
+}
+function applySetting(view) {
+  var s = SETTING_FOR_VIEW[view];
+  if (s === undefined || s === null) return;
+  document.body.dataset.setting = s;
+  renderSettingBand(s);
+}
+
+/* Capture staging (WO20 item 4): frame the evidence photo as the working
+ * view. Never touches the photo source — the setting frames it. */
+function stageWorkview(container) {
+  container.classList.add("staged");
+  const wv = document.createElement("div");
+  wv.className = "workview";
+  wv.textContent = "Working view — the job at hand";
+  container.appendChild(wv);
+}
+
+/* Graphical pickers (WO20 item 8): every native select stays in the DOM
+ * as the hidden data carrier — all logic keeps reading .value — and a
+ * segmented group or an option sheet becomes the face. Faces sync from
+ * the carrier, never the other way around. */
+const pickerSyncs = [];
+function syncPickers() {
+  pickerSyncs.forEach((fn) => fn());
+}
+function segify(sel) {
+  if (!sel || sel.dataset.segified) return;
+  sel.dataset.segified = "1";
+  sel.hidden = true;
+  const seg = document.createElement("div");
+  seg.className = "seg";
+  const sync = () => {
+    seg.querySelectorAll("button").forEach((b) => {
+      b.setAttribute("aria-pressed",
+        b.dataset.value === sel.value ? "true" : "false");
+    });
+  };
+  Array.from(sel.options).forEach((opt) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.value = opt.value;
+    b.textContent = opt.textContent || "—";
+    b.addEventListener("click", () => {
+      sel.value = opt.value;
+      sel.dispatchEvent(new Event("change", { bubbles: true }));
+      sync();
+    });
+    seg.appendChild(b);
+  });
+  sel.addEventListener("change", sync);
+  sel.parentNode.insertBefore(seg, sel.nextSibling);
+  pickerSyncs.push(sync);
+  sync();
+}
+function openOptSheet(sel, title) {
+  let sheet = $("optSheet");
+  if (!sheet) {
+    sheet = document.createElement("div");
+    sheet.id = "optSheet";
+    sheet.className = "gsheet";
+    sheet.setAttribute("role", "dialog");
+    sheet.setAttribute("aria-label", title);
+    document.body.appendChild(sheet);
+  }
+  sheet.setAttribute("aria-label", title);
+  sheet.innerHTML = "";
+  const h = document.createElement("div");
+  h.className = "gtitle";
+  h.textContent = title;
+  sheet.appendChild(h);
+  const opts = document.createElement("div");
+  opts.className = "gopts";
+  Array.from(sel.options).forEach((opt) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "gtile";
+    const picked = opt.value !== "" && opt.value === sel.value;
+    if (picked) b.setAttribute("aria-pressed", "true");
+    const ic = document.createElement("span");
+    ic.className = "ticon";
+    ic.setAttribute("aria-hidden", "true");
+    ic.textContent = picked ? "✓" : "○";
+    const tb = document.createElement("span");
+    tb.className = "tbody";
+    const w = document.createElement("span");
+    w.className = "tword";
+    w.textContent = opt.textContent || "—";
+    tb.appendChild(w);
+    b.appendChild(ic);
+    b.appendChild(tb);
+    b.addEventListener("click", () => {
+      sel.value = opt.value;
+      sel.dispatchEvent(new Event("change", { bubbles: true }));
+      sheet.hidden = true;
+      syncPickers();
+    });
+    opts.appendChild(b);
+  });
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "gtile";
+  close.textContent = "Close";
+  close.addEventListener("click", () => { sheet.hidden = true; });
+  sheet.appendChild(opts);
+  sheet.appendChild(close);
+  sheet.hidden = false;
+}
+function sheetPicker(sel, title) {
+  if (!sel || sel.dataset.pickified) return;
+  sel.dataset.pickified = "1";
+  sel.hidden = true;
+  const trig = document.createElement("button");
+  trig.type = "button";
+  trig.className = "gtile";
+  trig.setAttribute("aria-haspopup", "dialog");
+  const sync = () => {
+    const opt = Array.from(sel.options).find((o) => o.value === sel.value) ||
+      sel.options[0];
+    trig.innerHTML = "";
+    const ic = document.createElement("span");
+    ic.className = "ticon";
+    ic.setAttribute("aria-hidden", "true");
+    ic.textContent = "▤";
+    const tb = document.createElement("span");
+    tb.className = "tbody";
+    const w = document.createElement("span");
+    w.className = "tword";
+    w.textContent = opt ? opt.textContent : title;
+    tb.appendChild(w);
+    const f = document.createElement("span");
+    f.className = "tfield";
+    f.textContent = title + " — tap to change";
+    tb.appendChild(f);
+    trig.appendChild(ic);
+    trig.appendChild(tb);
+  };
+  trig.addEventListener("click", () => openOptSheet(sel, title));
+  sel.addEventListener("change", sync);
+  sel.parentNode.insertBefore(trig, sel.nextSibling);
+  pickerSyncs.push(sync);
+  sync();
+}
+
 initBay();
 
 /* ---------- first-run identity + enthusiast inventory ---------- */
@@ -2432,11 +2734,13 @@ function saveInvState() {
 }
 
 function renderSettings() {
+  // Neutral panel over the current setting: one version, not three.
   const box = $("settingsBody");
+  box.classList.add("neutralpanel");
   const p = Profile.loadProfile(localStorage);
   box.innerHTML = "";
   if (!p) {
-    box.textContent = "No profile yet — finish first-run setup.";
+    emptyInto(box, "setup", () => { $("setupOverlay").hidden = false; });
     return;
   }
   const line = document.createElement("p");
@@ -2444,8 +2748,12 @@ function renderSettings() {
   line.textContent = "Your profile, credentials, and demo switches. Everything here stays on this machine.";
   box.appendChild(line);
   const card = document.createElement("div");
-  card.className = "homehead";
+  card.className = "gcard homehead";
   box.appendChild(card);
+  const ctitle = document.createElement("div");
+  ctitle.className = "ctitle";
+  ctitle.textContent = "Profile";
+  card.appendChild(ctitle);
   const span = document.createElement("span");
   span.textContent = p.email + " · " + p.mode;
   card.appendChild(span);
@@ -2457,7 +2765,9 @@ function renderSettings() {
   btn.addEventListener("click", guard(async () => {
     Profile.setMode(localStorage, other);
     renderSettings();
-    showView(Profile.routeFor(other));
+    var dest = Profile.routeFor(other);
+    applySetting(dest);
+    showView(dest);
     feed("Mode switched to " + other + " in settings", "profile — deliberate change, persisted locally");
   }));
   card.appendChild(btn);
@@ -2473,7 +2783,15 @@ function renderSettings() {
     location.reload();
   });
   card.appendChild(reset);
+  const demoCard = document.createElement("div");
+  demoCard.className = "gcard";
+  const demoTitle = document.createElement("div");
+  demoTitle.className = "ctitle";
+  demoTitle.textContent = "Demo";
+  demoCard.appendChild(demoTitle);
+  box.appendChild(demoCard);
   const off = document.createElement("label");
+  off.className = "gtile";
   const offBox = document.createElement("input");
   offBox.type = "checkbox";
   offBox.checked = state.forceDemo;
@@ -2484,10 +2802,23 @@ function renderSettings() {
     feed(state.forceDemo ? "Offline demo forced on" : "Offline demo off",
       "settings — demo-cache switch, no network touched");
   });
+  const offIcon = document.createElement("span");
+  offIcon.className = "ticon";
+  offIcon.setAttribute("aria-hidden", "true");
+  offIcon.textContent = "⊘";
   off.appendChild(offBox);
+  off.appendChild(offIcon);
   off.appendChild(document.createTextNode(" Force offline demo"));
-  card.appendChild(off);
+  demoCard.appendChild(off);
+  const dispCard = document.createElement("div");
+  dispCard.className = "gcard";
+  const dispTitle = document.createElement("div");
+  dispTitle.className = "ctitle";
+  dispTitle.textContent = "Display";
+  dispCard.appendChild(dispTitle);
+  box.appendChild(dispCard);
   const sun = document.createElement("label");
+  sun.className = "gtile";
   const sunBox = document.createElement("input");
   sunBox.type = "checkbox";
   sunBox.id = "sunToggle";
@@ -2498,9 +2829,14 @@ function renderSettings() {
     feed(sunBox.checked ? "Sunlight mode on" : "Sunlight mode off",
       "settings — display only, stays in this browser");
   });
+  const sunIcon = document.createElement("span");
+  sunIcon.className = "ticon";
+  sunIcon.setAttribute("aria-hidden", "true");
+  sunIcon.textContent = "☀";
   sun.appendChild(sunBox);
+  sun.appendChild(sunIcon);
   sun.appendChild(document.createTextNode(" Sunlight mode — bold type, solid surfaces for glare"));
-  card.appendChild(sun);
+  dispCard.appendChild(sun);
   const walk = document.createElement("button");
   walk.type = "button";
   walk.className = "small";
@@ -2510,7 +2846,7 @@ function renderSettings() {
     UX.showGuide(localStorage, "enthusiast");
     renderGuides();
   });
-  card.appendChild(walk);
+  demoCard.appendChild(walk);
   renderCreds(box);
 }
 
@@ -2534,8 +2870,9 @@ function renderCreds(box) {
   ];
   for (const card of cards) {
     const wrap = document.createElement("div");
-    wrap.className = "notice";
-    const title = document.createElement("strong");
+    wrap.className = "gcard";
+    const title = document.createElement("div");
+    title.className = "ctitle";
     title.textContent = card.title;
     wrap.appendChild(title);
     const blurb = document.createElement("div");
@@ -2665,6 +3002,7 @@ function fillCarSelect(sel) {
     sel.appendChild(opt);
   }
   if (invState.cars.some((c) => c.id === current)) sel.value = current;
+  syncPickers();
 }
 
 function renderInvCars() {
@@ -2725,7 +3063,11 @@ function renderInvKnow() {
     return;
   }
   if (!notes.length) {
-    box.innerHTML = "<p>No knowledge notes for this car yet. Add what you know below — the software will not invent any.</p>";
+    emptyInto(box, "invnotes", () => {
+      const d = document.querySelector("#sec-iknow details");
+      if (d) d.open = true;
+      $("invKnowPart").focus();
+    });
     return;
   }
   box.innerHTML = "<ul class='part-list'>" + notes.map((n) =>
@@ -2763,6 +3105,7 @@ function renderInvParts() {
         im.src = part.photo;
         im.alt = part.label;
         li.appendChild(im);
+        stageWorkview(li);
       } else {
         const ph = document.createElement("div");
         ph.className = "invphoto-ph";
@@ -2824,10 +3167,10 @@ function renderInvTotals() {
   const sentence = Inventory.plainTotals(Inventory.overallTotals(invState), "parts");
   const cut = sentence.indexOf(" across ");
   if (cut < 0) {
-    box.innerHTML = "<p><strong>" + esc(sentence) + "</strong></p>";
+    box.innerHTML = "<p><strong>" + amberMoney(esc(sentence)) + "</strong></p>";
   } else {
-    box.innerHTML = '<div class="big-money">' + esc(sentence.slice(0, cut)) + "</div>" +
-      "<p><strong>" + esc(sentence.slice(cut + 1)) + "</strong></p>";
+    box.innerHTML = '<div class="big-money">' + amberMoney(esc(sentence.slice(0, cut))) + "</div>" +
+      "<p><strong>" + amberMoney(esc(sentence.slice(cut + 1))) + "</strong></p>";
   }
   if (invSeeded) {
     const line = document.createElement("p");
@@ -3310,6 +3653,13 @@ function initUx() {
   restoreDraft("invnote", ["invKnowPart", "invKnowReason", "invKnowValue"]);
   restoreDraft("baytest", ["bayTTitle", "bayTWhat", "bayTHow", "bayTExp", "bayTCauses", "bayTOut", "bayTSusp"]);
   restoreDraft("baypart", ["bayPName", "bayPNote"]);
+  segify($("bayArea"));
+  segify($("invPartRel"));
+  sheetPicker($("listingPart"), "Pick a part");
+  sheetPicker($("wonderPart"), "Ask about a part");
+  sheetPicker($("invKnowCar"), "Car notes for");
+  sheetPicker($("invPartCar"), "Attach to car");
+  syncPickers();
   const savedListing = UX.loadDraft(localStorage, "listing");
   if (savedListing && (savedListing.listingTitle || savedListing.listingDesc)) {
     $("listingCard").style.display = "";

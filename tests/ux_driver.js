@@ -51,7 +51,7 @@ const shopMid = UX.guideSteps("shop", { hasCase: true, planTests: 4, results: 0 
 ok(shopMid[0].done && shopMid[1].done && !shopMid[2].done, "shop steps check off from real state");
 
 // ---- every empty state names a next action ----
-for (const key of ["gallery", "parts", "verdicts", "baycase", "bayplan", "bayparts", "invcars", "invparts", "comps"]) {
+for (const key of ["gallery", "parts", "verdicts", "baycase", "bayplan", "bayparts", "invcars", "invparts", "comps", "totals", "baytests", "baykb", "baytrail", "invnotes", "compare", "setup"]) {
   const card = UX.emptyState(key);
   ok(card.title && card.message && card.action, "empty state '" + key + "' has title, message, and action");
 }
