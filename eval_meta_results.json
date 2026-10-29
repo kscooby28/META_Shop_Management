@@ -1,0 +1,569 @@
+{
+  "order": "Work Order 16: post-rotation Meta-live evaluation",
+  "model_ids": {
+    "env_names": [
+      "BASETEN_API_KEY",
+      "META_API_KEY",
+      "MODEL_API_KEY"
+    ],
+    "api_base": "https://api.meta.ai/v1",
+    "live_model_ids": [
+      "muse-wonder-1.0",
+      "sam-3.1",
+      "muse-spark-1.3-contributor",
+      "muse-voice-transcribe-1.0",
+      "muse-spark-1.3",
+      "muse-image-1.0",
+      "muse-spark-1.2-contributor",
+      "muse-spark-1.2",
+      "muse-spark-1.1"
+    ],
+    "list_cause": "",
+    "spark_model": "muse-spark-1.3",
+    "spark_on_list": true,
+    "spark_check": {
+      "live_ok": false,
+      "latency_ms": 60020,
+      "cause": "API unreachable: <urlopen error timed out>"
+    },
+    "sam_model": "sam-3-1",
+    "sam_on_list": false,
+    "wonder_model": "muse-wonder-1.0",
+    "wonder_path": "/chat/completions",
+    "wonder_check": {
+      "live_ok": true,
+      "latency_ms": 12203,
+      "cause": "",
+      "agrees": false
+    },
+    "image_model_on_list": "muse-image-1.0",
+    "voice_model_on_list": "muse-voice-transcribe-1.0",
+    "note": "image/voice IDs noted from the list only; this order touches neither leg, so no calls and no code changes",
+    "sam_corrected_to": "sam-3.1",
+    "sam_correction_evidence": "live list names sam-3.1 and no sam-3-1; code corrected before this call"
+  },
+  "cases": [
+    {
+      "case": "yard-demo",
+      "label": "Yard demo case (7 harvest parts)",
+      "spark": {
+        "live_ok": false,
+        "call_sent": false,
+        "latency_ms": 0,
+        "cause": "leg stopped: Spark verification failed: API unreachable: <urlopen error timed out>",
+        "dropped": 0
+      },
+      "open": {
+        "live_ok": false,
+        "call_sent": true,
+        "latency_ms": 45014,
+        "cause": "Baseten unreachable: <urlopen error timed out>",
+        "dropped": 0
+      },
+      "wonder": {
+        "live_ok": true,
+        "call_sent": true,
+        "latency_ms": 11999,
+        "cause": "",
+        "ref": "p_handle",
+        "triggers": [
+          "no reliable price",
+          "demand unsourced",
+          "condition unclear in photo"
+        ],
+        "agrees": true,
+        "title": "Agree with leave it",
+        "body": "Seen only once with very small coverage and condition unclear. No sold prices and no demand source on file, so there is no reliable basis to pull it.",
+        "watch": "Clearer or more photos showing it intact, plus sold prices or a sourced demand, and pull time on file could change this."
+      },
+      "sam": {
+        "live_ok": false,
+        "call_sent": true,
+        "latency_ms": 253,
+        "cause": "API error 404: ",
+        "frame": "demo-frame-1",
+        "phrases": [
+          "driver mirror",
+          "front bumper cover",
+          "alloy wheel",
+          "driver headlight",
+          "driver door handle",
+          "left taillight",
+          "rear differential"
+        ],
+        "masks": [],
+        "verdict": "failed"
+      },
+      "cost": "the endpoints report no cost, so none is estimated",
+      "parts": [
+        {
+          "part_id": "p_mirror",
+          "label": "driver mirror",
+          "rule_grade": "A",
+          "rule_id": "r_pull_now",
+          "rule_name": "Clear, wanted, worth listing",
+          "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+          "spark_grade": null,
+          "spark_reason": "",
+          "spark_mode": "no live grade",
+          "spark_agree": null,
+          "open_grade": null,
+          "open_reason": "",
+          "open_mode": "no live grade",
+          "open_agree": null,
+          "engines_agree": null
+        },
+        {
+          "part_id": "p_bumper",
+          "label": "front bumper cover",
+          "rule_grade": "A",
+          "rule_id": "r_pull_now",
+          "rule_name": "Clear, wanted, worth listing",
+          "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+          "spark_grade": null,
+          "spark_reason": "",
+          "spark_mode": "no live grade",
+          "spark_agree": null,
+          "open_grade": null,
+          "open_reason": "",
+          "open_mode": "no live grade",
+          "open_agree": null,
+          "engines_agree": null
+        },
+        {
+          "part_id": "p_wheel",
+          "label": "alloy wheel",
+          "rule_grade": "A",
+          "rule_id": "r_pull_now",
+          "rule_name": "Clear, wanted, worth listing",
+          "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+          "spark_grade": null,
+          "spark_reason": "",
+          "spark_mode": "no live grade",
+          "spark_agree": null,
+          "open_grade": null,
+          "open_reason": "",
+          "open_mode": "no live grade",
+          "open_agree": null,
+          "engines_agree": null
+        },
+        {
+          "part_id": "p_headlight",
+          "label": "driver headlight",
+          "rule_grade": "B",
+          "rule_id": "r_worth_it_seen",
+          "rule_name": "Good part, softer demand",
+          "rule_explain": "Intact and not unwanted: grab it while you are there.",
+          "spark_grade": null,
+          "spark_reason": "",
+          "spark_mode": "no live grade",
+          "spark_agree": null,
+          "open_grade": null,
+          "open_reason": "",
+          "open_mode": "no live grade",
+          "open_agree": null,
+          "engines_agree": null
+        },
+        {
+          "part_id": "p_handle",
+          "label": "driver door handle",
+          "rule_grade": "C",
+          "rule_id": "r_thin_evidence",
+          "rule_name": "Seen once and unclear",
+          "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+          "spark_grade": null,
+          "spark_reason": "",
+          "spark_mode": "no live grade",
+          "spark_agree": null,
+          "open_grade": null,
+          "open_reason": "",
+          "open_mode": "no live grade",
+          "open_agree": null,
+          "engines_agree": null
+        },
+        {
+          "part_id": "p_taillight",
+          "label": "left taillight",
+          "rule_grade": "C",
+          "rule_id": "r_damaged",
+          "rule_name": "Broken in the photo",
+          "rule_explain": "The part looks broken, so leave it no matter what else is true.",
+          "spark_grade": null,
+          "spark_reason": "",
+          "spark_mode": "no live grade",
+          "spark_agree": null,
+          "open_grade": null,
+          "open_reason": "",
+          "open_mode": "no live grade",
+          "open_agree": null,
+          "engines_agree": null
+        },
+        {
+          "part_id": "p_diff",
+          "label": "rear differential",
+          "rule_grade": "A",
+          "rule_id": "r_pull_now",
+          "rule_name": "Clear, wanted, worth listing",
+          "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+          "spark_grade": null,
+          "spark_reason": "",
+          "spark_mode": "no live grade",
+          "spark_agree": null,
+          "open_grade": null,
+          "open_reason": "",
+          "open_mode": "no live grade",
+          "open_agree": null,
+          "engines_agree": null
+        }
+      ]
+    },
+    {
+      "case": "bay-case1",
+      "label": "Bay demo case1 (1 job part)",
+      "spark": {
+        "live_ok": false,
+        "call_sent": false,
+        "latency_ms": 0,
+        "cause": "leg stopped: Spark verification failed: API unreachable: <urlopen error timed out>",
+        "dropped": 0
+      },
+      "open": {
+        "live_ok": true,
+        "call_sent": true,
+        "latency_ms": 8691,
+        "cause": "",
+        "dropped": 0
+      },
+      "wonder": {
+        "live_ok": true,
+        "call_sent": true,
+        "latency_ms": 27494,
+        "cause": "",
+        "ref": "bay-case1",
+        "triggers": [
+          "no results recorded yet"
+        ],
+        "agrees": "partial",
+        "title": "Sound start, one ordering question",
+        "body": "I agree with starting on module power and relay control. Both match the code and symptom, are marked quick, can clear their cause on a pass, and help avoid costly parts. I question putting the module in-versus-out compare ahead of the pin inspection. The compare clears nothing on a pass and is listed as taking longer, while the pin check can clear damaged pins. The donor index check last fits its low code and symptom match, but it must still be done before fitting.",
+        "watch": "Recorded results would change my view. Good power and a relay click would clear those causes and raise the value of the pin and module checks. A power fail would point toward wiring as listed, and damaged pins found early would make the module compare less needed. A donor index mismatch would stop that path regardless of order."
+      },
+      "sam": {
+        "live_ok": false,
+        "call_sent": false,
+        "latency_ms": 0,
+        "cause": "leg stopped: SAM model not on the live list",
+        "frame": "",
+        "phrases": [],
+        "masks": [],
+        "verdict": "stopped"
+      },
+      "cost": "the endpoints report no cost, so none is estimated",
+      "parts": [
+        {
+          "part_id": "bp-case1-1",
+          "label": "Matched module set from one donor car: module, immobilizer, ignition switch, steering lock, key, and door cylinder",
+          "rule_grade": "C",
+          "rule_id": "r_thin_evidence",
+          "rule_name": "Seen once and unclear",
+          "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+          "spark_grade": null,
+          "spark_reason": "",
+          "spark_mode": "no live grade",
+          "spark_agree": null,
+          "open_grade": "C",
+          "open_reason": "Thin evidence: price_known false with no sample comp and money_grade C, demand unknown, frames_seen 0, intact unknown, count 1. Case note says part numbers must match exactly and a wrong index donor was already rejected/refunded, so mismatch risk is high.",
+          "open_mode": "live",
+          "open_agree": true,
+          "engines_agree": null
+        }
+      ]
+    },
+    {
+      "case": "bay-case2",
+      "label": "Bay demo case2 (1 job part)",
+      "spark": {
+        "live_ok": false,
+        "call_sent": false,
+        "latency_ms": 0,
+        "cause": "leg stopped: Spark verification failed: API unreachable: <urlopen error timed out>",
+        "dropped": 0
+      },
+      "open": {
+        "live_ok": true,
+        "call_sent": true,
+        "latency_ms": 3195,
+        "cause": "",
+        "dropped": 0
+      },
+      "wonder": {
+        "live_ok": true,
+        "call_sent": true,
+        "latency_ms": 23134,
+        "cause": "",
+        "ref": "bay-case2",
+        "triggers": [
+          "final gate still open: Final gate: hot brake-release creep in D and R",
+          "no results recorded yet"
+        ],
+        "agrees": "partial",
+        "title": "Plan covers the checks, but nothing is proven yet",
+        "body": "The listed tests match the low pressure, oil, and creep concerns, and they include hot final gates. But the triggers say no results are recorded yet and the hot creep gate is still open, so there is no evidence any test passed. The oil change is also listed ahead of the cold creep check, so a cold baseline could be lost.",
+        "watch": "Recorded passes for the hot creep in Drive and Reverse and the clean rescan after the hot drive, plus recorded results for the pressure and earlier creep checks, would change this. A cold creep result taken before the oil change would help show what changed."
+      },
+      "sam": {
+        "live_ok": false,
+        "call_sent": false,
+        "latency_ms": 0,
+        "cause": "leg stopped: SAM model not on the live list",
+        "frame": "",
+        "phrases": [],
+        "masks": [],
+        "verdict": "stopped"
+      },
+      "cost": "the endpoints report no cost, so none is estimated",
+      "parts": [
+        {
+          "part_id": "bp-case2-1",
+          "label": "Clutch-circuit oil, correct spec for this gearbox",
+          "rule_grade": "C",
+          "rule_id": "r_thin_evidence",
+          "rule_name": "Seen once and unclear",
+          "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+          "spark_grade": null,
+          "spark_reason": "",
+          "spark_mode": "no live grade",
+          "spark_agree": null,
+          "open_grade": "C",
+          "open_reason": "Evidence is thin: intact is unknown, 0 frames seen, demand is unknown, price_known is false with no price range or comps (sold_count 0, reliable false, valuation notes say no sample comp), count 1 and pull effort unknown, so cannot justify pull/list.",
+          "open_mode": "live",
+          "open_agree": true,
+          "engines_agree": null
+        }
+      ]
+    },
+    {
+      "case": "bay-case3",
+      "label": "Bay demo case3 (0 job parts)",
+      "spark": {
+        "live_ok": false,
+        "call_sent": false,
+        "latency_ms": 0,
+        "cause": "leg stopped: Spark verification failed: API unreachable: <urlopen error timed out>",
+        "dropped": 0
+      },
+      "open": {
+        "live_ok": false,
+        "call_sent": false,
+        "latency_ms": 0,
+        "cause": "no parts to grade, so no call was sent",
+        "dropped": 0
+      },
+      "wonder": {
+        "live_ok": false,
+        "call_sent": false,
+        "latency_ms": 0,
+        "cause": "no parts to review, so no call was sent",
+        "ref": "",
+        "triggers": [],
+        "agrees": null,
+        "title": "",
+        "body": "",
+        "watch": ""
+      },
+      "sam": {
+        "live_ok": false,
+        "call_sent": false,
+        "latency_ms": 0,
+        "cause": "leg stopped: SAM model not on the live list",
+        "frame": "",
+        "phrases": [],
+        "masks": [],
+        "verdict": "stopped"
+      },
+      "cost": "the endpoints report no cost, so none is estimated",
+      "parts": []
+    },
+    {
+      "case": "inventory-demo",
+      "label": "Inventory demo parts (6 parts)",
+      "spark": {
+        "live_ok": false,
+        "call_sent": false,
+        "latency_ms": 0,
+        "cause": "leg stopped: Spark verification failed: API unreachable: <urlopen error timed out>",
+        "dropped": 0
+      },
+      "open": {
+        "live_ok": true,
+        "call_sent": true,
+        "latency_ms": 10930,
+        "cause": "",
+        "dropped": 0
+      },
+      "wonder": {
+        "live_ok": true,
+        "call_sent": true,
+        "latency_ms": 10568,
+        "cause": "",
+        "ref": "ip-lid",
+        "triggers": [
+          "no reliable price",
+          "demand unsourced",
+          "condition unclear in photo"
+        ],
+        "agrees": true,
+        "title": "Agree: leave it for now",
+        "body": "Condition is unknown, demand is unknown with no source, and there is no known or reliable price. The money grade is C with no sample comp and a sold count of zero, so there is not enough solid evidence to justify taking it.",
+        "watch": "Clear views showing the lid is intact, plus a sourced demand check and a reliable price, would change my mind."
+      },
+      "sam": {
+        "live_ok": false,
+        "call_sent": false,
+        "latency_ms": 0,
+        "cause": "leg stopped: SAM model not on the live list",
+        "frame": "",
+        "phrases": [],
+        "masks": [],
+        "verdict": "stopped"
+      },
+      "cost": "the endpoints report no cost, so none is estimated",
+      "parts": [
+        {
+          "part_id": "ip-coil",
+          "label": "spare ignition coil",
+          "rule_grade": "B",
+          "rule_id": "r_worth_it_seen",
+          "rule_name": "Good part, softer demand",
+          "rule_explain": "Intact and not unwanted: grab it while you are there.",
+          "spark_grade": null,
+          "spark_reason": "",
+          "spark_mode": "no live grade",
+          "spark_agree": null,
+          "open_grade": "C",
+          "open_reason": "intact yes and working when pulled but price is only $25 low from demo-sample seed, demand unknown, frames_seen 0, no sold comps, money_grade C and reliable false with pull_minutes null - thin evidence, not worth pull and list",
+          "open_mode": "live",
+          "open_agree": false,
+          "engines_agree": null
+        },
+        {
+          "part_id": "ip-headlight",
+          "label": "driver headlight",
+          "rule_grade": "B",
+          "rule_id": "r_worth_it_seen",
+          "rule_name": "Good part, softer demand",
+          "rule_explain": "Intact and not unwanted: grab it while you are there.",
+          "spark_grade": null,
+          "spark_reason": "",
+          "spark_mode": "no live grade",
+          "spark_agree": null,
+          "open_grade": "C",
+          "open_reason": "intact yes lens clear with $65 demo-sample seed price, but demand unknown, frames_seen 0, no sold comps, money_grade C and reliable false, pull effort unknown - thin demo-only evidence, leave it",
+          "open_mode": "live",
+          "open_agree": false,
+          "engines_agree": null
+        },
+        {
+          "part_id": "ip-diff",
+          "label": "rear differential",
+          "rule_grade": "B",
+          "rule_id": "r_worth_it_seen",
+          "rule_name": "Good part, softer demand",
+          "rule_explain": "Intact and not unwanted: grab it while you are there.",
+          "spark_grade": null,
+          "spark_reason": "",
+          "spark_mode": "no live grade",
+          "spark_agree": null,
+          "open_grade": "B",
+          "open_reason": "intact yes turns smoothly and $1000 high price from demo-sample seed plus owner note as $1,000 reason, but demand unknown, frames_seen 0, no sold comps, money_grade C and reliable false, pull_minutes null - thin evidence prevents A, worth it only if standing there and you verify market",
+          "open_mode": "live",
+          "open_agree": true,
+          "engines_agree": null
+        },
+        {
+          "part_id": "ip-wheel",
+          "label": "alloy wheel",
+          "rule_grade": "B",
+          "rule_id": "r_worth_it_seen",
+          "rule_name": "Good part, softer demand",
+          "rule_explain": "Intact and not unwanted: grab it while you are there.",
+          "spark_grade": null,
+          "spark_reason": "",
+          "spark_mode": "no live grade",
+          "spark_agree": null,
+          "open_grade": "C",
+          "open_reason": "intact yes straight and true but only $40 from demo-sample seed, demand unknown, frames_seen 0, no sold comps, money_grade C and reliable false, pull effort unknown - thin low-value evidence, leave it",
+          "open_mode": "live",
+          "open_agree": false,
+          "engines_agree": null
+        },
+        {
+          "part_id": "ip-lid",
+          "label": "trunk lid",
+          "rule_grade": "C",
+          "rule_id": "r_thin_evidence",
+          "rule_name": "Seen once and unclear",
+          "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+          "spark_grade": null,
+          "spark_reason": "",
+          "spark_mode": "no live grade",
+          "spark_agree": null,
+          "open_grade": "C",
+          "open_reason": "intact unknown, condition unknown, owner hasn't looked closely, price_low/high null and price_known false, demand unknown, frames_seen 0, no comps, money_grade C and reliable false - no evidence to justify pulling",
+          "open_mode": "live",
+          "open_agree": true,
+          "engines_agree": null
+        },
+        {
+          "part_id": "ip-ecu",
+          "label": "engine computer",
+          "rule_grade": "C",
+          "rule_id": "r_thin_evidence",
+          "rule_name": "Seen once and unclear",
+          "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+          "spark_grade": null,
+          "spark_reason": "",
+          "spark_mode": "no live grade",
+          "spark_agree": null,
+          "open_grade": "C",
+          "open_reason": "intact unknown and condition used untested despite $200 owner-note price and pull before anything else note, demand unknown, frames_seen 0, no sold comps, money_grade C and reliable false, pull effort unknown - thin untested evidence, need testing/verification first",
+          "open_mode": "live",
+          "open_agree": true,
+          "engines_agree": null
+        }
+      ]
+    }
+  ],
+  "agreement": {
+    "spark_vs_rules": {
+      "agree": 0,
+      "total": 0,
+      "rate": "0/0"
+    },
+    "open_vs_rules": {
+      "agree": 5,
+      "total": 8,
+      "rate": "5/8"
+    },
+    "live_vs_rules_pooled": {
+      "agree": 5,
+      "total": 8,
+      "rate": "5/8"
+    },
+    "spark_vs_open": {
+      "agree": 0,
+      "total": 0,
+      "rate": "0/0"
+    }
+  },
+  "live_meta_calls_attempted": 7,
+  "live_baseten_calls_sent": 4,
+  "vin_gate": {
+    "demo_vin_assets": [],
+    "live_vin_calls_sent": 0,
+    "flip": false,
+    "reason": "no demo VIN plate images exist, so 0 live VIN calls sent; the flip is unproven",
+    "assets_note": "no demo VIN plate images exist, so no live VIN call could be honestly sent"
+  },
+  "timeouts": "meta_client and wonder timeouts raised to 60s in-process for measurement only; product defaults unchanged"
+}

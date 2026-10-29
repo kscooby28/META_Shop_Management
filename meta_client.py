@@ -17,7 +17,7 @@ import urllib.request
 
 API_BASE = "https://api.meta.ai/v1"
 SPARK_MODEL = "muse-spark-1.3"
-SAM_MODEL = "sam-3-1"
+SAM_MODEL = "sam-3.1"  # corrected WO16: the live list names sam-3.1, no sam-3-1
 TIMEOUT_SECONDS = 12
 
 
