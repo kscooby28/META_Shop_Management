@@ -1,0 +1,279 @@
+"""WO16 follow-up tests: file=note, fence intact, legs honestly closed.
+
+The retry pass already ran; these tests pin its artifacts. Everything
+here runs offline: the README note must match the follow-up JSON, WO16's
+artifacts must be byte-identical, no product file may have changed, the
+script's live-call allowlist must contain only the four probes, VIN_LIVE
+stays False, and no secret may appear in any artifact.
+"""
+
+import hashlib
+import json
+import os
+import sys
+import unittest
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
+sys.path.insert(0, os.path.join(ROOT, "tests"))
+
+import eval_meta_followup
+
+import bay
+import test_eval_meta
+
+LIVE_CALL_MARKERS = test_eval_meta.LiveCallSitesTest.MARKERS
+
+FOLLOWUP_START = "<!-- EVAL-META-FOLLOWUP:START -->"
+FOLLOWUP_END = "<!-- EVAL-META-FOLLOWUP:END -->"
+
+# sha256 pins taken at the follow-up commit. Any edit to a fenced file
+# fails loudly here instead of slipping through.
+WO16_PINNED = {
+    os.path.join("scripts", "eval_meta.py"):
+        "2cce94147b9e1d73f8bb3c8779b12e18c2a9a5f9643eb31c026638518d294301",
+    "eval_meta_results.json":
+        "61b24bb39bc1b2888db0f0e85c2695bf419faaf952c518422e0f627f1fdd3d03",
+    os.path.join("tests", "test_eval_meta.py"):
+        "6b416633335e76dedc07afe775936556ec89b9ca8af01de28296378e376a267f",
+}
+PRODUCT_PINNED = {
+    "server.py":
+        "cc56dae827a47b165c251ccfc4b2723d4a7f6e66b08e3c0d234a1c744180797a",
+    "meta_client.py":
+        "9bf3599d76dbcc577389d33e7b16928e3efacdf288eb828b09931be83f4119e4",
+    "verdict.py":
+        "72c3f158152ede90aa4d925be26ffd0c61b672c86f3b60c9a96d9c75c2f12c1b",
+    "comps.py":
+        "241c4904e845c4d4b1e12621af15a163cc8f2e0f21a229008965e99c5f5779b1",
+    "bay.py":
+        "1dd3214da0d302aa2bd255d6ab21e78cead3730429f71cb8f0824d20001ced51",
+    "listing.py":
+        "560fbd61f35838e6b32cf0ec2ca0c731cc8db5fea2da0d16659bd167f7a511ef",
+    "inventory.py":
+        "89ccae27d3b4a883b685afd14fea013be10b1f7af4a9296e3d10db38d99560f6",
+    "rules.json":
+        "1861d550c7680f5c0199906fda321f6c66108df2ee7d948639c683ed2b521a86",
+}
+WEB_TREE_PINNED = ("a86ab4151302df3e6eea773b30ff2116b47fff20c0716f6cbea97e28"
+                   "2bf1cbeb")
+
+
+def load_results():
+    with open(os.path.join(ROOT, "eval_meta_followup_results.json"),
+              encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def readme_text():
+    with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as fh:
+        return fh.read()
+
+
+def readme_block(text, start, end):
+    _, _, rest = text.partition(start)
+    block, _, _ = rest.partition(end)
+    return block
+
+
+def sha256_of(rel):
+    with open(os.path.join(ROOT, rel), "rb") as fh:
+        return hashlib.sha256(fh.read()).hexdigest()
+
+
+def web_tree_hash():
+    files = []
+    for base, _, names in os.walk(os.path.join(ROOT, "web")):
+        for name in names:
+            files.append(os.path.relpath(os.path.join(base, name), ROOT)
+                         .replace(os.sep, "/"))
+    digest = hashlib.sha256()
+    for rel in sorted(files):
+        with open(os.path.join(ROOT, rel), "rb") as fh:
+            digest.update(rel.encode("utf-8") + b"\0" + fh.read() + b"\0")
+    return digest.hexdigest()
+
+
+def followup_source():
+    with open(os.path.join(ROOT, "scripts", "eval_meta_followup.py"),
+              encoding="utf-8") as fh:
+        return fh.read()
+
+
+class FollowupShapeTest(unittest.TestCase):
+    def test_results_file_has_four_probes(self):
+        results = load_results()
+        self.assertEqual(set(results["probes"]),
+                         set(eval_meta_followup.PROBE_ALLOWLIST))
+        self.assertEqual(len(results["probes"]), 4)
+        for name, probe in results["probes"].items():
+            self.assertEqual(probe["leg"], "closed", name)
+
+    def test_agreement_rates_recompute(self):
+        results = load_results()
+        usability = results["probes"]["spark-usability"]
+        agree = sum(1 for c in usability["cases"] for p in c["parts"]
+                    if p["spark_agree"] is True)
+        total = sum(1 for c in usability["cases"] for p in c["parts"]
+                    if p["spark_agree"] is not None)
+        recorded = usability["agreement"]
+        self.assertEqual((recorded["agree"], recorded["total"]), (agree, total))
+        self.assertEqual(recorded["rate"], "%d/%d" % (agree, total))
+        yard = results["probes"]["baseten-yard"]
+        agree = sum(1 for p in yard["parts"] if p["open_agree"] is True)
+        total = sum(1 for p in yard["parts"] if p["open_agree"] is not None)
+        recorded = yard["agreement"]
+        self.assertEqual((recorded["agree"], recorded["total"]), (agree, total))
+        pooled = results["pooled_updated"]
+        base = results["baseline_wo16"]["live_vs_rules_pooled"]
+        self.assertEqual(pooled["agree"], base["agree"]
+                         + usability["agreement"]["agree"]
+                         + yard["agreement"]["agree"])
+        self.assertEqual(pooled["total"], base["total"]
+                         + usability["agreement"]["total"]
+                         + yard["agreement"]["total"])
+        self.assertEqual(pooled["rate"], "%d/%d" % (pooled["agree"],
+                                                   pooled["total"]))
+
+    def test_rule_grades_recompute_offline(self):
+        results = load_results()
+        by_case = {c["case"]: c
+                   for c in results["probes"]["spark-usability"]["cases"]}
+        for case_id in eval_meta_followup.eval_scale.CASE_ORDER:
+            built = eval_meta_followup.eval_scale.BUILDERS[case_id](ROOT)
+            recorded = [(p["part_id"], p["rule_grade"], p["rule_id"])
+                        for p in by_case[case_id]["parts"]]
+            fresh = [(v["part_id"], v["verdict"], v["rule_id"])
+                     for v in built["verdicts"]]
+            self.assertEqual(recorded, fresh, case_id)
+        yard = results["probes"]["baseten-yard"]
+        built = eval_meta_followup.eval_scale.BUILDERS["yard-demo"](ROOT)
+        recorded = [(p["part_id"], p["rule_grade"], p["rule_id"])
+                    for p in yard["parts"]]
+        fresh = [(v["part_id"], v["verdict"], v["rule_id"])
+                 for v in built["verdicts"]]
+        self.assertEqual(recorded, fresh, "yard-demo")
+
+    def test_no_demo_grade_presented_as_live(self):
+        results = load_results()
+        modes = [p["spark_mode"]
+                 for c in results["probes"]["spark-usability"]["cases"]
+                 for p in c["parts"]]
+        modes += [p["open_mode"]
+                  for p in results["probes"]["baseten-yard"]["parts"]]
+        for mode in modes:
+            self.assertIn(mode, ("live", "live, ungraded", "no live grade"))
+            self.assertNotIn("demo", mode)
+
+    def test_one_attempt_each(self):
+        results = load_results()
+        usability = results["probes"]["spark-usability"]
+        self.assertLessEqual(usability["verify"]["calls_sent"], 1)
+        for case in usability["cases"]:
+            self.assertIn(case["spark"]["call_sent"], (True, False),
+                          case["case"])
+        yard = results["probes"]["baseten-yard"]
+        sam = results["probes"]["sam-segment"]["call"]
+        payload = results["probes"]["spark-image-payload"]["call"]
+        for name, call in (("yard", yard["open"]), ("sam", sam),
+                           ("payload", payload)):
+            self.assertIn(call["call_sent"], (True, False), name)
+        calls = (usability["live_calls_sent"] + yard["live_calls_sent"]
+                 + results["probes"]["sam-segment"]["live_calls_sent"]
+                 + results["probes"]["spark-image-payload"]["live_calls_sent"])
+        self.assertEqual(results["live_calls_sent_total"], calls)
+        self.assertEqual(results["model_list_calls_sent"], 0)
+
+
+class FollowupReadmeTest(unittest.TestCase):
+    def test_readme_note_matches_file(self):
+        results = load_results()
+        block = readme_block(readme_text(), FOLLOWUP_START, FOLLOWUP_END)
+        self.assertTrue(block.strip())
+        self.assertIn(results["pooled_updated"]["rate"], block)
+        usability = results["probes"]["spark-usability"]["agreement"]
+        yard = results["probes"]["baseten-yard"]["agreement"]
+        self.assertIn(usability["rate"], block)
+        self.assertIn(yard["rate"], block)
+        sam = results["probes"]["sam-segment"]["call"]
+        payload = results["probes"]["spark-image-payload"]["call"]
+        if sam.get("request_id"):
+            self.assertIn(sam["request_id"], block)
+        if payload.get("request_id"):
+            self.assertIn(payload["request_id"], block)
+        self.assertIn("CLOSED", block)
+        self.assertIn("VIN_LIVE stays False", block)
+
+    def test_wo16_table_still_renders_from_wo16_file(self):
+        with open(os.path.join(ROOT, "eval_meta_results.json"),
+                  encoding="utf-8") as fh:
+            wo16 = json.load(fh)
+        block = readme_block(readme_text(), eval_meta_followup.eval_meta.START,
+                             eval_meta_followup.eval_meta.END)
+        self.assertEqual(
+            block, "\n" + eval_meta_followup.eval_meta.render_section(wo16))
+
+
+class FenceTest(unittest.TestCase):
+    def test_wo16_artifacts_byte_identical(self):
+        for rel, pinned in WO16_PINNED.items():
+            self.assertEqual(sha256_of(rel), pinned, rel)
+
+    def test_no_product_file_changed(self):
+        for rel, pinned in PRODUCT_PINNED.items():
+            self.assertEqual(sha256_of(rel), pinned, rel)
+        self.assertEqual(web_tree_hash(), WEB_TREE_PINNED)
+
+    def test_vin_live_still_false(self):
+        results = load_results()
+        self.assertFalse(results["vin_live"])
+        self.assertEqual(results["live_vin_calls_sent"], 0)
+        self.assertIs(bay.VIN_LIVE, False)
+
+    def test_allowlist_is_four_probes(self):
+        self.assertEqual(eval_meta_followup.PROBE_ALLOWLIST,
+                         ("spark-usability", "baseten-yard", "sam-segment",
+                          "spark-image-payload"))
+        for name in ("probe_spark_usability", "probe_baseten_yard",
+                     "probe_sam_segment", "probe_spark_payload"):
+            self.assertTrue(callable(getattr(eval_meta_followup, name)), name)
+
+    def test_no_other_live_path(self):
+        src = followup_source()
+        for marker in LIVE_CALL_MARKERS:
+            self.assertNotIn(marker, src, marker)
+        self.assertEqual(src.count("urlopen("), 2)
+        self.assertNotIn('"/sam/segment"', src)
+        self.assertNotIn("'/sam/segment'", src)
+        self.assertIn("/responses", src)
+
+    def test_sam_official_source_only(self):
+        results = load_results()
+        discovery = results["probes"]["sam-segment"]["discovery"]
+        self.assertTrue(discovery["sources"])
+        for source in discovery["sources"]:
+            self.assertIn("dev.meta.ai", source)
+        self.assertEqual(discovery["confirmed_path"],
+                         "POST " + results["api_base"] + "/responses")
+        self.assertEqual(discovery["confirmed_model"], "sam-3.1")
+
+    def test_no_secrets_in_artifacts(self):
+        try:
+            with open(os.path.join(ROOT, ".env"), encoding="utf-8") as fh:
+                values = [line.split("=", 1)[1].strip()
+                          for line in fh.read().splitlines()
+                          if "=" in line and line.split("=", 1)[1].strip()]
+        except OSError:
+            values = []  # cold clone ships no .env; nothing to leak
+        haystacks = [
+            open(os.path.join(ROOT, "eval_meta_followup_results.json"),
+                 encoding="utf-8").read(),
+            readme_block(readme_text(), FOLLOWUP_START, FOLLOWUP_END),
+        ]
+        for value in values:
+            for haystack in haystacks:
+                self.assertNotIn(value, haystack)
+
+
+if __name__ == "__main__":
+    unittest.main()

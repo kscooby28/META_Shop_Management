@@ -486,3 +486,16 @@ SAM 3.1 yard-frame verification:
 
 VIN_LIVE gate: stays False (no demo VIN plate images exist, so 0 live VIN calls sent; the flip is unproven).
 <!-- EVAL-META:END -->
+
+<!-- EVAL-META-FOLLOWUP:START -->
+### Follow-up: one retry pass on the three failed legs (WO16 follow-up)
+
+One attempt per failed leg, plus one Spark image-payload test. Results in `eval_meta_followup_results.json`; the WO16 table above is untouched.
+
+- Spark 1.3 usability: REVIVED. Verify live ok (17221 ms, finish stop, max_tokens headroom 16384, no truncation); per-case grades 11/15 vs rules. Disagreements: yard-demo driver mirror (rules A, live B), inventory-demo spare ignition coil (B/C), alloy wheel (B/C), engine computer (C/B).
+- Baseten yard: REVIVED. Yard call live ok in 6953 ms (WO16 timed out at 45s; WO13 took 22s), 6/7 vs rules; only driver mirror disagrees (rules A, live B).
+- SAM segment: path CONFIRMED, media rejected. POST /v1/responses with sam-3.1 parsed the request (no 404); HTTP 400 invalid_request_error: `image/svg+xml` unsupported, supported JPEG/PNG/GIF/WebP/ICO. Request ID 74ff9f0d-656a-4b63-97f6-1469943a201e. One attempt used; a future order may resend yard frame 1 as PNG.
+- Spark image payload: shape PARSED, media rejected. The data-URI image_url part was structurally accepted (the error points at the part, not the shape); HTTP 400 on `image/svg+xml`, same supported list. Request ID a1a0560a-9902-43f8-b560-b3544eb63cd6. Shape proof only; VIN_LIVE stays False.
+
+Pooled live vs rules updated: 22/30 (WO16 5/8 plus follow-up Spark 11/15 plus follow-up Baseten yard 6/7; no part counted twice). All four legs CLOSED: no further retry follows from this order.
+<!-- EVAL-META-FOLLOWUP:END -->

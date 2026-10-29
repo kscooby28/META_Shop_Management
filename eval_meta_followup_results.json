@@ -1,0 +1,486 @@
+{
+  "order": "Work Order 16 follow-up: one retry pass on the three failed live legs, plus the Spark image-payload test",
+  "baseline_wo16": {
+    "spark_vs_rules": {
+      "agree": 0,
+      "total": 0,
+      "rate": "0/0"
+    },
+    "open_vs_rules": {
+      "agree": 5,
+      "total": 8,
+      "rate": "5/8"
+    },
+    "live_vs_rules_pooled": {
+      "agree": 5,
+      "total": 8,
+      "rate": "5/8"
+    },
+    "spark_vs_open": {
+      "agree": 0,
+      "total": 0,
+      "rate": "0/0"
+    }
+  },
+  "max_tokens_headroom": 16384,
+  "spark_model": "muse-spark-1.3",
+  "sam_model": "sam-3.1",
+  "api_base": "https://api.meta.ai/v1",
+  "key_cause": "",
+  "probes": {
+    "spark-usability": {
+      "verify": {
+        "live_ok": true,
+        "calls_sent": 1,
+        "latency_ms": 17221,
+        "cause": "",
+        "finish_reason": "stop",
+        "content_len": 12
+      },
+      "cases": [
+        {
+          "case": "yard-demo",
+          "label": "Yard demo case (7 harvest parts)",
+          "spark": {
+            "live_ok": true,
+            "call_sent": true,
+            "latency_ms": 12685,
+            "cause": "",
+            "dropped": 0,
+            "finish_reason": "stop",
+            "content_len": 1842
+          },
+          "parts": [
+            {
+              "part_id": "p_mirror",
+              "label": "driver mirror",
+              "rule_grade": "A",
+              "rule_id": "r_pull_now",
+              "rule_name": "Clear, wanted, worth listing",
+              "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+              "spark_grade": "B",
+              "spark_reason": "intact yes seen in 2 frames demo-frame-1 and demo-frame-2 but best_coverage only 0.0021, high demand from demo-sample Yard Case 4 board, price 45 to 65 from same board with 5 solds netting 39.04 to 56.39 for 15 min pull - quick pull but moderate payout so worth it if standing there",
+              "spark_mode": "live",
+              "spark_agree": false
+            },
+            {
+              "part_id": "p_bumper",
+              "label": "front bumper cover",
+              "rule_grade": "A",
+              "rule_id": "r_pull_now",
+              "rule_name": "Clear, wanted, worth listing",
+              "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+              "spark_grade": "A",
+              "spark_reason": "intact yes in 2 frames demo-frame-1 and demo-frame-2 with coverage 0.0512, medium demand from board, price 120 to 180 from board with 5 solds netting 104.1 to 156.15 for 40 min pull - pull and list now",
+              "spark_mode": "live",
+              "spark_agree": true
+            },
+            {
+              "part_id": "p_wheel",
+              "label": "alloy wheel",
+              "rule_grade": "A",
+              "rule_id": "r_pull_now",
+              "rule_name": "Clear, wanted, worth listing",
+              "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+              "spark_grade": "A",
+              "spark_reason": "intact yes in 3 frames demo-frame-1 to demo-frame-3, count 2, high demand from board, price 80 to 120 from board with 5 solds netting 69.4 to 104.1 for 30 min pull - pull and list now, count 2 helps total",
+              "spark_mode": "live",
+              "spark_agree": true
+            },
+            {
+              "part_id": "p_headlight",
+              "label": "driver headlight",
+              "rule_grade": "B",
+              "rule_id": "r_worth_it_seen",
+              "rule_name": "Good part, softer demand",
+              "rule_explain": "Intact and not unwanted: grab it while you are there.",
+              "spark_grade": "B",
+              "spark_reason": "intact yes but only 1 frame demo-frame-1 with best_coverage 0.0072 so thin visual evidence, high demand from board, price 55 to 75 from board with 5 solds netting 47.71 to 65.06 for 20 min pull - worth it if standing there",
+              "spark_mode": "live",
+              "spark_agree": true
+            },
+            {
+              "part_id": "p_handle",
+              "label": "driver door handle",
+              "rule_grade": "C",
+              "rule_id": "r_thin_evidence",
+              "rule_name": "Seen once and unclear",
+              "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+              "spark_grade": "C",
+              "spark_reason": "evidence is thin: intact unknown in 1 frame demo-frame-2 with coverage 0.0012, demand unknown, price_known false with 0 solds and unreliable, no pull time - leave it",
+              "spark_mode": "live",
+              "spark_agree": true
+            },
+            {
+              "part_id": "p_taillight",
+              "label": "left taillight",
+              "rule_grade": "C",
+              "rule_id": "r_damaged",
+              "rule_name": "Broken in the photo",
+              "rule_explain": "The part looks broken, so leave it no matter what else is true.",
+              "spark_grade": "C",
+              "spark_reason": "intact no in 1 frame demo-frame-3, low demand from board, price_known false with 0 solds and unreliable and no pull time - broken with no value evidence so leave it",
+              "spark_mode": "live",
+              "spark_agree": true
+            },
+            {
+              "part_id": "p_diff",
+              "label": "rear differential",
+              "rule_grade": "A",
+              "rule_id": "r_pull_now",
+              "rule_name": "Clear, wanted, worth listing",
+              "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+              "spark_grade": "A",
+              "spark_reason": "intact yes in 2 frames demo-frame-3 and demo-frame-4 with coverage 0.084, high demand from board, price 900 to 1100 from board with 5 solds netting 780.75 to 954.25 for 60 min pull - pull and list now despite hour pull",
+              "spark_mode": "live",
+              "spark_agree": true
+            }
+          ]
+        },
+        {
+          "case": "bay-case1",
+          "label": "Bay demo case1 (1 job part)",
+          "spark": {
+            "live_ok": true,
+            "call_sent": true,
+            "latency_ms": 6891,
+            "cause": "",
+            "dropped": 0,
+            "finish_reason": "stop",
+            "content_len": 263
+          },
+          "parts": [
+            {
+              "part_id": "bp-case1-1",
+              "label": "Matched module set from one donor car: module, immobilizer, ignition switch, steering lock, key, and door cylinder",
+              "rule_grade": "C",
+              "rule_id": "r_thin_evidence",
+              "rule_name": "Seen once and unclear",
+              "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+              "spark_grade": "C",
+              "spark_reason": "Leave it: price unknown with no sample comp and money grade C unreliable, demand unknown, intact unknown with 0 frames seen, and case note requires exact match after a prior wrong-index rejection.",
+              "spark_mode": "live",
+              "spark_agree": true
+            }
+          ]
+        },
+        {
+          "case": "bay-case2",
+          "label": "Bay demo case2 (1 job part)",
+          "spark": {
+            "live_ok": true,
+            "call_sent": true,
+            "latency_ms": 5441,
+            "cause": "",
+            "dropped": 0,
+            "finish_reason": "stop",
+            "content_len": 253
+          },
+          "parts": [
+            {
+              "part_id": "bp-case2-1",
+              "label": "Clutch-circuit oil, correct spec for this gearbox",
+              "rule_grade": "C",
+              "rule_id": "r_thin_evidence",
+              "rule_name": "Seen once and unclear",
+              "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+              "spark_grade": "C",
+              "spark_reason": "Leave it: frames_seen 0 with intact unknown, demand unknown, price_known false with money_grade C for no sample comp, and unknown pull effort, so evidence is too thin to justify pulling.",
+              "spark_mode": "live",
+              "spark_agree": true
+            }
+          ]
+        },
+        {
+          "case": "bay-case3",
+          "label": "Bay demo case3 (0 job parts)",
+          "spark": {
+            "live_ok": false,
+            "call_sent": false,
+            "latency_ms": 0,
+            "cause": "no parts to grade, so no call was sent",
+            "dropped": 0,
+            "finish_reason": "",
+            "content_len": 0
+          },
+          "parts": []
+        },
+        {
+          "case": "inventory-demo",
+          "label": "Inventory demo parts (6 parts)",
+          "spark": {
+            "live_ok": true,
+            "call_sent": true,
+            "latency_ms": 15333,
+            "cause": "",
+            "dropped": 0,
+            "finish_reason": "stop",
+            "content_len": 1808
+          },
+          "parts": [
+            {
+              "part_id": "ip-coil",
+              "label": "spare ignition coil",
+              "rule_grade": "B",
+              "rule_id": "r_worth_it_seen",
+              "rule_name": "Good part, softer demand",
+              "rule_explain": "Intact and not unwanted: grab it while you are there.",
+              "spark_grade": "C",
+              "spark_reason": "Evidence is thin with demand unknown, frames_seen 0, no sold comps, unreliable valuation and pull time unknown. Only a $25 demo-sample inventory seed price for intact yes used working when pulled, plus owner note kept as roadside spare, so leave it.",
+              "spark_mode": "live",
+              "spark_agree": false
+            },
+            {
+              "part_id": "ip-headlight",
+              "label": "driver headlight",
+              "rule_grade": "B",
+              "rule_id": "r_worth_it_seen",
+              "rule_name": "Good part, softer demand",
+              "rule_explain": "Intact and not unwanted: grab it while you are there.",
+              "spark_grade": "B",
+              "spark_reason": "Evidence is thin with demand unknown, frames_seen 0, no sold comps, unreliable valuation and pull time unknown. Only a $65 demo-sample inventory seed price, but intact yes and used lens clear on Parts car 1, so worth it if standing there, not A.",
+              "spark_mode": "live",
+              "spark_agree": true
+            },
+            {
+              "part_id": "ip-diff",
+              "label": "rear differential",
+              "rule_grade": "B",
+              "rule_id": "r_worth_it_seen",
+              "rule_name": "Good part, softer demand",
+              "rule_explain": "Intact and not unwanted: grab it while you are there.",
+              "spark_grade": "B",
+              "spark_reason": "Evidence is thin with demand unknown, frames_seen 0, no sold comps, unreliable valuation and pull time unknown. Leaning on $1000 demo-sample inventory seed price, intact yes, used turns smoothly by hand, and owner note the $1000 reason this car exists, so worth it if standing there, not A.",
+              "spark_mode": "live",
+              "spark_agree": true
+            },
+            {
+              "part_id": "ip-wheel",
+              "label": "alloy wheel",
+              "rule_grade": "B",
+              "rule_id": "r_worth_it_seen",
+              "rule_name": "Good part, softer demand",
+              "rule_explain": "Intact and not unwanted: grab it while you are there.",
+              "spark_grade": "C",
+              "spark_reason": "Evidence is thin with demand unknown, frames_seen 0, no sold comps, unreliable valuation and pull time unknown. Only a $40 demo-sample inventory seed price for single intact yes used straight and true, so leave it.",
+              "spark_mode": "live",
+              "spark_agree": false
+            },
+            {
+              "part_id": "ip-lid",
+              "label": "trunk lid",
+              "rule_grade": "C",
+              "rule_id": "r_thin_evidence",
+              "rule_name": "Seen once and unclear",
+              "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+              "spark_grade": "C",
+              "spark_reason": "Thinnest evidence with no price, price_known false, intact unknown, condition unknown, demand unknown, frames_seen 0, no sold comps and pull time unknown, plus owner note haven't looked closely yet, so leave it.",
+              "spark_mode": "live",
+              "spark_agree": true
+            },
+            {
+              "part_id": "ip-ecu",
+              "label": "engine computer",
+              "rule_grade": "C",
+              "rule_id": "r_thin_evidence",
+              "rule_name": "Seen once and unclear",
+              "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+              "spark_grade": "B",
+              "spark_reason": "Evidence is thin with demand unknown, frames_seen 0, no sold comps, unreliable valuation and pull time unknown. Only a $200 demo-sample owner note price for intact unknown used untested, but owner note says pull before anything else, so worth it if standing there, not A.",
+              "spark_mode": "live",
+              "spark_agree": false
+            }
+          ]
+        }
+      ],
+      "agreement": {
+        "agree": 11,
+        "total": 15,
+        "rate": "11/15"
+      },
+      "live_calls_sent": 5,
+      "leg": "closed"
+    },
+    "baseten-yard": {
+      "case": "yard-demo",
+      "label": "Yard demo case (7 harvest parts)",
+      "model": "meta-models/muse-spark-open-1026",
+      "endpoint": "https://inference.baseten.co/v1",
+      "timeout_seconds": 45,
+      "open": {
+        "live_ok": true,
+        "call_sent": true,
+        "latency_ms": 6953,
+        "cause": "",
+        "dropped": 0
+      },
+      "parts": [
+        {
+          "part_id": "p_mirror",
+          "label": "driver mirror",
+          "rule_grade": "A",
+          "rule_id": "r_pull_now",
+          "rule_name": "Clear, wanted, worth listing",
+          "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+          "open_grade": "B",
+          "open_reason": "Intact yes in 2 frames but best coverage tiny 0.0021, high demand, verified price $45-$65 median $55 and net $39.04-$56.39 over 5 solds, 15-min pull - easy B.",
+          "open_mode": "live",
+          "open_agree": false
+        },
+        {
+          "part_id": "p_bumper",
+          "label": "front bumper cover",
+          "rule_grade": "A",
+          "rule_id": "r_pull_now",
+          "rule_name": "Clear, wanted, worth listing",
+          "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+          "open_grade": "A",
+          "open_reason": "Intact yes in 2 frames with coverage 0.0512, medium demand, verified price $120-$180 median $150 and net $104.10-$156.15 over 5 solds, 40-min pull - strong A.",
+          "open_mode": "live",
+          "open_agree": true
+        },
+        {
+          "part_id": "p_wheel",
+          "label": "alloy wheel",
+          "rule_grade": "A",
+          "rule_id": "r_pull_now",
+          "rule_name": "Clear, wanted, worth listing",
+          "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+          "open_grade": "A",
+          "open_reason": "Intact yes in 3 frames coverage 0.0207, count 2, high demand, verified price $80-$120 median $100 and net $69.40-$104.10 over 5 solds, 30-min pull - A, value doubled by 2 units.",
+          "open_mode": "live",
+          "open_agree": true
+        },
+        {
+          "part_id": "p_headlight",
+          "label": "driver headlight",
+          "rule_grade": "B",
+          "rule_id": "r_worth_it_seen",
+          "rule_name": "Good part, softer demand",
+          "rule_explain": "Intact and not unwanted: grab it while you are there.",
+          "open_grade": "B",
+          "open_reason": "Intact yes but only 1 frame with small coverage 0.0072, high demand, verified price $55-$75 median $65 and net $47.71-$65.06 over 5 solds, 20-min pull - B due to limited view.",
+          "open_mode": "live",
+          "open_agree": true
+        },
+        {
+          "part_id": "p_handle",
+          "label": "driver door handle",
+          "rule_grade": "C",
+          "rule_id": "r_thin_evidence",
+          "rule_name": "Seen once and unclear",
+          "rule_explain": "Seen in only one frame and condition is unclear: not enough reliable evidence.",
+          "open_grade": "C",
+          "open_reason": "Intact unknown in only 1 frame with tiny coverage 0.0012, demand unknown, no price known, 0 solds and unreliable with note No solds on file - evidence too thin, leave it.",
+          "open_mode": "live",
+          "open_agree": true
+        },
+        {
+          "part_id": "p_taillight",
+          "label": "left taillight",
+          "rule_grade": "C",
+          "rule_id": "r_damaged",
+          "rule_name": "Broken in the photo",
+          "rule_explain": "The part looks broken, so leave it no matter what else is true.",
+          "open_grade": "C",
+          "open_reason": "Intact no in 1 frame coverage 0.007, low demand, no price known, 0 solds and unreliable with note No solds on file - damaged and no market, leave it.",
+          "open_mode": "live",
+          "open_agree": true
+        },
+        {
+          "part_id": "p_diff",
+          "label": "rear differential",
+          "rule_grade": "A",
+          "rule_id": "r_pull_now",
+          "rule_name": "Clear, wanted, worth listing",
+          "rule_explain": "Intact, seen across frames, wanted, and priced above the list floor.",
+          "open_grade": "A",
+          "open_reason": "Intact yes in 2 frames with best coverage 0.084, high demand, verified price $900-$1100 median $1000 and net $780.75-$954.25 over 5 solds, 60-min pull justified - clear A.",
+          "open_mode": "live",
+          "open_agree": true
+        }
+      ],
+      "agreement": {
+        "agree": 6,
+        "total": 7,
+        "rate": "6/7"
+      },
+      "live_calls_sent": 1,
+      "leg": "closed"
+    },
+    "sam-segment": {
+      "discovery": {
+        "sources": [
+          "https://dev.meta.ai/docs/media-segmentation",
+          "https://dev.meta.ai/docs/sam/segmenting"
+        ],
+        "confirmed_path": "POST https://api.meta.ai/v1/responses",
+        "confirmed_model": "sam-3.1",
+        "evidence": "dev.meta.ai media-segmentation: 'One model, sam-3.1, segments both stills and clips over the Responses API'; request example posts https://api.meta.ai/v1/responses with model sam-3.1 and input message content parts input_text plus input_image; dev.meta.ai sam/segmenting: 'image_url / video_url: a public URL or a base64 data URL (data:image/png;base64,...)'."
+      },
+      "call": {
+        "live_ok": false,
+        "call_sent": true,
+        "latency_ms": 2274,
+        "cause": "API error 400: {\"error\":{\"code\":null,\"message\":\"unsupported media type at input[0].content[1]: `image/svg+xml`. Supported: JPEG, PNG, GIF, WebP, ICO.\",\"param\":null,\"type\":\"invalid_request_error\"}}",
+        "frame": "demo-frame-1",
+        "phrase": "driver mirror",
+        "masks": [],
+        "verdict": "failed",
+        "request_id": "74ff9f0d-656a-4b63-97f6-1469943a201e"
+      },
+      "live_calls_sent": 1,
+      "leg": "closed"
+    },
+    "spark-image-payload": {
+      "call": {
+        "accepted": false,
+        "call_sent": true,
+        "latency_ms": 2957,
+        "cause": "API error 400: {\"error\":{\"code\":null,\"message\":\"unsupported media type at messages[0].content[1]: `image/svg+xml`. Supported: JPEG, PNG, GIF, WebP, ICO.\",\"param\":null,\"type\":\"invalid_request_error\"}}",
+        "frame": "frame1.svg",
+        "request_id": "a1a0560a-9902-43f8-b560-b3544eb63cd6",
+        "http_status": 400,
+        "sent_shape": {
+          "path": "/chat/completions",
+          "model": "muse-spark-1.3",
+          "message_roles": [
+            "user"
+          ],
+          "content_parts": [
+            {
+              "type": "text",
+              "field": "text"
+            },
+            {
+              "type": "image_url",
+              "field": "image_url.url",
+              "data_uri_form": "data:image/svg+xml;base64,<chars>",
+              "data_uri_chars": 3106
+            }
+          ],
+          "max_tokens": 16384,
+          "response_format": {
+            "type": "json_object"
+          }
+        },
+        "response": {}
+      },
+      "live_calls_sent": 1,
+      "leg": "closed"
+    }
+  },
+  "pooled_updated": {
+    "agree": 22,
+    "total": 30,
+    "rate": "22/30",
+    "formula": "WO16 pooled 5/8 plus follow-up Spark 11/15 plus follow-up Baseten yard 6/7; no part counted twice because WO16 graded zero Spark parts and zero yard Open parts"
+  },
+  "vin_live": false,
+  "vin_reason": "the payload test proves a payload shape, not the VIN evidence gate; no demo VIN plate images exist, so 0 live VIN calls sent and the flip stays unproven",
+  "live_vin_calls_sent": 0,
+  "timeouts": "meta_client timeout raised to 60s in-process for measurement only; Baseten sent at its product 45s; SAM and payload posts at 60s; product defaults unchanged",
+  "live_calls_sent_total": 8,
+  "model_list_calls_sent": 0,
+  "model_list_note": "no live model-list call: outside the four-probe allowlist"
+}
