@@ -187,6 +187,37 @@ how and where the open model is used — second-look grading after
 verdicts, beside the rule grade, never an overrule. The video shows it,
 this section states it, and the submission points at both.
 
+## Credentials + auto-post, the mechanism (Work Order 15)
+
+Settings holds two credential profiles, and the software does more
+once a person adds their own. The shop tier holds a distributor or
+warehouse login plus an email API credential, for live retailer
+quotes and estimate emails. The DIY tier holds a local parts-store
+login, in the shape of an AutoZone or O'Reilly website login, for
+price checks, plus marketplace accounts including an eBay Developer
+API slot, for posting. Every credential lives in the browser only,
+next to the first-run profile: never sent to the server, never
+logged, never committed, and the interface shows presence only, set
+or not set, never the value.
+
+The eBay auto-post loop is: picture, analyze the part, value it
+against new and used, draft, the human Approve tap, then the API
+posts — draft to listing to the cha-ching sale notification. What
+the user provides for live posting is their eBay developer key plus
+their eBay account authorization, and the adapter posts the
+approved draft through the API. Automatic means the API does the
+posting work, no manual listing on ebay.com — never post without
+approval. Nothing posts without the human tap, ever. This order
+ships the door plus the mock demo behind it: mock distributor and
+store logins and a mock marketplace post in the real API shape, all
+labeled demo. Live integrations come one at a time after this, each
+on the user's own account with the platform rules sorted first.
+Facebook Marketplace posting stays vision-only: named as roadmap,
+never built here, because its platform rules and the
+personal-profile line need resolving before any real build. The
+eBay side is the user's own account posting plus the existing
+comps engine — never scraped sold data, never remembered prices.
+
 ## Run it
 
 No dependencies — standard library only. You need Python 3.10 or newer
@@ -324,6 +355,8 @@ behind it.
   help, and comps value lookups (inventory data itself stays in the browser).
 - `web/gallery.js` — pure strip/viewer model behind the photo gallery.
 - `web/ux.js` — pure usability logic: drafts, guides, empty states, deletes.
+- `web/credentials.js` — local-only credential profiles plus the mock
+  distributor, store, and marketplace adapters (all demo, no network).
 - Guided tour (Work Order 12) — the Take the tour entry on both home
   screens walks the video spine beats in order on demo cache.
 - `tests/` — Python suites plus a Node driver for the browser logic

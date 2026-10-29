@@ -872,7 +872,47 @@ async function runPost() {
     " Destinations: " + esc((r.destinations || []).join(", ") || "none") + ".</div>";
   feed("Posted via the mock outbox (nothing left this machine)",
     "tool listing.post (" + (r.adapter || "mock") + ") → local outbox receipt");
+  offerMockMarketplace(r);
   return res;
+}
+
+/* Mock marketplace (WO15): after the real Approve gate and the mock-outbox
+ * Post, the DIY tier can walk the eBay Developer API shape as a labeled
+ * demo: approval receipt in, mock listing plus mock cha-ching out. The
+ * mock adapter re-checks the approval itself, so this button cannot post
+ * without it either. */
+function offerMockMarketplace(receipt) {
+  const box = $("receipt");
+  const dests = (receipt && receipt.destinations) || [];
+  if (dests.indexOf("ebay") < 0) return;
+  const wrap = document.createElement("div");
+  wrap.className = "notice";
+  wrap.textContent = "Approved and posted to the mock outbox. Next in the demo loop: post through the mock marketplace API. ";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "small";
+  btn.textContent = "Post to mock marketplace (demo)";
+  btn.addEventListener("click", guard(async () => {
+    const out = Credentials.mockEbayPost({
+      draft: { title: $("listingTitle").value || "mock listing" },
+      approval: { approved: true, draftId: state.draftId },
+      storage: localStorage,
+    });
+    const done = document.createElement("div");
+    done.className = "notice";
+    done.textContent = "Mock listing " + out.listing.id + ": '" + out.listing.title +
+      "' — " + out.listing.status + ". " + out.chaching;
+    box.appendChild(done);
+    feed("Mock marketplace post (demo): listed, then cha-ching",
+      "tool mock.ebay.post → mock listing, approval receipt required");
+  }));
+  wrap.appendChild(btn);
+  const hint = document.createElement("div");
+  hint.className = "hint";
+  hint.textContent = "Needs your eBay developer key + account authorization in Settings (DIY). " +
+    "Values stay in this browser; the mock checks presence only.";
+  wrap.appendChild(hint);
+  box.appendChild(wrap);
 }
 
 /* ---------- rules ---------- */
@@ -1876,6 +1916,7 @@ function renderSettings() {
     Profile.clearProfile(localStorage);
     localStorage.removeItem(INV_KEY);
     localStorage.removeItem(INV_SEED_KEY);
+    localStorage.removeItem(Credentials.KEY);
     location.reload();
   });
   box.appendChild(reset);
@@ -1903,6 +1944,130 @@ function renderSettings() {
     renderGuides();
   });
   box.appendChild(walk);
+  renderCreds(box);
+}
+
+/* Credentials settings (WO15): two profiles, browser-local only. Inputs
+ * always render empty and presence renders set/not-set, so a value is
+ * never shown after entry. Mock buttons walk the mock adapters below,
+ * all labeled demo. */
+function renderCreds(box) {
+  const head = document.createElement("h4");
+  head.textContent = "Credentials (this browser only — never sent, never shown again)";
+  box.appendChild(head);
+  const cards = [
+    { profile: "shop", title: "Shop: distributor login + email API credential",
+      blurb: "For live retailer quotes and estimate emails (live integrations are roadmap; the mocks below are demo).",
+      mockLabel: "Test distributor login (demo mock)",
+      mockFn: () => Credentials.mockDistributorLogin(localStorage) },
+    { profile: "diy", title: "DIY: parts-store login + marketplace accounts",
+      blurb: "For price checks and posting (live integrations are roadmap; the mocks below are demo).",
+      mockLabel: "Test store login (demo mock)",
+      mockFn: () => Credentials.mockStoreLogin(localStorage) },
+  ];
+  for (const card of cards) {
+    const wrap = document.createElement("div");
+    wrap.className = "notice";
+    const title = document.createElement("strong");
+    title.textContent = card.title;
+    wrap.appendChild(title);
+    const blurb = document.createElement("div");
+    blurb.className = "hint";
+    blurb.textContent = card.blurb;
+    wrap.appendChild(blurb);
+    const fields = {};
+    for (const spec of Credentials.PROFILES[card.profile]) {
+      const row = document.createElement("label");
+      row.textContent = spec.label + " ";
+      const input = document.createElement("input");
+      input.type = spec.secret ? "password" : "text";
+      input.autocomplete = "off";
+      fields[spec.field] = input;
+      row.appendChild(input);
+      wrap.appendChild(row);
+    }
+    const present = document.createElement("div");
+    present.className = "hint";
+    const paint = () => {
+      present.textContent = Credentials.presenceLines(localStorage)
+        .filter((l) => l.profile === card.profile)
+        .map((l) => l.text).join(" · ");
+    };
+    paint();
+    wrap.appendChild(present);
+    const save = document.createElement("button");
+    save.type = "button";
+    save.className = "small";
+    save.textContent = "Save " + card.profile + " credentials";
+    save.addEventListener("click", guard(async () => {
+      const values = {};
+      for (const k of Object.keys(fields)) values[k] = fields[k].value;
+      Credentials.saveCreds(localStorage, card.profile, values);
+      for (const k of Object.keys(fields)) fields[k].value = "";
+      paint();
+      feed("Credentials saved (" + card.profile + ", presence only shown)",
+        "settings — browser-local store, never sent");
+    }));
+    wrap.appendChild(save);
+    const clear = document.createElement("button");
+    clear.type = "button";
+    clear.className = "small";
+    clear.textContent = "Clear";
+    clear.addEventListener("click", () => {
+      Credentials.clearCreds(localStorage, card.profile);
+      for (const k of Object.keys(fields)) fields[k].value = "";
+      paint();
+    });
+    wrap.appendChild(clear);
+    const mockOut = document.createElement("div");
+    mockOut.className = "hint";
+    const mock = document.createElement("button");
+    mock.type = "button";
+    mock.className = "small";
+    mock.textContent = card.mockLabel;
+    mock.addEventListener("click", guard(async () => {
+      const session = card.mockFn();
+      mockOut.textContent = (session.supplier || session.store) + ": " +
+        session.account + " (" + session.sessionId + "). " + session.note;
+      feed("Mock login walked (demo): " + (session.supplier || session.store),
+        "tool mock.login → presence-checked session, no network");
+    }));
+    wrap.appendChild(mock);
+    wrap.appendChild(mockOut);
+    if (card.profile === "diy") {
+      const row = document.createElement("label");
+      row.textContent = "Mock price check (demo): part name ";
+      const name = document.createElement("input");
+      name.type = "text";
+      name.placeholder = "rear differential";
+      row.appendChild(name);
+      wrap.appendChild(row);
+      const price = document.createElement("button");
+      price.type = "button";
+      price.className = "small";
+      price.textContent = "Check new vs used (demo)";
+      const out = document.createElement("div");
+      out.className = "hint";
+      price.addEventListener("click", () => {
+        const fresh = Credentials.mockNewPrice(name.value);
+        const hit = ((state.report && state.report.verdicts) || [])
+          .filter((v) => (v.label || "").toLowerCase() === (name.value || "").trim().toLowerCase())[0];
+        let used = "Used: no graded verdict yet — run the Yard flow to grade it first.";
+        if (hit && hit.inputs && hit.inputs.price_known) {
+          used = "Used: " + money(hit.inputs.price_low) +
+            (hit.inputs.price_high && hit.inputs.price_high !== hit.inputs.price_low
+              ? " to " + money(hit.inputs.price_high) : "") +
+            " (" + hit.inputs.price_source + ").";
+        }
+        out.textContent = fresh.known
+          ? "New (mock): $" + fresh.newPrice + " (" + fresh.source + "). " + used
+          : fresh.note + " " + used;
+      });
+      wrap.appendChild(price);
+      wrap.appendChild(out);
+    }
+    box.appendChild(wrap);
+  }
 }
 
 function initIdentity() {
