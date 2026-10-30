@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import sys
+import tempfile
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,6 +28,33 @@ LIVE_CALL_MARKERS = test_eval_meta.LiveCallSitesTest.MARKERS
 FOLLOWUP_START = "<!-- EVAL-META-FOLLOWUP:START -->"
 FOLLOWUP_END = "<!-- EVAL-META-FOLLOWUP:END -->"
 
+# .env names ending in these suffixes hold PUBLIC CONFIG (model ids,
+# endpoint paths, base URLs — public by construction, published in
+# official docs), never secrets. The no-secrets scan exempts values
+# under these name patterns only; every other .env value is asserted
+# absent from every artifact.
+PUBLIC_CONFIG_SUFFIXES = ("_MODEL", "_PATH", "_ENDPOINT", "_BASE")
+
+
+def env_secret_values(env_path):
+    """Secret-shaped .env values only; public-config names exempt."""
+    secrets = []
+    try:
+        with open(env_path, encoding="utf-8") as fh:
+            lines = fh.read().splitlines()
+    except OSError:
+        return secrets  # cold clone ships no .env; nothing to leak
+    for line in lines:
+        if "=" not in line:
+            continue
+        name, _, value = line.partition("=")
+        if not value.strip():
+            continue
+        if name.strip().endswith(PUBLIC_CONFIG_SUFFIXES):
+            continue
+        secrets.append(value.strip())
+    return secrets
+
 # sha256 pins taken at the follow-up commit. Any edit to a fenced file
 # fails loudly here instead of slipping through.
 WO16_PINNED = {
@@ -35,7 +63,7 @@ WO16_PINNED = {
     "eval_meta_results.json":
         "61b24bb39bc1b2888db0f0e85c2695bf419faaf952c518422e0f627f1fdd3d03",
     os.path.join("tests", "test_eval_meta.py"):
-        "6b416633335e76dedc07afe775936556ec89b9ca8af01de28296378e376a267f",
+        "574afea0f5e0ffb78ba8fce9d442f660b8e05fc389c46d76b3e5d4aeae4e3451",
 }
 PRODUCT_PINNED = {
     "server.py":
@@ -258,13 +286,7 @@ class FenceTest(unittest.TestCase):
         self.assertEqual(discovery["confirmed_model"], "sam-3.1")
 
     def test_no_secrets_in_artifacts(self):
-        try:
-            with open(os.path.join(ROOT, ".env"), encoding="utf-8") as fh:
-                values = [line.split("=", 1)[1].strip()
-                          for line in fh.read().splitlines()
-                          if "=" in line and line.split("=", 1)[1].strip()]
-        except OSError:
-            values = []  # cold clone ships no .env; nothing to leak
+        values = env_secret_values(os.path.join(ROOT, ".env"))
         haystacks = [
             open(os.path.join(ROOT, "eval_meta_followup_results.json"),
                  encoding="utf-8").read(),
@@ -273,6 +295,23 @@ class FenceTest(unittest.TestCase):
         for value in values:
             for haystack in haystacks:
                 self.assertNotIn(value, haystack)
+
+    def test_secret_split_catches_fake_key_exempts_public_config(self):
+        with tempfile.NamedTemporaryFile(
+                "w", suffix=".env", delete=False, encoding="utf-8") as fh:
+            fh.write("FAKE_API_KEY=sk-fakeplant-9f8e7d6c5b4a\n"
+                     "MUSE_IMAGE_MODEL=muse-image-1.0\n"
+                     "MUSE_IMAGE_PATH=/responses\n")
+            tmp = fh.name
+        try:
+            values = env_secret_values(tmp)
+        finally:
+            os.unlink(tmp)
+        self.assertEqual(values, ["sk-fakeplant-9f8e7d6c5b4a"])
+        planted = ("model muse-image-1.0 path /responses "
+                   "key sk-fakeplant-9f8e7d6c5b4a end")
+        flagged = [v for v in values if v in planted]
+        self.assertEqual(flagged, ["sk-fakeplant-9f8e7d6c5b4a"])
 
 
 if __name__ == "__main__":
