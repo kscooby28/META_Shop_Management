@@ -67,7 +67,7 @@ WO16_PINNED = {
 }
 PRODUCT_PINNED = {
     "server.py":
-        "cc56dae827a47b165c251ccfc4b2723d4a7f6e66b08e3c0d234a1c744180797a",
+        "34e976489eee0e00a2fefb3564eaccf90c5fa2fc46103276192b33c9806efcc7",
     "meta_client.py":
         "9bf3599d76dbcc577389d33e7b16928e3efacdf288eb828b09931be83f4119e4",
     "verdict.py":
@@ -83,7 +83,7 @@ PRODUCT_PINNED = {
     "rules.json":
         "1861d550c7680f5c0199906fda321f6c66108df2ee7d948639c683ed2b521a86",
 }
-WEB_TREE_PINNED = ("6b9083aa40cdc2f91ce43a9532eda6147f6d2694ad8eff30b637badb5d278fcb"
+WEB_TREE_PINNED = ("fcfcb3da4362122c961465c5d60cea4d75eace4a73eb6aad8d9ed941f9ea8e96"
                    "")
 
 

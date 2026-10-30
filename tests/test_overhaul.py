@@ -127,5 +127,108 @@ class OverhaulArtTest(unittest.TestCase):
                              RULES_PINNED)
 
 
+def css_rule(css, selector):
+    start = css.index(selector)
+    open_brace = css.index("{", start)
+    return css[open_brace + 1:css.index("}", open_brace)]
+
+
+def yard_context():
+    return {"view": "yard",
+            "yard": {"verdicts": [
+                {"label": "driver mirror", "grade": "B",
+                 "reason": "thin comps", "price": 120}],
+                "totals": {"A": {"plain_words": "Pull nothing."},
+                           "B": {"plain_words": "Pull one part."}}}}
+
+
+def inventory_context():
+    return {"view": "inventory",
+            "inventory": {
+                "cars": ["1995 BMW M3"],
+                "parts": [{"label": "spare ignition coil",
+                           "car": "1995 BMW M3", "price": 200}],
+                "notes": ["1995 BMW M3: No EWS on this unit, and it is "
+                          "coveted amongst E30 owners."]}}
+
+
+def bay_session():
+    import bay
+    case = {"case_id": "bay-1", "symptom": "creep",
+            "codes": ["P0300"], "vehicle": {"category": "sedan"}}
+    plan = bay.new_plan(case, [{"id": "t1", "title": "Coil swap"}])
+    return {"bay": {"case": case, "plan": plan}}
+
+
+class OverhaulCopilotTest(unittest.TestCase):
+    def test_copilot_renders_as_button_plus_sheet(self):
+        with open(os.path.join(ROOT, "web", "index.html"),
+                  encoding="utf-8") as fh:
+            html = fh.read()
+        tag = html[html.index('id="copilotFab"') - 30:
+                   html.index('id="copilotFab"') + 120]
+        self.assertNotIn("primary", tag)
+        self.assertIn("Copilot", tag)
+        self.assertIn('id="panel"', html)
+        self.assertIn("never guess", html)
+        chips = html[html.index('id="chips"'):html.index('id="chatForm"')]
+        self.assertEqual(chips.count('class="gtile"'), 3)
+        css = read_web("styles.css")
+        self.assertIn("display: none", css_rule(css, ".panel {"))
+        self.assertIn("position: fixed", css_rule(css, ".panel {"))
+        sheet = css_rule(css, ".panel.open {")
+        self.assertIn("display: flex", sheet)
+        self.assertIn("sheetup var(--t-sheet) var(--ease)", sheet)
+        fab = css_rule(css, "#copilotFab {")
+        self.assertIn("min-height: 48px", fab)
+
+    def test_sheet_honors_reduced_motion(self):
+        css = read_web("styles.css")
+        calm = css[css.index("prefers-reduced-motion: reduce"):
+                   css.index("prefers-reduced-motion: no-preference")]
+        self.assertIn(".panel.open { animation: none; }", calm)
+
+    def test_yard_question_grounded_offline(self):
+        from server import Handler
+        answer = Handler._local_chat_answer(
+            None, None, "Why is the mirror a B?", yard_context())
+        self.assertIn("driver mirror", answer)
+        self.assertIn("B", answer)
+        self.assertNotIn("lacking reliable data", answer)
+
+    def test_m3_note_grounded_offline(self):
+        from server import Handler
+        answer = Handler._local_chat_answer(
+            None, None, "Tell me about the M3 engine computer note",
+            inventory_context())
+        self.assertIn("EWS", answer)
+        self.assertIn("E30", answer)
+
+    def test_bay_question_grounded_offline(self):
+        from server import Handler
+        handler = Handler.__new__(Handler)
+        answer = handler._local_chat_answer(
+            bay_session(), "Rank the tests")
+        self.assertIn("Next up", answer)
+        self.assertIn("Coil swap", answer)
+
+    def test_missing_data_names_filler(self):
+        from server import Handler
+        empty = Handler._local_chat_answer(
+            None, None, "How much is the coil?", {})
+        self.assertIn("load the demo inventory", empty)
+        self.assertNotIn("lacking reliable data", empty)
+        flow = Handler._local_chat_answer(None, None, "Why is it a B?", {})
+        self.assertIn("run the flow", flow)
+        self.assertNotIn("lacking reliable data", flow)
+
+    def test_case_summary_merges_context(self):
+        from server import Handler
+        summary = Handler._case_summary(None, None, yard_context())
+        self.assertIn("Open tab: yard", summary)
+        self.assertIn("Yard results on screen", summary)
+        self.assertIn("driver mirror is B", summary)
+
+
 if __name__ == "__main__":
     unittest.main()

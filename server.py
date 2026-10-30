@@ -1022,14 +1022,63 @@ class Handler(BaseHTTPRequestHandler):
         )
 
     # -- chat ------------------------------------------------------------
-    def _case_summary(self, session):
+    def _case_summary(self, session, context=None):
+        ctx = context if isinstance(context, dict) else {}
+        lines = []
+        view = ctx.get("view")
+        if isinstance(view, str) and view:
+            lines.append("Open tab: %s." % view)
+        yard = ctx.get("yard")
+        if isinstance(yard, dict):
+            verdicts = yard.get("verdicts")
+            if isinstance(verdicts, list) and verdicts:
+                shown = []
+                for v in verdicts[:12]:
+                    if not isinstance(v, dict):
+                        continue
+                    price = v.get("price")
+                    shown.append("%s is %s%s" % (
+                        v.get("label", "part"), v.get("grade", "?"),
+                        (" ($%s)" % price) if price else ""))
+                lines.append("Yard results on screen: %s." % "; ".join(shown))
+            totals = yard.get("totals")
+            if isinstance(totals, dict):
+                for grade in ("A", "B"):
+                    words = (totals.get(grade) or {}).get("plain_words")
+                    if words:
+                        lines.append("Screen total %s: %s" % (grade, words))
+        bayseen = ctx.get("bay")
+        if isinstance(bayseen, dict) and bayseen.get("case_id"):
+            lines.append("Bay case on screen: %s, symptom %s, codes %s, %s of %s tests recorded." % (
+                bayseen.get("case_id", "?"), bayseen.get("symptom", "?"),
+                ", ".join(bayseen.get("codes", []) or []) or "none",
+                bayseen.get("tests_done", "?"), bayseen.get("tests_total", "?")))
+        inv = ctx.get("inventory")
+        if isinstance(inv, dict):
+            cars = [c for c in (inv.get("cars") or []) if isinstance(c, str)]
+            parts = [p for p in (inv.get("parts") or []) if isinstance(p, dict)]
+            notes = [n for n in (inv.get("notes") or []) if isinstance(n, str)]
+            if cars or parts:
+                drill = []
+                for p in parts[:12]:
+                    price = p.get("price")
+                    drill.append("%s (%s)%s" % (
+                        p.get("label", "part"), p.get("car", "?"),
+                        (" $%s" % price) if price else " price unknown"))
+                lines.append("Driveway on screen: %d cars (%s); %d parts: %s." % (
+                    len(cars), ", ".join(cars[:6]), len(parts), "; ".join(drill) or "none listed"))
+            for note in notes[:4]:
+                lines.append("Owner note: %s" % note)
         if not session or "harvest" not in session:
+            if lines:
+                lines.append("No server case yet; the above is what the user sees on screen.")
+                return "\n".join(lines)
             return "No case yet. The user has not run intake."
         car = session["harvest"].get("car", {})
-        lines = [
+        lines.append(
             "Car: %s %s %s, trim %s."
             % (car.get("year", "?"), car.get("make", "?"), car.get("model", "?"), car.get("trim", "?"))
-        ]
+        )
         verdicts = (session.get("verdicts") or {}).get("verdicts", [])
         if verdicts:
             for v in verdicts:
@@ -1086,8 +1135,12 @@ class Handler(BaseHTTPRequestHandler):
                         lines.append("Last change: %s" % plan["trail"][-1]["caused_by"])
         return "\n".join(lines)
 
-    def _local_chat_answer(self, session, message):
+    def _local_chat_answer(self, session, message, context=None):
         text = (message or "").lower()
+        ctx = context if isinstance(context, dict) else {}
+        ctx_inv = ctx.get("inventory") if isinstance(ctx.get("inventory"), dict) else {}
+        ctx_yard = ctx.get("yard") if isinstance(ctx.get("yard"), dict) else {}
+        session_verdicts = ((session or {}).get("verdicts") or {}).get("verdicts", [])
         bay = (session or {}).get("bay") or {}
         want_bay = bay.get("case") and any(
             key in text for key in ("test", "plan", "case", "bay", "creep", "cylinder", "module", "rank")
@@ -1106,8 +1159,19 @@ class Handler(BaseHTTPRequestHandler):
                 car.get("trim_note", ""),
             )
         if "why" in text and ("b" in text or "grade" in text or "verdict" in text):
-            verdicts = (session.get("verdicts") or {}).get("verdicts", []) if session else []
+            verdicts = list(session_verdicts)
             if not verdicts:
+                shown = [v for v in (ctx_yard.get("verdicts") or [])
+                         if isinstance(v, dict)]
+                if shown:
+                    grades = "; ".join(
+                        "%s is %s%s" % (
+                            v.get("label", "part"), v.get("grade", "?"),
+                            (": " + v["reason"]) if v.get("reason") else "")
+                        for v in shown)
+                    return ("From the Yard results on your screen: %s. "
+                            "Open any card for its rule and money reasons."
+                            % grades)
                 return "No verdicts yet — run the flow first, then ask me about any grade."
             b_parts = [v for v in verdicts if v.get("verdict") == "B"]
             if not b_parts:
@@ -1126,6 +1190,56 @@ class Handler(BaseHTTPRequestHandler):
                 inputs.get("demand"),
                 ("$%d" % inputs.get("price_high")) if inputs.get("price_known") else "no reliable price",
             )
+        inv_specific = any(key in text for key in (
+            "inventory", "driveway", "m3", "e30", "ews", "coil",
+            "computer", "dme", "knowledge", "note"))
+        money_words = any(key in text for key in (
+            "worth", "price", "much", "value", "cost", "$"))
+        ctx_parts = [p for p in (ctx_inv.get("parts") or [])
+                     if isinstance(p, dict)]
+        ctx_cars = [c for c in (ctx_inv.get("cars") or [])
+                    if isinstance(c, str)]
+        ctx_notes = [n for n in (ctx_inv.get("notes") or [])
+                     if isinstance(n, str)]
+        if inv_specific and (ctx_cars or ctx_parts or ctx_notes):
+            hits = [n for n in ctx_notes
+                    if any(key in n.lower() for key in text.split())]
+            named = [p for p in ctx_parts
+                     if any(word in (p.get("label") or "").lower()
+                            for word in text.split() if len(word) > 3)]
+            if hits:
+                return "From your Driveway notes: %s" % hits[0]
+            if named:
+                lines = []
+                for p in named[:4]:
+                    price = p.get("price")
+                    lines.append("%s (%s): %s" % (
+                        p.get("label", "part"), p.get("car", "?"),
+                        ("$%s" % price) if price else
+                        "price unknown — check comps or mark it"))
+                return "From your Driveway: %s." % "; ".join(lines)
+            return ("Driveway shows %d cars and %d parts. "
+                    "Ask about one by name." % (len(ctx_cars),
+                                                len(ctx_parts)))
+        if inv_specific:
+            return ("Driveway is empty on screen — open Driveway and load "
+                    "the demo inventory, then ask me about any car or part.")
+        if money_words and not session_verdicts:
+            totals = ctx_yard.get("totals")
+            if isinstance(totals, dict):
+                words = [totals[grade].get("plain_words")
+                         for grade in ("A", "B")
+                         if isinstance(totals.get(grade), dict)
+                         and totals[grade].get("plain_words")]
+                if words:
+                    return "On screen: %s" % " ".join(words)
+            if ctx_parts:
+                known = ["%s $%s" % (p.get("label", "part"), p.get("price"))
+                         for p in ctx_parts[:6] if p.get("price")]
+                if known:
+                    return ("Driveway prices on screen: %s. The rest are "
+                            "marked unknown until comps back them."
+                            % "; ".join(known))
         if "list" in text:
             if not session or "harvest" not in session:
                 return "Run the flow first, then pick a part and press Draft listing."
@@ -1194,9 +1308,15 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(chunk)
             self.wfile.flush()
 
-        summary = self._case_summary(session)
+        incoming = payload.get("context")
+        context = incoming if isinstance(incoming, dict) else {}
+        summary = self._case_summary(session, context)
+        live_message = (message + "\n\nIf the case summary lacks data needed "
+                        "to answer, say exactly what is missing and what step "
+                        "would fill it. Never answer with a bare "
+                        "'lacking reliable data'.")
         if payload.get("demo"):
-            reply = self._local_chat_answer(session, message)
+            reply = self._local_chat_answer(session, message, context)
             emit({"type": "mode", "mode": "demo-cache"})
             emit({"type": "token", "text": reply})
             if session is not None:
@@ -1209,13 +1329,13 @@ class Handler(BaseHTTPRequestHandler):
         try:
             emit({"type": "mode", "mode": "live"})
             full = []
-            for piece in chat_stream(summary, history, message):
+            for piece in chat_stream(summary, history, live_message):
                 full.append(piece)
                 emit({"type": "token", "text": piece})
             reply = "".join(full)
             mode = "live"
         except MetaAPIError:
-            reply = self._local_chat_answer(session, message)
+            reply = self._local_chat_answer(session, message, context)
             mode = "demo-cache"
             emit({"type": "mode", "mode": mode})
             emit({"type": "token", "text": reply})

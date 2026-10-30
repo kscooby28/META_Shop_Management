@@ -1034,6 +1034,48 @@ async function saveRules() {
 
 /* ---------- chat ---------- */
 
+function chatContext() {
+  const ctx = { view: (typeof currentView === "undefined" ? "" : currentView) || "" };
+  if (state.report && Array.isArray(state.report.verdicts) && state.report.verdicts.length) {
+    ctx.yard = {
+      verdicts: state.report.verdicts.map((v) => ({
+        label: v.label, grade: v.verdict, reason: v.rule_explain || "",
+        price: (v.inputs && v.inputs.price_known) ? v.inputs.price_high : null,
+      })),
+      totals: state.report.totals || {},
+    };
+  }
+  if (typeof bay !== "undefined" && bay && bay.case) {
+    const plan = bay.plan || {};
+    const results = plan.results || {};
+    ctx.bay = {
+      case_id: bay.case.case_id || "", symptom: bay.case.symptom || "",
+      codes: bay.case.codes || [],
+      tests_done: Object.keys(results).length,
+      tests_total: (plan.tests || []).length,
+    };
+  }
+  if (typeof invState !== "undefined" && invState &&
+      ((invState.cars && invState.cars.length) || (invState.parts && invState.parts.length))) {
+    const carName = (id) => {
+      const car = (invState.cars || []).find((c) => c.id === id);
+      return car ? car.label : id;
+    };
+    ctx.inventory = {
+      cars: (invState.cars || []).map((c) => c.label),
+      parts: (invState.parts || []).map((p) => ({
+        label: p.label, car: carName(p.carId),
+        price: (p.value === null || p.value === undefined) ? null : p.value,
+      })),
+      notes: (invState.knowledge || []).map((n) => carName(n.carId) + ": " + n.reason + (n.value ? " ($" + n.value + ")" : "")),
+    };
+  }
+  return ctx;
+}
+
+function openCopilot() { $("panel").classList.add("open"); }
+function closeCopilot() { $("panel").classList.remove("open"); }
+
 async function sendChat(message) {
   const text = (message || "").trim();
   if (!text) return;
@@ -1045,7 +1087,7 @@ async function sendChat(message) {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId: state.sessionId, message: text }),
+      body: JSON.stringify({ sessionId: state.sessionId, message: text, context: chatContext() }),
     });
     if (!res.ok || !res.body) throw new Error("chat failed");
     const reader = res.body.getReader();
@@ -1455,6 +1497,7 @@ async function init() {
     btn.addEventListener("click", () => sendChat(btn.getAttribute("data-chip")));
   });
   $("panelToggle").addEventListener("click", () => $("panel").classList.toggle("open"));
+  $("copilotFab").addEventListener("click", openCopilot);
 }
 
 init();
