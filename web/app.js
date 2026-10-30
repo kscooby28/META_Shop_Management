@@ -1931,8 +1931,7 @@ function showView(which) {
     inventory: "Driveway: your cars and parts, what you have and what it is worth.",
     compare: "Two engines grade the same case, side by side.",
   };
-  document.querySelector(".top .sub").textContent =
-    (subs[which] || subs.yard) + " Built for a Gulf Coast shop.";
+  document.querySelector(".top .sub").textContent = subs[which] || subs.yard;
   flash(document.querySelector(".work"));
   playViewTransition(document.querySelector(".work"), UX.transitionFor(from, which));
   currentView = which;
@@ -2068,6 +2067,47 @@ const TARGET_FOR_CAM = {
 };
 const AUTO_SHOT = { bayvin: 1, carvin: 1, carphoto: 1, part: 1 };
 
+const DESKTOP_GUIDES = {
+  hero: "Choose a clear photo of the whole car. On your phone this opens the camera; here, choose a photo file.",
+  yard: "Choose a clear photo of the whole car. On your phone this opens the camera; here, choose a photo file.",
+  carphoto: "Choose a clear photo of the whole car. On your phone this opens the camera; here, choose a photo file.",
+  bayvin: "Choose a sharp, readable photo of the VIN plate. On your phone this opens the camera; here, choose a photo file.",
+  carvin: "Choose a sharp, readable photo of the VIN plate. On your phone this opens the camera; here, choose a photo file.",
+  part: "Choose a photo with the badge or label in the shot. On your phone this opens the camera; here, choose a photo file.",
+};
+
+function desktopCapture() {
+  return typeof matchMedia === "function" &&
+    matchMedia("(hover: hover) and (pointer: fine)").matches;
+}
+
+function labelCaptureForDevice() {
+  if (!desktopCapture()) return;
+  const hero = $("btnHomePhoto");
+  if (hero) hero.textContent = "Choose a photo";
+  const words = {
+    "Take a photo": "Choose a photo",
+    "Take a VIN photo": "Choose a VIN photo",
+  };
+  document.querySelectorAll("button.photo.gtile .tword").forEach((el) => {
+    if (words[el.textContent]) el.textContent = words[el.textContent];
+  });
+  document.querySelectorAll("button.photo.gtile .tfield").forEach((el) => {
+    if (el.textContent === "Camera first") el.textContent = "File picker here";
+  });
+  const guides = {
+    "Get the whole car in the frame.": DESKTOP_GUIDES.yard,
+    "Get the VIN plate sharp and readable.": DESKTOP_GUIDES.bayvin,
+    "Get the badge or label in the shot.": DESKTOP_GUIDES.part,
+  };
+  document.querySelectorAll(".camguide").forEach((p) => {
+    const first = p.firstChild;
+    if (first && first.nodeType === 3 && guides[first.textContent]) {
+      first.textContent = guides[first.textContent];
+    }
+  });
+}
+
 let confirmState = null;
 
 function paintShotGuide(btnId, shot) {
@@ -2078,7 +2118,7 @@ function paintShotGuide(btnId, shot) {
   const g = UX.guideFor(shot);
   const p = document.createElement("p");
   p.className = "camguide";
-  p.textContent = g.guide;
+  p.textContent = desktopCapture() ? (DESKTOP_GUIDES[shot] || DESKTOP_GUIDES.yard) : g.guide;
   const tag = document.createElement("span");
   tag.className = "mode-tag";
   tag.textContent = g.modeLabel;
@@ -2474,6 +2514,7 @@ function initBay() {
   $("backCompare").addEventListener("click", () => { applySetting("yard"); showView("yard"); });
   $("btnCompareOpen").addEventListener("click", () => showView("compare"));
   wireCameras();
+  labelCaptureForDevice();
 
   document.querySelectorAll("[data-baycase]").forEach((btn) => {
     btn.addEventListener("click", guard(async () => {

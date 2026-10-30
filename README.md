@@ -295,7 +295,7 @@ behind it.
   software says it lacks reliable data. No invented part numbers, prices,
   torque values, or labor times. Prices without a source are ignored.
 - **Fresh, event-built code only.** No factory manual content, no real
-  customer data, no real VINs, no shop street address (Gulf Coast only),
+  customer data, no real VINs, no shop street address, no region naming,
   no secrets in the repo.
 - **Demo runs 10 out of 10.** Cache behind every step: intake, harvest,
   comps, listing, chat. Verify with `python scripts/smoke_demo.py` while

@@ -387,5 +387,66 @@ class OverhaulSeedTest(unittest.TestCase):
         self.assertIn("Unknown and left out: ", inv)
 
 
+class OverhaulCopyTest(unittest.TestCase):
+    BANNED = ("Gulf Coast", "Gulf-Coast", "Ocean Springs", "Mississippi",
+              "Built for a Gulf Coast shop")
+
+    def test_no_region_naming_in_web(self):
+        web = os.path.join(ROOT, "web")
+        for base, dirs, names in os.walk(web):
+            dirs[:] = [d for d in dirs if d != "assets"]
+            for name in names:
+                if not name.endswith((".html", ".js", ".css")):
+                    continue
+                with open(os.path.join(base, name),
+                          encoding="utf-8") as fh:
+                    text = fh.read()
+                for banned in self.BANNED:
+                    self.assertNotIn(banned, text, name)
+
+    def test_readme_region_line_fixed(self):
+        with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as fh:
+            text = fh.read()
+        self.assertNotIn("Gulf Coast", text)
+        self.assertIn("no region naming", text)
+
+    def test_desktop_capture_labels_present(self):
+        app = read_web("app.js")
+        for label in ("Choose a photo", "Choose a VIN photo",
+                      "Choose a clear photo of the whole car",
+                      "On your phone this opens the camera; "
+                      "here, choose a photo file",
+                      "File picker here"):
+            self.assertIn(label, app)
+        for phone in ("Take a photo", "Take a VIN photo",
+                      "Get the whole car in the frame.", "Camera first"):
+            self.assertIn(phone, app)
+
+    def test_desktop_gate_is_positive_media_test(self):
+        app = read_web("app.js")
+        self.assertIn("(hover: hover) and (pointer: fine)", app)
+        self.assertIn("function desktopCapture()", app)
+        self.assertIn("function labelCaptureForDevice()", app)
+        self.assertLess(app.index("wireCameras();"),
+                        app.index("labelCaptureForDevice();"))
+
+    def test_camera_plumbing_untouched(self):
+        html = read_web("index.html")
+        self.assertEqual(html.count('capture="environment"'), 6)
+        app = read_web("app.js")
+        for cam in ("fileCamera", "homeHeroCamera", "bayVinCamera",
+                    "invCarPhotoCamera", "invCarVinCamera",
+                    "invPartPhotoCamera"):
+            self.assertIn('twinCamera("%s"' % cam, app)
+        self.assertIn("openConfirm(camId, files)", app)
+
+    def test_painted_guides_branch_on_desktop(self):
+        app = read_web("app.js")
+        fn = app[app.index("function paintShotGuide"):
+                 app.index("function renderConfirmStrip")]
+        self.assertIn("DESKTOP_GUIDES[shot]", fn)
+        self.assertIn("desktopCapture()", fn)
+
+
 if __name__ == "__main__":
     unittest.main()
