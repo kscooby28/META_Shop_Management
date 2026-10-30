@@ -509,3 +509,11 @@ The call: HTTP 200 in 7931 ms, request ID 11204ad8-1c5c-4b0d-bca2-517e1e7411ae, 
 
 SAM is NOT proven live (no geometry), so no rewire order follows and nothing follows. Leg closed. VIN_LIVE stays False. Full record in `eval_sam_png_results.json`.
 <!-- EVAL-SAM-PNG:END -->
+
+<!-- EVAL-SAM-FILEID:START -->
+### SAM file_id probe: one real-photo segment call (2026-10-29)
+
+Upload first, then segment by file_id, on a real photo (outside the repo, never committed): upload HTTP 200, file file-1682256530131941, 3159 ms. Segment: HTTP 200 in 1240 ms, request ID dfbf999f-a67a-4966-a725-54131cee74bd, stream complete, but zero output deltas — geometry ZERO. The file_id shape plus real content returns the same empty signature as the data-URL PNG probes.
+
+SAM verdict: CLOSED AGAIN. No rewire follows. VIN_LIVE stays False. Full record in `eval_sam_fileid_results.json`.
+<!-- EVAL-SAM-FILEID:END -->

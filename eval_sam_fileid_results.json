@@ -1,0 +1,61 @@
+{
+  "order": "SAM file_id probe: one real-photo segment call",
+  "key_name": "META_API_KEY",
+  "key_cause": "",
+  "photo": {
+    "path": "C:\\Temp\\sam-probe-photo.jpg",
+    "bytes": 19272,
+    "dims": "264x198",
+    "sha256": "6e066fbdc96f099746c49e75a4f684f9378febae3c802ac791e0b7dd4e6a9164",
+    "jpeg": true
+  },
+  "photo_ok": true,
+  "photo_cause": "",
+  "upload": {
+    "call_sent": true,
+    "latency_ms": 3159,
+    "http_status": 200,
+    "file_id": "file-1682256530131941",
+    "cause": ""
+  },
+  "call": {
+    "call_sent": true,
+    "latency_ms": 1240,
+    "http_status": 200,
+    "request_id": "dfbf999f-a67a-4966-a725-54131cee74bd",
+    "cause": "",
+    "phrase": "driver mirror",
+    "stream_complete": true,
+    "event_types": [
+      "response.completed",
+      "response.content_part.added",
+      "response.content_part.done",
+      "response.created",
+      "response.in_progress",
+      "response.output_item.added",
+      "response.output_item.done",
+      "response.output_text.done"
+    ],
+    "delta_count": 0,
+    "output_len": 0,
+    "output_head": "",
+    "output_truncated": false,
+    "geometry": {
+      "lines": 0,
+      "frames": [],
+      "box_count": 0,
+      "mask_count": 0,
+      "paired_records": 0,
+      "malformed_lines": 0,
+      "boxes": [],
+      "masks": []
+    },
+    "verdict": "ZERO"
+  },
+  "sam_verdict": "CLOSED AGAIN",
+  "sam_state": "CLOSED AGAIN: ZERO",
+  "vin_live": false,
+  "live_vin_calls_sent": 0,
+  "live_calls_sent_total": 2,
+  "model_list_calls_sent": 0
+}
