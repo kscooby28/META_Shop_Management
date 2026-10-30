@@ -23,7 +23,7 @@
   <div id="busbar" class="busbar" hidden></div>
   <div id="offlineBar" class="offlinebar" hidden></div>
   <div id="notices"></div>
-  <details id="settings">
+  <details id="settings" hidden>
     <summary><span aria-hidden="true">⚙</span> Settings &amp; profile</summary>
     <div id="settingsBody"></div>
   </details>
@@ -57,8 +57,8 @@
   </div>
 
   <div id="view-yard">
-  <div class="backbar"><button id="backYard" type="button" class="small"><span aria-hidden="true">◧</span> Yard · ← Home</button></div>
-  <p class="screen-line">The lot: photograph a parts car, learn which parts are worth pulling, draft the listing.</p>
+  <div class="backbar"><button id="backYard" type="button" class="small">Back · <span aria-hidden="true">◧</span> Yard · ← Home</button></div>
+  <p class="screen-line">Photo in, pull-it-or-leave-it verdict and money out.</p>
 
   <section id="sec-intake">
     <h2><span class="step">1</span>Intake — photos in</h2>
@@ -162,8 +162,8 @@
   </div>
 
   <div id="view-bay" hidden>
-  <div class="backbar"><button id="backBay" type="button" class="small"><span aria-hidden="true">⚒</span> Bay · ← Home</button></div>
-  <p class="screen-line">The repair bench: describe the symptom, work the test plan, record pass or fail.</p>
+  <div class="backbar"><button id="backBay" type="button" class="small">Back · <span aria-hidden="true">⚒</span> Bay · ← Home</button></div>
+  <p class="screen-line">Answer the tests and the plan ranks the cause and prices the job.</p>
   <div id="bayHome" class="homehead"></div>
   <div id="bayGuide"></div>
   <section id="sec-bcase">
@@ -288,8 +288,8 @@
   </div>
 
   <div id="view-inventory" hidden>
-  <div class="backbar"><button id="backInv" type="button" class="small"><span aria-hidden="true">⌂</span> Driveway · ← Home</button></div>
-  <p class="screen-line">Driveway — your cars and parts: register cars, attach parts, see what everything is worth.</p>
+  <div class="backbar"><button id="backInv" type="button" class="small">Back · <span aria-hidden="true">⌂</span> Driveway · ← Home</button></div>
+  <p class="screen-line">Your cars and parts, organized and searchable.</p>
   <div id="invHome" class="homehead"></div>
   <div id="invGuide"></div>
   <section id="sec-icars">
@@ -418,7 +418,7 @@
   </div>
 
   <div id="view-compare" hidden>
-  <div class="backbar"><button id="backCompare" type="button" class="small"><span aria-hidden="true">⇄</span> Compare · ← Yard results</button></div>
+  <div class="backbar"><button id="backCompare" type="button" class="small">Back · <span aria-hidden="true">⇄</span> Compare · ← Yard results</button></div>
   <p class="screen-line">Two engines grade the same case side by side. Rules decide; this never overrules.</p>
   <section id="sec-compare" class="neutralpanel">
     <h2>Compare — two engines, one case</h2>
@@ -499,6 +499,12 @@
   </form>
 </aside>
 </div>
+
+<nav id="bottomBar" class="bottombar" aria-label="Modes">
+  <button id="bb-bay" type="button"><span aria-hidden="true">⚒</span> Bay</button>
+  <button id="bb-yard" type="button"><span aria-hidden="true">◧</span> Yard</button>
+  <button id="bb-inv" type="button"><span aria-hidden="true">⌂</span> Driveway</button>
+</nav>
 
 <script src="profile.js"></script>
 <script src="inventory.js"></script>

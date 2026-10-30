@@ -1921,6 +1921,9 @@ function showView(which) {
   $("view-inventory").hidden = which !== "inventory";
   $("view-compare").hidden = which !== "compare";
   $("navHome").classList.toggle("active", which === "home");
+  $("bb-bay").classList.toggle("active", which === "bay");
+  $("bb-yard").classList.toggle("active", which === "yard");
+  $("bb-inv").classList.toggle("active", which === "inventory");
   const subs = {
     home: "Three doors: fix it, strip it, or your own car.",
     yard: "The lot: point at a parts car, learn which parts are worth pulling.",
@@ -2447,12 +2450,24 @@ function initMotion() {
 function initBay() {
   $("navHome").addEventListener("click", () => { applySetting("home"); showView("home"); });
   $("navGear").addEventListener("click", () => {
-    $("settings").open = true;
-    scrollSoon($("settings"));
+    const panel = $("settings");
+    if (panel.hidden || !panel.open) {
+      panel.hidden = false;
+      panel.open = true;
+      scrollSoon(panel);
+    } else {
+      panel.open = false;
+    }
+  });
+  $("settings").addEventListener("toggle", () => {
+    if (!$("settings").open) $("settings").hidden = true;
   });
   $("door-bay").addEventListener("click", (e) => { doorPress(e.currentTarget); applySetting("bay"); showView("bay"); bayKb(); });
   $("door-yard").addEventListener("click", (e) => { doorPress(e.currentTarget); applySetting("yard"); showView("yard"); });
   $("door-driveway").addEventListener("click", (e) => { doorPress(e.currentTarget); applySetting("inventory"); showView("inventory"); });
+  $("bb-bay").addEventListener("click", () => { applySetting("bay"); showView("bay"); bayKb(); });
+  $("bb-yard").addEventListener("click", () => { applySetting("yard"); showView("yard"); });
+  $("bb-inv").addEventListener("click", () => { applySetting("inventory"); showView("inventory"); });
   $("backYard").addEventListener("click", () => { applySetting("home"); showView("home"); });
   $("backBay").addEventListener("click", () => { applySetting("home"); showView("home"); });
   $("backInv").addEventListener("click", () => { applySetting("home"); showView("home"); });

@@ -10,6 +10,7 @@ new art. Later phases append their own classes below.
 import hashlib
 import json
 import os
+import re
 import sys
 import unittest
 
@@ -228,6 +229,91 @@ class OverhaulCopilotTest(unittest.TestCase):
         self.assertIn("Open tab: yard", summary)
         self.assertIn("Yard results on screen", summary)
         self.assertIn("driver mirror is B", summary)
+
+
+class OverhaulNavTest(unittest.TestCase):
+    def test_back_bar_on_every_drilled_in_screen(self):
+        html = read_web("index.html")
+        for back, dest in (("backYard", "Home"),
+                            ("backBay", "Home"),
+                            ("backInv", "Home"),
+                            ("backCompare", "Yard results")):
+            tag = re.search(r'<button[^>]*id="%s"[^>]*>.*?</button>'
+                            % back, html, re.S).group(0)
+            self.assertIn("Back", tag, back)
+            self.assertIn(dest, tag, back)
+        css = read_web("styles.css")
+        self.assertIn("min-height: 48px",
+                      css_rule(css, ".backbar button.small {"))
+
+    def test_bottom_bar_exactly_three_doors(self):
+        html = read_web("index.html")
+        nav = html[html.index('<nav id="bottomBar"'):
+                   html.index("</nav>")]
+        self.assertEqual(nav.count("<button"), 3)
+        for bid, word in (("bb-bay", "Bay"), ("bb-yard", "Yard"),
+                          ("bb-inv", "Driveway")):
+            self.assertIn('id="%s"' % bid, nav, bid)
+            self.assertIn(word, nav, bid)
+        self.assertEqual(nav.count('aria-hidden="true"'), 3)
+        self.assertNotIn("primary", nav)
+        css = read_web("styles.css")
+        self.assertIn("position: fixed", css_rule(css, ".bottombar {"))
+        self.assertIn("min-height: 48px",
+                      css_rule(css, ".bottombar button {"))
+        self.assertNotIn("var(--accent",
+                         css_rule(css, ".bottombar button.active {"))
+
+    def test_bottom_bar_routes_like_doors(self):
+        app = read_web("app.js")
+        for bid, view in (("bb-bay", "bay"), ("bb-yard", "yard"),
+                          ("bb-inv", "inventory")):
+            self.assertIn('"%s"' % bid, app, bid)
+            self.assertIn('showView("%s")' % view, app, view)
+        self.assertIn('$("bb-bay").classList.toggle("active"', app)
+
+    def test_settings_behind_gear_profile_inside(self):
+        html = read_web("index.html")
+        tag = re.search(r'<details[^>]*id="settings"[^>]*>',
+                        html).group(0)
+        self.assertIn("hidden", tag)
+        header = html[html.index("<header"):html.index("</header>")]
+        self.assertIn('id="navGear"', header)
+        self.assertEqual(header.count("\u2699"), 1)
+        self.assertNotIn(">Settings", header)
+        self.assertNotIn("profile", header.lower())
+        app = read_web("app.js")
+        self.assertIn("panel.hidden = false", app)
+        self.assertIn('$("settings").hidden = true', app)
+        fn = app[app.index("function renderSettings()"):]
+        fn = fn[:fn.index("\n}\n")]
+        self.assertIn('const box = $("settingsBody");', fn)
+        self.assertIn('"Profile"', fn)
+
+    def test_purpose_line_on_every_screen(self):
+        html = read_web("index.html")
+        for purpose in (
+                "Photo in, pull-it-or-leave-it verdict and money out.",
+                "Answer the tests and the plan ranks the cause and prices the job.",
+                "Your cars and parts, organized and searchable.",
+                "Three doors: fix a car, strip a parts car, or look after your own.",
+                "Two engines grade the same case side by side."):
+            self.assertIn(purpose, html, purpose)
+        app = read_web("app.js")
+        self.assertIn("Your profile, credentials, and demo switches.",
+                      app)
+
+    def test_tour_keeps_no_back(self):
+        app = read_web("app.js")
+        bar = app[app.index("function tourBar"):
+                  app.index("function placeTourBar")]
+        self.assertNotIn('"Back"', bar)
+        self.assertIn('"Next"', bar)
+        self.assertIn('"Exit tour"', bar)
+        beats = re.findall(r'\{ id: "(\w+)"',
+                           app[app.index("const TOUR_BEATS"):
+                               app.index("let tourState")])
+        self.assertEqual(len(beats), 10)
 
 
 if __name__ == "__main__":
