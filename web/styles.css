@@ -338,6 +338,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
 .override-row .gradecard { flex: 1 1 150px; }
 .gatecard { border: 2px solid var(--ink); border-radius: var(--radius-card); box-shadow: inset 0 1px 0 var(--line); padding: 1rem 1.1rem; background: var(--surface); }
 .verdict .rule { font-size: var(--text-body); color: var(--muted); }
+.verdict .whyline { font-size: var(--text-body); margin-top: 0.3rem; }
 .verdict table { border-collapse: collapse; font-size: var(--text-body); margin: 0.5rem 0; width: 100%; }
 .verdict th, .verdict td { text-align: left; padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
 .verdict th { color: var(--muted); font-weight: 600; width: 34%; }

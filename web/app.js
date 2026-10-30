@@ -587,6 +587,10 @@ function renderVerdicts() {
       '<span class="vword">' + esc(gradeWord) + "</span>" +
       '<span class="vprice">' + priceCell + "</span>" +
       '<span class="vpull">' + pullCell + "</span></div>" +
+      '<div class="whyline"><strong>Rule:</strong> ' + esc(v.rule_name) + " — " + esc(v.rule_explain) + "</div>" +
+      (moneyRow(v)
+        ? '<div class="whyline"><strong>Money:</strong> ' + moneyRow(v) + "</div>"
+        : '<div class="whyline"><strong>Money:</strong> <span class="missing">money grade unknown</span></div>') +
       '<details class="rowmore"><summary>Evidence and inputs</summary>' +
       '<div class="rule">' + esc(v.verdict_means) + " — rule: " + esc(v.rule_name) + ". " + esc(v.rule_explain) + "</div>" +
       "<table>" +

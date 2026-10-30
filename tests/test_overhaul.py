@@ -448,5 +448,60 @@ class OverhaulCopyTest(unittest.TestCase):
         self.assertIn("desktopCapture()", fn)
 
 
+class OverhaulVerdictTest(unittest.TestCase):
+    HOW = ("The verdict engine grades every part by its sold prices and "
+           "demand \u2014 the rule it used is shown on each card.")
+
+    def test_rule_reason_on_card_face(self):
+        app = read_web("app.js")
+        fn = app[app.index("function renderVerdicts"):
+                 app.index("function renderTotals")]
+        face = fn[:fn.index("<details")]
+        self.assertIn("whyline", face)
+        self.assertIn("v.rule_name", face)
+        self.assertIn("v.rule_explain", face)
+        self.assertIn("Rule:</strong>", face)
+
+    def test_money_reason_on_card_face(self):
+        app = read_web("app.js")
+        fn = app[app.index("function renderVerdicts"):
+                 app.index("function renderTotals")]
+        face = fn[:fn.index("<details")]
+        self.assertIn("moneyRow(v)", face)
+        self.assertIn("Money:</strong>", face)
+        self.assertIn("money grade unknown", face)
+        self.assertIn('<span class="missing">money grade unknown</span>',
+                      face)
+
+    def test_details_evidence_unchanged(self):
+        app = read_web("app.js")
+        fn = app[app.index("function renderVerdicts"):
+                 app.index("function renderTotals")]
+        details = fn[fn.index("<details"):]
+        self.assertIn("Evidence and inputs", details)
+        self.assertIn('<div class="rule">', details)
+        self.assertIn("v.verdict_means", details)
+        self.assertIn("Money grade", details)
+
+    def test_how_note_on_yard(self):
+        html = read_web("index.html")
+        sec = html[html.index('<section id="sec-verdicts">'):
+                  html.index('<div id="verdicts">')]
+        self.assertIn(self.HOW, sec)
+
+    def test_whyline_tokens_only(self):
+        css = read_web("styles.css")
+        rule = css[css.index(".verdict .whyline"):
+                   css.index("}", css.index(".verdict .whyline"))]
+        self.assertIn("var(--text-body)", rule)
+        self.assertNotIn("#", rule)
+        self.assertNotIn("accent", rule)
+
+    def test_rules_byte_identical(self):
+        with open(os.path.join(ROOT, "rules.json"), "rb") as fh:
+            self.assertEqual(hashlib.sha256(fh.read()).hexdigest(),
+                             RULES_PINNED)
+
+
 if __name__ == "__main__":
     unittest.main()
