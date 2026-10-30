@@ -2519,34 +2519,9 @@ function doorPress(btn) {
  * keeps whatever setting is current. */
 var SETTING_FOR_VIEW = { home: "home", bay: "shop", yard: "yard", inventory: "garage", compare: null };
 var SETTING_BANDS = {
-  shop: '<svg class="sceneart" viewBox="0 0 360 110" role="img" aria-label="Illustrated shop interior: lift, workbench, tool wall">' +
-    '<rect x="0" y="0" width="360" height="110" class="f-bg"/>' +
-    '<rect x="0" y="86" width="360" height="24" class="f-surface"/>' +
-    '<rect x="30" y="20" width="10" height="66" class="f-line"/><rect x="110" y="20" width="10" height="66" class="f-line"/>' +
-    '<rect x="30" y="20" width="90" height="8" class="f-muted"/>' +
-    '<rect x="170" y="56" width="90" height="12" class="f-paper"/><rect x="178" y="68" width="8" height="18" class="f-line"/><rect x="244" y="68" width="8" height="18" class="f-line"/>' +
-    '<rect x="290" y="24" width="52" height="40" class="f-line"/>' +
-    '<circle cx="300" cy="34" r="3" class="f-muted"/><circle cx="312" cy="34" r="3" class="f-muted"/><circle cx="324" cy="34" r="3" class="f-muted"/>' +
-    '<circle cx="300" cy="46" r="3" class="f-muted"/><circle cx="312" cy="46" r="3" class="f-muted"/><circle cx="324" cy="46" r="3" class="f-muted"/>' +
-    '<rect x="170" y="10" width="90" height="10" class="f-ink"/></svg>',
-  yard: '<svg class="sceneart" viewBox="0 0 360 110" role="img" aria-label="Illustrated yard lot: fence, parts cars, daylight">' +
-    '<rect x="0" y="0" width="360" height="110" class="f-bg"/>' +
-    '<rect x="0" y="86" width="360" height="24" class="f-surface"/>' +
-    '<circle cx="316" cy="24" r="12" class="f-muted"/>' +
-    '<rect x="0" y="52" width="360" height="6" class="f-line"/>' +
-    '<rect x="20" y="40" width="6" height="46" class="f-line"/><rect x="120" y="40" width="6" height="46" class="f-line"/><rect x="220" y="40" width="6" height="46" class="f-line"/><rect x="320" y="40" width="6" height="46" class="f-line"/>' +
-    '<rect x="40" y="62" width="80" height="20" rx="6" class="f-muted"/><circle cx="58" cy="84" r="7" class="f-line"/><circle cx="102" cy="84" r="7" class="f-line"/>' +
-    '<rect x="200" y="62" width="80" height="20" rx="6" class="f-paper"/><circle cx="218" cy="84" r="7" class="f-line"/><circle cx="262" cy="84" r="7" class="f-line"/></svg>',
-  garage: '<svg class="sceneart" viewBox="0 0 360 110" role="img" aria-label="Illustrated home garage: one car, shelves, warm lamp">' +
-    '<rect x="0" y="0" width="360" height="110" class="f-bg"/>' +
-    '<rect x="0" y="86" width="360" height="24" class="f-surface"/>' +
-    '<rect x="30" y="58" width="110" height="24" rx="8" class="f-muted"/>' +
-    '<polygon points="52,58 118,58 106,44 64,44" class="f-line"/>' +
-    '<circle cx="54" cy="84" r="8" class="f-line"/><circle cx="116" cy="84" r="8" class="f-line"/>' +
-    '<rect x="180" y="30" width="8" height="56" class="f-line"/><rect x="262" y="30" width="8" height="56" class="f-line"/>' +
-    '<rect x="180" y="44" width="90" height="6" class="f-paper"/><rect x="180" y="64" width="90" height="6" class="f-paper"/>' +
-    '<rect x="190" y="32" width="16" height="12" class="f-muted"/><rect x="230" y="52" width="16" height="12" class="f-muted"/>' +
-    '<circle cx="318" cy="26" r="9" class="f-ink"/></svg>'
+  shop: '<img src="assets/band-shop.png" role="img" aria-label="Illustrated shop interior: lift, workbench, tool wall">',
+  yard: '<img src="assets/band-yard.png" role="img" aria-label="Illustrated yard lot: fence, parts cars, daylight">',
+  garage: '<img src="assets/band-garage.png" role="img" aria-label="Illustrated home garage: one car, shelves, warm lamp">'
 };
 function renderSettingBand(s) {
   var work = document.querySelector(".work");

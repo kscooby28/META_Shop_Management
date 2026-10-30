@@ -77,16 +77,11 @@ class SystemClassesTest(unittest.TestCase):
         self.assertIn("display: none;", rule_body(".gsheet[hidden]"))
         self.assertIn("var(--text-title)", rule_body(".gsheet .gtitle"))
 
-    def test_scene_art_uses_token_fills(self):
-        for cls, token in ((".f-bg", "--bg"), (".f-surface", "--surface"),
-                           (".f-paper", "--paper"), (".f-ink", "--ink"),
-                           (".f-muted", "--muted"), (".f-line", "--line")):
-            self.assertIn("var(%s)" % token,
-                          rule_body(".sceneart " + cls), cls)
-        for cls, token in ((".s-ink", "--ink"), (".s-line", "--line"),
-                           (".s-muted", "--muted")):
-            self.assertIn("var(%s)" % token,
-                          rule_body(".sceneart " + cls), cls)
+    def test_band_art_is_committed_raster(self):
+        body = rule_body(".settingband img")
+        self.assertIn("display: block", body)
+        self.assertIn("object-fit: cover", body)
+        self.assertIn("110px", body)
 
 
 class SystemMotionTest(unittest.TestCase):
@@ -131,11 +126,14 @@ class NetworkBaselineTest(unittest.TestCase):
         for base, _, files in os.walk(WEB):
             for name in files:
                 path = os.path.join(base, name)
-                with open(path, encoding="utf-8") as fh:
-                    for url in re.findall(r"https?://[^\s\"'<>]+",
-                                          fh.read()):
-                        self.assertEqual(url, "http://www.w3.org/2000/svg",
-                                         path)
+                try:
+                    with open(path, encoding="utf-8") as fh:
+                        text = fh.read()
+                except (UnicodeDecodeError, ValueError):
+                    continue  # binary assets hold no URLs
+                for url in re.findall(r"https?://[^\s\"'<>]+", text):
+                    self.assertEqual(url, "http://www.w3.org/2000/svg",
+                                     path)
 
 
 class LandingTest(unittest.TestCase):
@@ -170,14 +168,18 @@ class LandingTest(unittest.TestCase):
 
     def test_generic_shop_signage_only(self):
         home = self.home()
-        self.assertEqual(home.count(">Shop<"), 2)
         self.assertNotIn("Pixar", read("index.html"))
+        self.assertIn('src="assets/door-shop.png"', home)
+        for label in ("Bay — Fix it", "Yard — Strip it",
+                      "Driveway — Your own car"):
+            self.assertIn(label, home)
 
     def test_backdrop_is_illustration_not_inventory(self):
         home = self.home()
         scene = home[home.index('<div class="scene"'):
                      home.index('id="btnHomePhoto"')]
-        self.assertNotIn("<img", scene)
+        self.assertIn("<img", scene)
+        self.assertIn('src="assets/landing.png"', scene)
         self.assertNotIn("demo/frame", scene)
 
 
@@ -229,7 +231,8 @@ class SettingTest(unittest.TestCase):
         for label in ("Illustrated shop interior", "Illustrated yard lot",
                       "Illustrated home garage"):
             self.assertIn(label, bands, label)
-        self.assertNotIn("<img", bands)
+        self.assertIn("<img", bands)
+        self.assertNotIn("<svg", bands)
         self.assertNotIn("demo/frame", bands)
 
 

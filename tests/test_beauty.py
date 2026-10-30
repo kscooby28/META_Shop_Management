@@ -183,9 +183,9 @@ class HeroTest(unittest.TestCase):
         html = read("index.html")
         home = html[html.index('id="view-home"'):html.index('id="view-yard"')]
         scene = home[home.index('<div class="scene"'):home.index('id="btnHomePhoto"')]
-        self.assertIn("<svg", scene)
+        self.assertNotIn("<svg", scene)
+        self.assertIn("<img", scene)
         self.assertIn("Illustrated shop street", scene)
-        self.assertNotIn("<img", scene)
         self.assertNotIn("demo/frame", home)
         self.assertNotIn("http", scene)
         self.assertLess(home.index("screen-line"), home.index('<div class="scene"'))

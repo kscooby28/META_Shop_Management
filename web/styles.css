@@ -158,7 +158,7 @@ body {
   overflow: hidden;
 }
 .door:hover { border-color: var(--ink); background: var(--surface); }
-.doorart { width: 100%; height: 6.5rem; display: block; flex: none; }
+.doorart { width: 100%; height: 6.5rem; display: block; flex: none; object-fit: cover; }
 .door .tbody { padding: 0.7rem 0.9rem 0.9rem; display: flex; flex-direction: column; gap: 0.25rem; }
 .door-name { font-size: var(--text-title); font-weight: 800; }
 .door-why { font-size: var(--text-body); font-weight: 400; color: var(--muted); }
@@ -770,26 +770,16 @@ button.primary .ticon { background: transparent; border-color: currentcolor; col
 .gsheet .gtitle { font-size: var(--text-title); font-weight: 800; margin: 0 0 0.6rem; }
 .gsheet .gopts { display: grid; gap: 0.5rem; }
 .gsheet .gopts button.gtile { width: 100%; }
-.sceneart .f-bg { fill: var(--bg); }
-.sceneart .f-surface { fill: var(--surface); }
-.sceneart .f-paper { fill: var(--paper); }
-.sceneart .f-ink { fill: var(--ink); }
-.sceneart .f-muted { fill: var(--muted); }
-.sceneart .f-line { fill: var(--line); }
-.sceneart .s-ink { stroke: var(--ink); }
-.sceneart .s-line { stroke: var(--line); }
-.sceneart .s-muted { stroke: var(--muted); }
-.sceneart .stext { font-size: var(--text-meta); font-weight: 800; }
-
-/* ---- Setting system (WO20 item 3): one band per space, swapped on
- * entrance tap, persisted per mode. Token fills remap in sunlight. */
+/* ---- Setting system (WO20 item 3, WO21 phase 1): one band per
+ * space, swapped on entrance tap, persisted per mode. Bands are
+ * committed illustration art, never token fills. */
 .settingband {
   margin: 0 0 1rem; border: 1px solid var(--line);
   border-radius: var(--radius-card); overflow: hidden;
   background: var(--paper);
 }
 .settingband[hidden] { display: none; }
-.settingband svg { width: 100%; height: 110px; display: block; }
+.settingband img { width: 100%; height: 110px; display: block; object-fit: cover; }
 .neutralpanel { border-top: 2px solid var(--line); }
 
 /* ---- Capture staging (WO20 item 4): the working view. The setting

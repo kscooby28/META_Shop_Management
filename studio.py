@@ -24,6 +24,7 @@ from meta_client import MetaAPIError
 # only; the interface does not change.
 IMAGE_LIVE = False
 TIMEOUT_SECONDS = 20
+ART_TIMEOUT_SECONDS = 120
 
 SVG_OUTER_OPEN = re.compile(r"\A\s*<svg[^>]*>", re.DOTALL)
 SVG_OUTER_CLOSE = re.compile(r"</svg>\s*\Z", re.DOTALL)
@@ -131,6 +132,96 @@ def request_studio_render(cutout_data_url, label):
         "kind": "image",
         "body": data_url,
         "note": "Studio photo, rendered live.",
+        "source": "image-live",
+    }
+
+
+def request_art_render(prompt):
+    """Ask Muse Image for one scene-illustration render. Live only.
+
+    Text-to-image over the owner-confirmed Responses shape (official
+    docs code): POST {api_base}{MUSE_IMAGE_PATH} with an input
+    message carrying the prompt as input_text, store true, stream
+    false, and the image_generation tool with output_format png.
+    The base64 bytes come back in the output item of type
+    image_generation_call, field "result". Raises MetaAPIError
+    without touching the network unless the live flag is on, a
+    model id and path are configured, and a key is present.
+    """
+    if not IMAGE_LIVE:
+        raise MetaAPIError("studio live is off until the key rotation", kind="unreachable")
+    if not (prompt or "").strip():
+        raise MetaAPIError("no prompt in art request", kind="bad_response")
+    cfg = _live_settings()
+    if not cfg["model"] or not cfg["path"]:
+        raise MetaAPIError(
+            "studio live model/path unconfirmed; set MUSE_IMAGE_MODEL and MUSE_IMAGE_PATH",
+            kind="unreachable",
+        )
+    body = json.dumps({
+        "model": cfg["model"],
+        "input": [{
+            "type": "message",
+            "role": "user",
+            "content": [{"type": "input_text", "text": prompt}],
+        }],
+        "store": True,
+        "stream": False,
+        "tools": [{"type": "image_generation", "output_format": "png"}],
+    }).encode("utf-8")
+    request = urllib.request.Request(
+        cfg["api_base"] + cfg["path"],
+        data=body,
+        headers={
+            "Authorization": "Bearer " + _api_key(),
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=ART_TIMEOUT_SECONDS) as response:
+            raw = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        try:
+            detail = exc.read().decode("utf-8", "replace")[:300]
+        except Exception:
+            detail = ""
+        if exc.code in (401, 403):
+            raise MetaAPIError("API key rejected (%s)" % exc.code, kind="auth")
+        raise MetaAPIError("studio API error %s: %s" % (exc.code, detail),
+                           kind="unreachable")
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+        raise MetaAPIError("studio API unreachable: %s" % exc, kind="unreachable")
+    try:
+        items = raw["output"]
+        assert isinstance(items, list) and items
+        b64 = ""
+        for item in items:
+            if isinstance(item, dict) and item.get("type") == "image_generation_call":
+                b64 = item.get("result") or ""
+                break
+        assert isinstance(b64, str) and b64
+        import base64
+        blob = base64.b64decode(b64)
+        assert blob
+    except (KeyError, AssertionError, TypeError, ValueError) as exc:
+        raise MetaAPIError("studio returned an unusable shape: %s" % exc, kind="bad_response")
+    if blob[:8] == b"\x89PNG\r\n\x1a\n":
+        mime, ext = "image/png", "png"
+    elif blob[:3] == b"\xff\xd8\xff":
+        mime, ext = "image/jpeg", "jpg"
+    elif blob[:6] in (b"GIF87a", b"GIF89a"):
+        mime, ext = "image/gif", "gif"
+    elif blob[:4] == b"RIFF" and blob[8:12] == b"WEBP":
+        mime, ext = "image/webp", "webp"
+    else:
+        raise MetaAPIError("studio returned bytes of unknown image kind", kind="bad_response")
+    return {
+        "kind": "image",
+        "body": "data:%s;base64,%s" % (mime, b64),
+        "format": ext,
+        "bytes": len(blob),
+        "note": "Scene illustration, rendered live.",
         "source": "image-live",
     }
 

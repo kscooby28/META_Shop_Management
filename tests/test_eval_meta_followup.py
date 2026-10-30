@@ -83,8 +83,8 @@ PRODUCT_PINNED = {
     "rules.json":
         "1861d550c7680f5c0199906fda321f6c66108df2ee7d948639c683ed2b521a86",
 }
-WEB_TREE_PINNED = ("a86ab4151302df3e6eea773b30ff2116b47fff20c0716f6cbea97e28"
-                   "2bf1cbeb")
+WEB_TREE_PINNED = ("6b9083aa40cdc2f91ce43a9532eda6147f6d2694ad8eff30b637badb5d278fcb"
+                   "")
 
 
 def load_results():

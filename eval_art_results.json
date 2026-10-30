@@ -1,0 +1,88 @@
+{
+  "order": "Overhaul Phase 1: scene illustration art set",
+  "model": "muse-image-1.0",
+  "path": "/responses",
+  "images": {
+    "landing": {
+      "prompt": "Quiet small-town commercial street at dusk: an auto repair shop storefront on the left, a house with a home garage in the middle, a fenced parts yard gate on the right, a few parked cars as background scenery only. No text, no words, no letters, no signs with writing. Digital painting, cohesive art direction, deliberate cinematic lighting, warm amber work light, rich but disciplined color, polished finish, no watermark.",
+      "file": "web/assets/landing.png",
+      "format": "png",
+      "bytes": 865789,
+      "dims": "960x640",
+      "latency_ms": 36166,
+      "webified_from": 3448634
+    },
+    "door-shop": {
+      "prompt": "Front view of an obvious commercial auto repair shop entrance: wide glass door and windows, one plain rectangular sign above the door reading exactly the word Shop, warm light spilling out, workbench silhouette inside. No other text, no business name, no logos. Digital painting, cohesive art direction, deliberate cinematic lighting, warm amber work light, rich but disciplined color, polished finish, no watermark.",
+      "file": "web/assets/door-shop.png",
+      "format": "png",
+      "bytes": 665916,
+      "dims": "960x640",
+      "latency_ms": 13510,
+      "webified_from": 2843498
+    },
+    "door-garage": {
+      "prompt": "Front view of a closed home garage door on a house: paneled door, warm lamp beside it, driveway, evening. No text, no words, no letters. Digital painting, cohesive art direction, deliberate cinematic lighting, warm amber work light, rich but disciplined color, polished finish, no watermark.",
+      "file": "web/assets/door-garage.png",
+      "format": "png",
+      "bytes": 793025,
+      "dims": "960x640",
+      "latency_ms": 19267,
+      "webified_from": 3221467
+    },
+    "door-yard": {
+      "prompt": "Front view of a metal parts-yard gate: chain-link gate slightly open, rows of parts cars behind the fence in daylight. No readable text, no words, no letters. Digital painting, cohesive art direction, deliberate cinematic lighting, warm amber work light, rich but disciplined color, polished finish, no watermark.",
+      "file": "web/assets/door-yard.png",
+      "format": "png",
+      "bytes": 1107488,
+      "dims": "960x640",
+      "latency_ms": 31884,
+      "webified_from": 4191987
+    },
+    "band-shop": {
+      "prompt": "Wide interior of an auto repair shop: car lift, workbench with tools, tool wall, warm amber work lamps. No text, no words, no letters. Digital painting, cohesive art direction, deliberate cinematic lighting, warm amber work light, rich but disciplined color, polished finish, no watermark.",
+      "file": "web/assets/band-shop.png",
+      "format": "png",
+      "bytes": 916103,
+      "dims": "960x640",
+      "latency_ms": 21595,
+      "webified_from": 3583053
+    },
+    "band-yard": {
+      "prompt": "Wide view of an auto parts yard lot in daylight: rows of parts cars, fence, gravel ground. No text, no words, no letters. Digital painting, cohesive art direction, deliberate cinematic lighting, warm amber work light, rich but disciplined color, polished finish, no watermark.",
+      "file": "web/assets/band-yard.png",
+      "format": "png",
+      "bytes": 1090567,
+      "dims": "960x640",
+      "latency_ms": 18666,
+      "webified_from": 4093299
+    },
+    "band-garage": {
+      "prompt": "Wide interior of a cozy home garage: one car, shelves with parts bins, warm lamp glow. No text, no words, no letters. Digital painting, cohesive art direction, deliberate cinematic lighting, warm amber work light, rich but disciplined color, polished finish, no watermark.",
+      "file": "web/assets/band-garage.png",
+      "format": "png",
+      "bytes": 853910,
+      "dims": "960x640",
+      "latency_ms": 11454,
+      "webified_from": 3379248
+    }
+  },
+  "attempts": {
+    "landing": 1,
+    "door-shop": 1,
+    "door-garage": 1,
+    "door-yard": 1,
+    "band-shop": 1,
+    "band-yard": 1,
+    "band-garage": 1
+  },
+  "failures": {},
+  "image_count": 7,
+  "total_bytes": 6292798,
+  "live_calls_sent": 7,
+  "cost_estimate_usd": 0.07,
+  "webify": {
+    "method": "headless render at max 960 on the long edge",
+    "failures": {}
+  }
+}
