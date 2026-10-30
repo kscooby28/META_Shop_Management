@@ -3113,6 +3113,27 @@ function renderInvKnow() {
 function renderInvParts() {
   const box = $("invParts");
   fillCarSelect($("invPartCar"));
+  const fCar = $("invFilterCar");
+  if (fCar) {
+    const keep = fCar.value || "";
+    fCar.innerHTML = "";
+    const all = document.createElement("option");
+    all.value = "";
+    all.textContent = "All cars";
+    fCar.appendChild(all);
+    for (const car of invState.cars) {
+      const o = document.createElement("option");
+      o.value = car.id;
+      o.textContent = car.label;
+      fCar.appendChild(o);
+    }
+    fCar.value = keep;
+  }
+  const q = (($("invFilterPart") && $("invFilterPart").value) || "").trim().toLowerCase();
+  const carId = (fCar && fCar.value) || "";
+  const visible = invState.parts.filter((p) =>
+    (!carId || p.carId === carId) &&
+    (!q || (p.label || "").toLowerCase().indexOf(q) >= 0));
   if (!invState.parts.length) {
     emptyInto(box, "invparts", () => {
       const d = document.querySelector("#sec-iparts details");
@@ -3122,8 +3143,25 @@ function renderInvParts() {
     return;
   }
   box.innerHTML = "";
+  if (!visible.length) {
+    const nom = document.createElement("p");
+    nom.className = "hint";
+    nom.textContent = "No parts match this filter.";
+    box.appendChild(nom);
+    const clear = document.createElement("button");
+    clear.type = "button";
+    clear.className = "small";
+    clear.textContent = "Clear filter";
+    clear.addEventListener("click", () => {
+      if (fCar) fCar.value = "";
+      if ($("invFilterPart")) $("invFilterPart").value = "";
+      renderInvParts();
+    });
+    box.appendChild(clear);
+    return;
+  }
   for (const car of invState.cars) {
-    const mine = invState.parts.filter((p) => p.carId === car.id);
+    const mine = visible.filter((p) => p.carId === car.id);
     if (!mine.length) continue;
     const head = document.createElement("p");
     head.innerHTML = "<strong>" + esc(car.label) + "</strong>";
@@ -3147,7 +3185,6 @@ function renderInvParts() {
       }
       li.insertAdjacentHTML("beforeend",
         "<strong>" + esc(part.label) + "</strong>" +
-        '<span class="relbadge">' + esc(part.relation) + " " + esc(car.label) + "</span>" +
         (part.value !== null && part.valueSource
           ? '<span><span class="money">$' + part.value + '</span> <span class="sourced">(' + esc(part.valueSource) + ")</span></span>"
           : '<span class="missing">value unknown</span>') +
@@ -3158,7 +3195,8 @@ function renderInvParts() {
       sum.textContent = "Condition and note";
       more.appendChild(sum);
       const cond = document.createElement("div");
-      cond.textContent = part.condition + (part.note ? " — " + part.note : "");
+      cond.innerHTML = '<span class="relbadge">' + esc(part.relation) + " " + esc(car.label) + "</span> " +
+        esc(part.condition + (part.note ? " — " + part.note : ""));
       more.appendChild(cond);
       li.insertBefore(more, li.querySelector("[data-list]"));
       li.querySelector("[data-list]").addEventListener("click", guard(async () => {
@@ -3527,6 +3565,8 @@ function initInventory() {
   });
 
   $("invKnowCar").addEventListener("change", renderInvKnow);
+  $("invFilterCar").addEventListener("change", renderInvParts);
+  $("invFilterPart").addEventListener("input", renderInvParts);
   $("btnInvAddNote").addEventListener("click", guard(async () => {
     const value = $("invKnowValue").value.trim();
     invState = Inventory.addNote(invState, {

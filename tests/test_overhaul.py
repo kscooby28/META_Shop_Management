@@ -316,5 +316,76 @@ class OverhaulNavTest(unittest.TestCase):
         self.assertEqual(len(beats), 10)
 
 
+def load_seed():
+    with open(os.path.join(ROOT, "demo_cache", "inv_seed.demo.json"),
+              encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+class OverhaulSeedTest(unittest.TestCase):
+    def test_every_car_has_multiple_parts(self):
+        seed = load_seed()
+        by_car = {}
+        for part in seed["parts"]:
+            by_car.setdefault(part["carId"], []).append(part["id"])
+        for car in seed["cars"]:
+            got = by_car.get(car["id"], [])
+            self.assertGreaterEqual(len(got), 2,
+                                    "single-part car: %s" % car["label"])
+
+    def test_seed_values_comps_or_unknown(self):
+        seed = load_seed()
+        board = seed["partComps"]
+        for part in seed["parts"]:
+            if part["value"] is None:
+                self.assertEqual(part["valueSource"], "", part["id"])
+            else:
+                self.assertIn(part["label"], board, part["id"])
+                self.assertEqual(part["value"],
+                                 board[part["label"]]["value"], part["id"])
+
+    def test_m3_knowledge_note_verbatim(self):
+        seed = load_seed()
+        notes = [n for n in seed["knowledge"] if n["part"] == "engine computer"]
+        self.assertEqual(len(notes), 1)
+        self.assertEqual(notes[0]["reason"],
+                         "No EWS on this unit, and it is coveted amongst E30 owners.")
+        self.assertEqual(notes[0]["value"], 200)
+
+    def test_filter_controls_exist_and_wire(self):
+        html = read_web("index.html")
+        self.assertIn('id="invFilterCar"', html)
+        self.assertIn('id="invFilterPart"', html)
+        app = read_web("app.js")
+        self.assertIn('$("invFilterCar").addEventListener("change", renderInvParts)', app)
+        self.assertIn('$("invFilterPart").addEventListener("input", renderInvParts)', app)
+        fn = app[app.index("function renderInvParts"):
+                 app.index("function renderInvTotals")]
+        self.assertIn('invFilterCar', fn)
+        self.assertIn('invFilterPart', fn)
+        self.assertIn('No parts match this filter.', fn)
+
+    def test_part_rows_title_plus_one_field(self):
+        app = read_web("app.js")
+        fn = app[app.index("function renderInvParts"):
+                 app.index("function renderInvTotals")]
+        row = fn[fn.index("insertAdjacentHTML"):fn.index("rowmore")]
+        self.assertIn("<strong>", row)
+        self.assertIn("value unknown", row)
+        self.assertNotIn("relbadge", row)
+        details = fn[fn.index("rowmore"):]
+        self.assertIn("relbadge", details)
+
+    def test_notes_render_text_only(self):
+        app = read_web("app.js")
+        fn = app[app.index("function renderInvKnow"):
+                 app.index("function renderInvParts")]
+        self.assertNotIn("<img", fn)
+
+    def test_totals_name_unknowns(self):
+        inv = read_web("inventory.js")
+        self.assertIn("Unknown and left out: ", inv)
+
+
 if __name__ == "__main__":
     unittest.main()

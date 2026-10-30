@@ -105,8 +105,13 @@ def _inventory_intact(condition):
 
 def build_inventory(root):
     """Inventory demo parts: owner values as sourced prices, gaps unknown."""
-    from inventory import load_seed
-    seed = load_seed(root)
+    # Frozen inputs: the recorded results (scale, meta, followup) pin the
+    # seed exactly as it stood at WO16. The live demo seed evolves under
+    # WO21 P4, so this case reads the frozen fixture; the recompute tests
+    # prove rules and verdicts are stable, not that the demo never grows.
+    with open(os.path.join(root, "demo_cache", "inv_seed.eval.json"),
+              encoding="utf-8") as fh:
+        seed = json.load(fh)
     cars = {c["id"]: c.get("label", c["id"]) for c in seed.get("cars", [])}
     parts, shop, extra = [], {}, {}
     for entry in seed.get("parts", []):

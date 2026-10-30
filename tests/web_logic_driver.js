@@ -110,11 +110,11 @@ ok(JSON.stringify(inv.parts[0]) === before, "inventory stands alone, independent
 // ---- demo seed shape ----
 const seed = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "demo_cache", "inv_seed.demo.json"), "utf-8"));
 const seeded = Inventory.applySeed(seed);
-ok(seeded.cars.length === 4 && seeded.parts.length === 6 && seeded.knowledge.length === 1,
-  "demo seed carries 4 cars, 6 parts, 1 knowledge note");
+ok(seeded.cars.length === 4 && seeded.parts.length === 11 && seeded.knowledge.length === 1,
+  "demo seed carries 4 cars, 11 parts, 1 knowledge note");
 const seedTotals = Inventory.overallTotals(seeded);
-ok(seedTotals.total === 1330 && seedTotals.counted === 5 && seedTotals.unknown.length === 1,
-  "seed totals $1,330 across 5 sourced parts, 1 unknown named");
+ok(seedTotals.total === 1435 && seedTotals.counted === 8 && seedTotals.unknown.length === 3,
+  "seed totals $1,435 across 8 sourced parts, 3 unknown named");
 const m3notes = Inventory.notesForCar(seeded, "car-m3");
 ok(m3notes.length === 1 && m3notes[0].value === 200 && m3notes[0].reason.indexOf("EWS") >= 0,
   "M3 engine-computer note surfaces with the owner reason and value");

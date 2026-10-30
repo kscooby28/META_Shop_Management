@@ -21,7 +21,7 @@ class InventorySeedTest(unittest.TestCase):
     def test_seed_shape(self):
         labels = [c["label"] for c in self.seed["cars"]]
         self.assertEqual(labels, ["My driver", "Parts car 1", "Parts car 2", "M3 parts car"])
-        self.assertEqual(len(self.seed["parts"]), 6)
+        self.assertEqual(len(self.seed["parts"]), 11)
         self.assertEqual(len(self.seed["knowledge"]), 1)
         for key in ("sampleIdentify", "sampleVin", "samplePart", "partComps"):
             self.assertIn(key, self.seed)
