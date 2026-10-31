@@ -257,7 +257,7 @@ button.approve { min-height: 56px; font-size: var(--text-title); padding-left: 1
 .panelhead { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 #panelClose { display: none; }
 button:disabled { opacity: 0.45; cursor: default; }
-button.small { font-size: var(--text-meta); padding: 0.25rem 0.6rem; min-height: 0; }
+button.small { font-size: var(--text-meta); padding: 0.25rem 0.6rem; min-height: 44px; }
 
 input[type="text"], input[type="number"], textarea, select {
   font: inherit;
@@ -925,10 +925,10 @@ body.sunlight .jdest { font-size: var(--sun-meta); font-weight: 700; }
     right: 0; top: 0; bottom: 0;
     background: var(--paper);
     z-index: 50;
-    box-shadow: -4px 0 16px var(--shadow);
+    border-left: 2px solid var(--line);
     max-height: none;
     transform: translateX(100%);
-    transition: transform 0.2s ease;
+    transition: transform var(--t-reveal) var(--ease);
   }
   .panel.open { transform: none; }
   #panelToggle { display: inline-block; }
@@ -939,6 +939,7 @@ body.sunlight .jdest { font-size: var(--sun-meta); font-weight: 700; }
   .page-in-right, .page-in-left, .door-fade, .sheet-up { animation: none; }
   .flip-glide { transition: none; }
   .moved-flash { animation: none; }
+  .flash { animation: none; }
   .reveal { transition: none; opacity: 1; }
   .gsheet { animation: none; }
   .skel { animation: none; }
@@ -948,9 +949,8 @@ body.sunlight .jdest { font-size: var(--sun-meta); font-weight: 700; }
 
 @media (prefers-reduced-motion: no-preference) {
   html { scroll-behavior: smooth; }
-  .strip img { transition: border-color 0.15s ease; }
-  button { transition: background-color 0.12s ease, transform var(--t-tap) var(--ease); }
+  button { transition: transform var(--t-tap) var(--ease); }
   button:active { transform: scale(0.97); }
-  .flash { animation: fadein 0.25s ease; }
+  .flash { animation: fadein var(--t-door) var(--ease); }
   @keyframes fadein { from { opacity: 0.35; } to { opacity: 1; } }
 }

@@ -137,7 +137,10 @@ function emptyInto(box, key, onAction) {
     '<div class="etitle">' + esc(e.title) + "</div><p>" + esc(e.message) + "</p>";
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.textContent = e.action;
+  btn.className = "gtile";
+  btn.setAttribute("aria-label", e.action);
+  btn.innerHTML = '<span class="ticon" aria-hidden="true">→</span>' +
+    '<span class="tbody"><span class="tword">' + esc(e.action) + "</span></span>";
   btn.addEventListener("click", onAction);
   div.appendChild(btn);
   box.appendChild(div);
@@ -303,8 +306,13 @@ function frameOrder() {
   return seen;
 }
 
+function overlayColor(grade) {
+  const val = getComputedStyle(document.documentElement)
+    .getPropertyValue("--grade-" + String(grade || "A").toLowerCase()).trim();
+  return val || "#3fa46f";
+}
+
 function buildOverlay(items) {
-  const colors = { A: "#1e6b3a", B: "#9a6206", C: "#a83a32" };
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", "0 0 1000 1000");
   svg.setAttribute("preserveAspectRatio", "none");
@@ -314,7 +322,7 @@ function buildOverlay(items) {
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
     g.setAttribute("data-part", part.id);
     if (grade) g.setAttribute("class", "part-" + grade);
-    const color = colors[grade] || "#1e6b3a";
+    const color = overlayColor(grade);
     if (s.polygon && s.polygon.length >= 3) {
       const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
       poly.setAttribute("points", s.polygon.map((p) => p.join(",")).join(" "));
@@ -571,6 +579,9 @@ function renderVerdicts() {
       ? esc(inp.pull_minutes + " min") + ' <span class="sourced">(' + esc(inp.pull_source) + ")</span>"
       : '<span class="missing">no pull-time note</span>';
     const gradeWord = { A: "Pull now", B: "Worth it", C: "Leave it" }[v.verdict] || v.verdict;
+    const ghpart = ((state.harvest && state.harvest.parts) || []).find((p) => p.id === v.part_id);
+    const gvthumb = ghpart ? Gallery.partThumb(ghpart) : null;
+    const gradeImg = gvthumb ? '<img class="timg" src="' + frameSrc(gvthumb.frame) + '" alt="">' : "";
     const gradeBtn = (g) =>
       g === ""
         ? '<button type="button" class="gtile gradecard" data-override="">' +
@@ -578,6 +589,7 @@ function renderVerdicts() {
           '<span class="tbody"><span class="tword">Rule grade</span>' +
           '<span class="tfield">clear override</span></span></button>'
         : '<button type="button" class="gtile gradecard" data-override="' + g + '">' +
+          gradeImg +
           '<span class="grade grade-sm grade-' + g + '">' + g + "</span>" +
           '<span class="tbody"><span class="tword">' + ({ A: "Pull now", B: "Worth it", C: "Leave it" }[g]) + "</span>" +
           '<span class="tfield">' + priceCell + "</span></span></button>";
@@ -886,6 +898,7 @@ async function runDraft(partId) {
   UX.clearDraft(localStorage, "listing");
   $("receipt").innerHTML = "";
   markListingDemo();
+  renderGatePrice(pid, "yard");
   // Cutout preview: crop the best box out of its source frame.
   const svg = $("cutoutSvg");
   svg.innerHTML = "";
@@ -919,7 +932,7 @@ async function runApprove() {
       $("destExchange").checked ? "exchange" : null,
     ].filter(Boolean),
   });
-  $("receipt").innerHTML = '<div class="notice">Approved. Nothing has posted — Post is a separate, deliberate press.</div>';
+  stageReceipt($("receipt"), '<div class="notice">Approved. Nothing has posted — Post is a separate, deliberate press.</div>');
   feed("You approved the listing", "approval gate — draft " + state.draftId + " → approved");
   return res;
 }
@@ -930,8 +943,8 @@ async function runPost() {
     sessionId: state.sessionId, draftId: state.draftId,
   });
   const r = res.receipt || {};
-  $("receipt").innerHTML = '<div class="notice">' + esc(r.note || "Posted.") +
-    " Destinations: " + esc((r.destinations || []).join(", ") || "none") + ".</div>";
+  stageReceipt($("receipt"), '<div class="notice">' + esc(r.note || "Posted.") +
+    " Destinations: " + esc((r.destinations || []).join(", ") || "none") + ".</div>");
   feed("Posted via the mock outbox (nothing left this machine)",
     "tool listing.post (" + (r.adapter || "mock") + ") → local outbox receipt");
   offerMockMarketplace(r);
@@ -965,6 +978,7 @@ function offerMockMarketplace(receipt) {
     done.textContent = "Mock listing " + out.listing.id + ": '" + out.listing.title +
       "' — " + out.listing.status + ". " + out.chaching;
     box.appendChild(done);
+    stageIn(done);
     feed("Mock marketplace post (demo): listed, then cha-ching",
       "tool mock.ebay.post → mock listing, approval receipt required");
   }));
@@ -1311,7 +1325,7 @@ function tourBar(beat, index) {
   bar.appendChild(journey);
   const next = document.createElement("button");
   next.type = "button";
-  next.className = "small primary";
+  next.className = "small";
   next.textContent = index + 1 >= TOUR_BEATS.length ? "Finish" : "Next";
   next.addEventListener("click", guard(tourNext, "walking…"));
   bar.appendChild(next);
@@ -1396,6 +1410,7 @@ async function showTourBeat() {
     $("btnSetupShop").disabled = true;
     $("btnSetupFan").disabled = true;
     $("setupOverlay").hidden = false;
+    paintSetupChoice((Profile.loadProfile(localStorage) || {}).mode);
     tourPreview = true;
   } else if (beat.id === "register" || beat.id === "dme" || beat.id === "totals") {
     showView("inventory");
@@ -1693,8 +1708,8 @@ function renderBayPlan() {
         '<span class="tbody"><span class="tword">Fail</span></span></button>' +
         "</div>" +
         '<div class="row movers">' +
-        '<button type="button" class="small" data-move="-1">↑</button>' +
-        '<button type="button" class="small" data-move="1">↓</button>' +
+        '<button type="button" class="small" data-move="-1">↑ Move up</button>' +
+        '<button type="button" class="small" data-move="1">↓ Move down</button>' +
         '<button type="button" class="small" data-edit="1">Edit</button>' +
         "</div>";
       card.querySelectorAll("[data-res]").forEach((btn) => {
@@ -1746,7 +1761,10 @@ function renderBayTrail() {
       "<p>Review the parts list and the labor math next.</p>";
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.textContent = "Review parts";
+    btn.className = "gtile";
+    btn.setAttribute("aria-label", "Review parts");
+    btn.innerHTML = '<span class="ticon" aria-hidden="true">→</span>' +
+      '<span class="tbody"><span class="tword">Review parts</span></span>';
     btn.addEventListener("click", () => document.getElementById("sec-bparts").scrollIntoView());
     div.appendChild(btn);
     box.insertBefore(div, box.firstChild);
@@ -1899,10 +1917,28 @@ function bayLaborFromInputs() {
 }
 
 function flash(el) {
-  if (!el || !el.classList) return;
+  if (!el || !el.classList || calmMotion()) return;
   el.classList.remove("flash");
   void el.offsetWidth; // restart the animation
   el.classList.add("flash");
+}
+
+function stageIn(el) {
+  if (!el || !el.classList) return;
+  el.classList.add("reveal");
+  el.setAttribute("data-on", "0");
+  const flip = () => el.setAttribute("data-on", "1");
+  if (calmMotion()) { flip(); return; }
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => requestAnimationFrame(flip));
+  } else {
+    setTimeout(flip, 16);
+  }
+}
+
+function stageReceipt(box, html) {
+  box.innerHTML = html;
+  stageIn(box.firstElementChild);
 }
 
 function scrollSoon(el) {
@@ -2263,8 +2299,8 @@ function heroExpand(rect, url) {
   const dx = target ? (target.left + target.width / 2 - (rect.left + rect.width / 2)) : 0;
   const dy = target ? (target.top + 60 - (rect.top + rect.height / 2)) : 0;
   const s = target && rect.width > 0
-    ? Math.min(3, Math.max(1.2, (target.width || rect.width) / rect.width))
-    : 1.6;
+    ? Math.min(1.15, Math.max(1.05, (target.width || rect.width) / rect.width))
+    : 1.1;
   const raf = typeof requestAnimationFrame === "function"
     ? requestAnimationFrame
     : (fn) => setTimeout(fn, 16);
@@ -3052,13 +3088,22 @@ function renderCreds(box) {
   }
 }
 
+function paintSetupChoice(mode) {
+  const shop = $("btnSetupShop");
+  const fan = $("btnSetupFan");
+  shop.setAttribute("aria-pressed", mode === "shop" ? "true" : "false");
+  fan.setAttribute("aria-pressed", mode === "enthusiast" ? "true" : "false");
+}
+
 function initIdentity() {
   if (Profile.needsSetup(localStorage)) {
     $("setupOverlay").hidden = false;
+    paintSetupChoice("");
   } else {
     showView("home");
   }
   const choose = (mode) => guard(async () => {
+    paintSetupChoice(mode);
     Profile.saveProfile(localStorage, $("setupEmail").value, mode);
     $("setupOverlay").hidden = true;
     renderSettings();
@@ -3153,6 +3198,7 @@ function renderInvKnow() {
     (n.value !== null ? '<span>about <span class="money">$' + n.value + "</span></span>" : "<span>value unknown</span>") +
     '<span class="tag">' + esc(n.source) + "</span></li>"
   ).join("") + "</ul>";
+  stageIn(box.firstElementChild);
 }
 
 function renderInvParts() {
@@ -3173,6 +3219,7 @@ function renderInvParts() {
       fCar.appendChild(o);
     }
     fCar.value = keep;
+    syncPickers();
   }
   const q = (($("invFilterPart") && $("invFilterPart").value) || "").trim().toLowerCase();
   const carId = (fCar && fCar.value) || "";
@@ -3423,6 +3470,26 @@ function renderGuides() {
   }, "First task: register a parts car");
 }
 
+function renderGatePrice(partId, from) {
+  const box = $("listingPrice");
+  if (!box) return;
+  let html;
+  if (from === "inv") {
+    const part = invState.parts.find((p) => p.id === partId) || {};
+    html = part.value !== null && part.value !== undefined && part.valueSource
+      ? amberMoney(esc(money(part.value))) + ' <span class="sourced">(' + esc(part.valueSource) + ")</span>"
+      : '<span class="missing">price unknown</span>';
+  } else {
+    const found = ((state.report && state.report.verdicts) || []).find((x) => x.part_id === partId) || {};
+    const inp = found.inputs || {};
+    html = inp.price_known
+      ? amberMoney(esc(money(inp.price_low) + (inp.price_high && inp.price_high !== inp.price_low ? " to " + money(inp.price_high) : ""))) +
+        ' <span class="sourced">(' + esc(inp.price_source || "no source") + ")</span>"
+      : '<span class="missing">price unknown</span>';
+  }
+  box.innerHTML = html;
+}
+
 function markListingDemo() {
   const old = $("listingBadge");
   if (old) old.remove();
@@ -3459,6 +3526,7 @@ async function invDraftListing(partId) {
   UX.clearDraft(localStorage, "listing");
   $("receipt").innerHTML = "";
   markListingDemo();
+  renderGatePrice(part.id, "inv");
   $("cutoutSvg").innerHTML = "";
   $("cutoutNote").textContent = "Inventory draft: no photo cutout. Edit, Approve, then Post — nothing posts without approval.";
   renderStudio(res.studio, res.mode);
@@ -3777,6 +3845,7 @@ function initUx() {
   sheetPicker($("wonderPart"), "Ask about a part");
   sheetPicker($("invKnowCar"), "Car notes for");
   sheetPicker($("invPartCar"), "Attach to car");
+  sheetPicker($("invFilterCar"), "Filter by car");
   syncPickers();
   const savedListing = UX.loadDraft(localStorage, "listing");
   if (savedListing && (savedListing.listingTitle || savedListing.listingDesc)) {
@@ -3794,6 +3863,7 @@ function initUx() {
         $("listingTitle").value = "";
         $("listingDesc").value = "";
         $("receipt").innerHTML = "";
+        $("listingPrice").innerHTML = "";
         state.draftId = null;
         UX.clearDraft(localStorage, "listing");
         markListingDemo();

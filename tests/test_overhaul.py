@@ -503,5 +503,205 @@ class OverhaulVerdictTest(unittest.TestCase):
                              RULES_PINNED)
 
 
+class OverhaulGraphicalFixesTest(unittest.TestCase):
+    """WO20 graphical-build repairs: each fix below pins its guard."""
+
+    def test_drawer_shadow_replaced_by_solid_border(self):
+        css = read_web("styles.css")
+        self.assertNotIn("-4px 0 16px", css)
+        mobile = css[css.index("@media (max-width: 900px)"):
+                     css.index("@media (prefers-reduced-motion: reduce)")]
+        panel = mobile[mobile.index(".panel {"):mobile.index("#panelToggle")]
+        self.assertNotIn("box-shadow", panel)
+        self.assertIn("border-left: 2px solid var(--line);", panel)
+        for value in re.findall(r"box-shadow:\s*([^;]+);",
+                                re.sub(r"/\*.*?\*/", "", css, flags=re.S)):
+            self.assertEqual(value.strip(),
+                             "inset 0 1px 0 var(--line)", value)
+
+    def test_small_buttons_keep_shop_targets(self):
+        css = read_web("styles.css")
+        base = re.search(r"^button\.small \{([^}]*)\}", css,
+                         re.M).group(1)
+        self.assertIn("min-height: 44px", base)
+        self.assertIn("min-height: 48px",
+                      css_rule(css, ".backbar button.small {"))
+
+    def test_motion_is_tokens_transform_opacity_only(self):
+        plain = re.sub(r"/\*.*?\*/", "", read_web("styles.css"), flags=re.S)
+        lits = set()
+        for value in re.findall(r"(?:transition|animation):\s*([^;]+);",
+                                plain):
+            bare = re.sub(r"var\(--[\w-]+\)", "", value)
+            words = set(re.findall(r"[a-z][\w-]*", bare))
+            self.assertNotIn("ease", words, value)
+            self.assertNotIn("background-color", words, value)
+            self.assertNotIn("border-color", words, value)
+            lits.update(re.findall(r"\d+\.?\d*m?s\b", value))
+        self.assertEqual(lits, {"900ms"})
+        for value in re.findall(r"transition:\s*([^;]+);", plain):
+            for prop in re.findall(r"[a-z-]+(?=\s+var\(--t-)", value):
+                self.assertIn(prop, ("transform", "opacity"), value)
+        self.assertIn(".flash { animation: fadein var(--t-door) var(--ease); }",
+                      plain)
+
+    def test_reduced_motion_cuts_flash(self):
+        css = read_web("styles.css")
+        calm = css[css.index("prefers-reduced-motion: reduce"):
+                   css.index("prefers-reduced-motion: no-preference")]
+        self.assertIn(".flash { animation: none; }", calm)
+        app = read_web("app.js")
+        flash = app[app.index("function flash(el)"):
+                    app.index("function stageIn")]
+        self.assertIn("calmMotion()) return;", flash)
+
+    def test_overlay_grades_come_from_tokens(self):
+        app = read_web("app.js")
+        self.assertIn("function overlayColor(grade)", app)
+        self.assertIn('getPropertyValue("--grade-"', app)
+        self.assertIn("const color = overlayColor(grade);", app)
+        for hard in ("#9a6206", "#1e6b3a", "#a83a32"):
+            self.assertNotIn(hard, app, hard)
+
+    def test_inventory_car_filter_has_sheet_face(self):
+        app = read_web("app.js")
+        self.assertIn('sheetPicker($("invFilterCar"), "Filter by car")',
+                      app)
+        html = read_web("index.html")
+        self.assertIn('id="invFilterCar"', html)
+        fn = app[app.index("function renderInvParts"):
+                 app.index("function renderInvTotals")]
+        self.assertIn("syncPickers();", fn)
+
+    def test_header_buttons_show_icon_plus_word(self):
+        html = read_web("index.html")
+        header = html[html.index("<header"):html.index("</header>")]
+        gear = re.search(r'<button[^>]*id="navGear"[^>]*>(.*?)</button>',
+                         header, re.S).group(1)
+        self.assertIn("\u2699", gear)
+        self.assertIn("Settings", gear)
+        sun = re.search(r'<button[^>]*id="navSun"[^>]*>(.*?)</button>',
+                        header, re.S).group(1)
+        self.assertIn("\u2600", sun)
+        self.assertIn("Sun", sun)
+        app = read_web("app.js")
+        self.assertIn("\u2191 Move up", app)
+        self.assertIn("\u2193 Move down", app)
+
+    def test_profile_cards_show_selected_state(self):
+        app = read_web("app.js")
+        self.assertIn("function paintSetupChoice(mode)", app)
+        self.assertIn('shop.setAttribute("aria-pressed"', app)
+        self.assertIn('fan.setAttribute("aria-pressed"', app)
+        self.assertIn('paintSetupChoice("");', app)
+        self.assertIn("paintSetupChoice(mode);", app)
+        self.assertIn("paintSetupChoice((Profile.loadProfile(localStorage)"
+                      " || {}).mode);", app)
+
+    def test_hero_settles_without_zoom(self):
+        app = read_web("app.js")
+        expand = app[app.index("function heroExpand"):
+                     app.index("function yardPhoto")]
+        self.assertIn("scale(", expand)
+        self.assertIn("Math.min(1.15, Math.max(1.05", expand)
+        self.assertNotIn("Math.min(3", app)
+
+    def test_empty_actions_are_tiles(self):
+        app = read_web("app.js")
+        empty = app[app.index("function emptyInto"):
+                    app.index("function demoBadge")]
+        self.assertIn('btn.className = "gtile";', empty)
+        self.assertIn('class="ticon"', empty)
+        self.assertIn('class="tword"', empty)
+        self.assertIn("esc(e.action)", empty)
+        trail = app[app.index("function renderBayTrail"):
+                    app.index("function renderBayParts")]
+        self.assertIn('btn.className = "gtile";', trail)
+        self.assertIn("Review parts</span>", trail)
+
+    def test_grade_cards_carry_part_photo(self):
+        app = read_web("app.js")
+        fn = app[app.index("function renderVerdicts"):
+                 app.index("function renderTotals")]
+        self.assertIn("Gallery.partThumb(ghpart)", fn)
+        self.assertIn("frameSrc(gvthumb.frame)", fn)
+        self.assertIn('class="timg"', fn)
+        self.assertIn("gradeImg +", fn)
+
+    def test_gate_composes_its_price(self):
+        html = read_web("index.html")
+        tag = re.search(r'<div[^>]*id="listingPrice"[^>]*>',
+                        html).group(0)
+        self.assertIn("big-money", tag)
+        app = read_web("app.js")
+        self.assertIn("function renderGatePrice(partId, from)", app)
+        self.assertIn('renderGatePrice(pid, "yard");', app)
+        self.assertIn('renderGatePrice(part.id, "inv");', app)
+        self.assertIn("price unknown", app)
+        self.assertIn('$("listingPrice").innerHTML = "";', app)
+
+    def test_receipts_reveal_in_stages(self):
+        app = read_web("app.js")
+        self.assertIn("function stageIn(el)", app)
+        self.assertIn("function stageReceipt(box, html)", app)
+        self.assertIn('stageReceipt($("receipt"),', app)
+        self.assertIn("data-on", app)
+        fn = app[app.index("function renderInvKnow"):
+                 app.index("function renderInvParts")]
+        self.assertIn("stageIn(box.firstElementChild);", fn)
+
+    def test_yard_keeps_one_primary(self):
+        html = read_web("index.html")
+        yard = html[html.index('id="view-yard"'):html.index('id="view-bay"')]
+        self.assertEqual(yard.count('class="primary'), 1)
+        run = re.search(r'<button[^>]*id="btnRunAll"[^>]*>',
+                        html).group(0)
+        self.assertNotIn("primary", run)
+        gate = re.search(r'<button[^>]*id="btnApprove"[^>]*>',
+                         html).group(0)
+        self.assertIn("primary approve", gate)
+
+    def test_tour_progression_not_primary(self):
+        app = read_web("app.js")
+        bar = app[app.index("function tourBar"):
+                  app.index("function placeTourBar")]
+        self.assertIn('next.className = "small";', bar)
+        self.assertNotIn("primary", bar)
+        self.assertIn('"Next"', bar)
+        self.assertIn('"Finish"', bar)
+        self.assertIn('"Exit tour"', bar)
+
+    def test_landing_art_preloads(self):
+        html = read_web("index.html")
+        self.assertIn('<link rel="preload" href="assets/landing.png"'
+                      ' as="image">', html)
+
+    def test_no_new_art_beyond_manifest(self):
+        assets = sorted(os.listdir(os.path.join(ROOT, "web", "assets")))
+        self.assertEqual(assets, ["band-garage.png", "band-shop.png",
+                                 "band-yard.png", "door-garage.png",
+                                 "door-shop.png", "door-yard.png",
+                                 "landing.png"])
+
+    def test_grade_text_contrast_reproved(self):
+        css = read_web("styles.css")
+        root = css.partition(":root")[2].partition("}")[0]
+        tok = dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6})", root))
+
+        def lum(hexcode):
+            rgb = [int(hexcode[i:i + 2], 16) / 255.0 for i in (1, 3, 5)]
+            lin = [c / 12.92 if c <= 0.03928
+                   else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
+            return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+        def ratio(fore, back):
+            return ((max(lum(fore), lum(back)) + 0.05)
+                    / (min(lum(fore), lum(back)) + 0.05))
+
+        for grade in ("grade-a", "grade-b", "grade-c"):
+            self.assertGreaterEqual(ratio(tok[grade], tok["surface"]),
+                                    4.5, grade)
+
+
 if __name__ == "__main__":
     unittest.main()

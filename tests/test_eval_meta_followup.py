@@ -83,7 +83,7 @@ PRODUCT_PINNED = {
     "rules.json":
         "1861d550c7680f5c0199906fda321f6c66108df2ee7d948639c683ed2b521a86",
 }
-WEB_TREE_PINNED = ("0e54b30a21eebe366da64939a05d29db1708cdb043bd35fe9cc3e909d9f553d6"
+WEB_TREE_PINNED = ("096c2eed90b19255264d89ab8e38194d5eb61c15c4cd5e3d57a4aac78814c361"
                    "")
 
 
