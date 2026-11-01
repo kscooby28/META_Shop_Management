@@ -1,9 +1,10 @@
-"""Motion, confirm, sunlight tests (WO18): the app moves like a phone app.
+"""Motion and confirm tests (WO18): the app moves like a phone app.
 
 Presentation, navigation, and photo input only. Direction means
-something, every camera shot confirms, sunlight mode keeps type bold
-and surfaces solid. The flows, grades, and gates underneath are pinned
-by the existing suites, which must stay green untouched.
+something and every camera shot confirms. (Sunlight mode removed by
+owner direction; its absence is pinned below.) The flows, grades, and
+gates underneath are pinned by the existing suites, which must stay
+green untouched.
 """
 
 import os
@@ -27,13 +28,6 @@ def wo18_section():
     start = src.index("motion + confirm + sunlight (WO18)")
     end = src.index("function initBay()", start)
     return src[start:end]
-
-
-def sunlight_block():
-    css = read("web/styles.css")
-    start = css.index("body.sunlight {")
-    end = css.index("@media (min-width: 900px)", start)
-    return css[start:end]
 
 
 def keyframe_bodies():
@@ -207,7 +201,7 @@ class ConfirmFlowTest(unittest.TestCase):
         self.assertIn("paintShotGuide(btnId, SHOT_FOR_CAM[camId]", app)
         self.assertIn('p.className = "camguide";', wo18_section())
         html = read("web/index.html")
-        hero = html[html.index('id="view-home"'):html.index('id="view-yard"')]
+        hero = html[html.index('id="view-home"'):html.index('id="view-bay"')]
         self.assertIn("camguide", hero)
 
     def test_preview_after_capture(self):
@@ -303,63 +297,28 @@ class CaptureModesTest(unittest.TestCase):
         self.assertIn('<span class="mode-tag">Whole car</span>', html)
 
 
-class SunlightTest(unittest.TestCase):
-    def test_toggle_in_settings_and_header(self):
-        html = read("web/index.html")
-        tag = re.search(r'<button[^>]*id="navSun"[^>]*>', html).group(0)
-        self.assertIn('aria-label="Sunlight mode"', tag)
-        app = read("web/app.js")
-        self.assertIn("Sunlight mode — bold type, solid surfaces for glare", app)
-        self.assertIn('sunBox.id = "sunToggle";', app)
-        self.assertIn('$("navSun").addEventListener("click"', wo18_section())
+class SunRemovedTest(unittest.TestCase):
+    GONE = ("navSun", "sunToggle", "sunBox", "SUN_KEY", "copilot.sunlight",
+            "applySunlight", "loadSunlight", "saveSunlight",
+            "body.sunlight", "--sun-", '"Display"')
 
-    def test_browser_local_only(self):
-        ux = read("web/ux.js")
-        self.assertIn('const SUN_KEY = "copilot.sunlight";', ux)
+    def test_no_sunlight_in_product(self):
+        for name in ("web/index.html", "web/app.js", "web/styles.css",
+                     "web/ux.js"):
+            text = read(name)
+            for marker in self.GONE:
+                self.assertNotIn(marker, text, name + ":" + marker)
+
+    def test_no_network_in_wo18(self):
         section = wo18_section()
         self.assertNotIn("fetch(", section)
         self.assertNotIn("/api/", section)
-
-    def test_weight_and_contrast_up(self):
-        block = sunlight_block()
-        self.assertIn("font-weight: 600;", block)
-        self.assertIn("--ink: var(--sun-ink);", block)
-        self.assertIn("--muted: var(--sun-muted);", block)
-
-    def test_translucency_and_blur_gone(self):
-        block = sunlight_block()
-        for token in ("--tint-a: var(--sun-paper);", "--tint-b: var(--sun-paper);",
-                      "--tint-c: var(--sun-paper);", "--scrim: var(--sun-solid);",
-                      "--shadow: var(--sun-solid);"):
-            self.assertIn(token, block, token)
-        self.assertNotIn("rgba", block)
-        self.assertNotIn("blur", block)
-        for sel in ("button:disabled", ".testcard.eliminated", ".overlay g.dim"):
-            rule = block[block.index(sel):block.index(sel) + 120]
-            self.assertIn("opacity: 1;", rule, sel)
-
-    def test_type_floors(self):
-        block = sunlight_block()
-        ui, meta = block.split("body.sunlight .thumbs figcaption", 1)
-        self.assertIn("font-size: var(--sun-ui); font-weight: 700;", ui)
-        self.assertIn("font-size: var(--sun-meta); font-weight: 700;", meta)
-        root = root_tokens()
-        self.assertIn("--sun-ui: 16px;", root)
-        self.assertIn("--sun-meta: 12px;", root)
-        for cls in (".hint", ".status", ".verdict table", ".msg", "#chips button"):
-            self.assertIn(cls, ui, cls)
-        for cls in (".strip figcaption", ".demobadge", ".msg .mode", ".part-list .tag"):
-            self.assertIn(cls, meta, cls)
-
-    def test_no_thin_weights(self):
-        for weight in re.findall(r"font-weight:\s*(\d+)", sunlight_block()):
-            self.assertGreaterEqual(int(weight), 600)
 
 
 class HeroTest(unittest.TestCase):
     def test_hero_take_photo_on_home(self):
         html = read("web/index.html")
-        home = html[html.index('id="view-home"'):html.index('id="view-yard"')]
+        home = html[html.index('id="view-home"'):html.index('id="view-bay"')]
         self.assertIn('id="homeHeroCamera"', home)
         tag = re.search(r'<button[^>]*id="btnHomePhoto"[^>]*>([^<]*)</button>', home)
         self.assertIsNotNone(tag)
@@ -367,12 +326,12 @@ class HeroTest(unittest.TestCase):
         self.assertIn('class="photo herophoto"', home)
         self.assertLess(home.index("screen-line"), home.index("btnHomePhoto"))
 
-    def test_hero_hands_into_yard_intake(self):
+    def test_hero_hands_into_garage_intake(self):
         app = read("web/app.js")
         self.assertIn('twinCamera("homeHeroCamera", "fileInput", "btnHomePhoto")', app)
         section = wo18_section()
         hero = section[section.index('if (st.shot === "hero")'):section.index("if (AUTO_SHOT")]
-        self.assertIn('showView("yard");', hero)
+        self.assertIn('showView("inventory");', hero)
         self.assertIn("heroExpand(rect, url);", hero)
 
     def test_captured_photo_expands_into_screen(self):
@@ -389,7 +348,7 @@ class HeroTest(unittest.TestCase):
 class Order17GuardsTest(unittest.TestCase):
     def test_home_still_has_no_primary(self):
         html = read("web/index.html")
-        home = html[html.index('id="view-home"'):html.index('id="view-yard"')]
+        home = html[html.index('id="view-home"'):html.index('id="view-bay"')]
         self.assertEqual(len(re.findall(r'class="primary[" ]', home)), 0)
 
     def test_approve_gate_prominence_kept(self):

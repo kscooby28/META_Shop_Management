@@ -10,7 +10,7 @@ pulling and what they will sell for. Both sides share one brain that
 never guesses — every claim carries its source, or the software says
 it lacks reliable data.
 
-This repo ships the foundation plus the enthusiast (Yard) side's first flow:
+This repo ships the foundation plus the DIY Garage side's first flow:
 photo in, car identified, harvest map with masks, A/B/C verdicts with visible
 rules, plain-money totals, and a listing draft behind the Approve gate. The
 shop-manager core (the Bay) shipped as Work Order 2 on the same scaffold.
@@ -27,11 +27,12 @@ runs in this repo, end to end, on demo cache, with zero keys.
 
 
 The video spine, one continuous journey: first-run setup, one question,
-shop or enthusiast. Enthusiast home. Register a parts car by photo and
+shop or DIY Garage. DIY Garage home. Register a parts car by photo and
 VIN, confirm, done. The what-to-look-for moment: the mid-90s M3 parts
 car surfaces the engine computer, no EWS, the E30 crowd wants it, $200.
-Inventory with plain-money totals. A listing draft behind the Approve
-gate — nothing posts without a human saying so. Shop home. A Bay case:
+Plain-money totals with the money grade beside every rule grade. A
+listing draft behind the Approve gate — nothing posts without a human
+saying so. Shop home. A Bay case:
 symptom, codes, observations, ranked test plan. A pass and a fail, and
 the plan re-ranks live with the evidence trail naming what changed it.
 A decline card, professional, with a next step. Then the Compare beat:
@@ -39,7 +40,7 @@ both engines side by side on the same case, Muse Spark Open named on
 screen with where it runs. Close.
 
 The guided tour walks these beats in order: a Take the tour entry on
-both home screens, ten taps, no hunting, no keys, every beat on demo
+both home screens, eight taps, no hunting, no keys, every beat on demo
 cache including a forced-demo Compare. It is the recording path and
 the stranger's first-run path in one.
 
@@ -48,15 +49,25 @@ against that spine. Does it play beautifully? Does it work flawlessly?
 Does it take the fewest taps? A yes on all three is the bar.
 
 The video shows only event-built features. Anything on the roadmap —
-garage, 3D, watcher, exchange — is spoken as what is next, never shown
+3D, watcher, exchange — is spoken as what is next, never shown
 as if it already exists.
 
 The submission itself: the demo video is submitted as a URL link and
 the repository as a public URL. Both are required.
 
+## Two doors (restructure note)
+
+Two doors, one page: Shop opens the Bay repair bench, DIY Garage opens
+cars, parts, values, and selling. The photo flow that used to sit
+behind the Yard door now runs as DIY Garage steps 5-10, and Compare
+hangs under the DIY Garage. Every step still runs on the demo cache
+with zero keys, and nothing posts without the human Approve tap.
+The old roadmap garage item is delivered by the DIY Garage door, so the
+roadmap lists name only what is still ahead.
+
 ## The Bay side (Work Order 2)
 
-The Bay tab on the same page serves the shop's daily driver: structured
+The Bay side on the same page serves the shop's daily driver: structured
 cases, ranked test plans, and labor math, all in plain words.
 
 1. **Bay intake** — a VIN photo fills the blanks (read by Spark, kept in
@@ -98,7 +109,7 @@ profile that is never sent anywhere; later opens route by it (shops open
 the Bay, enthusiasts open the Inventory), and mode changes happen only as
 a deliberate settings action. The same page serves phone and PC browsers.
 
-The Inventory tab organizes an enthusiast's cars and parts: register each
+The Inventory view organizes an enthusiast's cars and parts: register each
 car by picture, VIN photo, or hand entry; attach parts with honest
 condition, an owner note, and a value that is comps-sourced or
 owner-entered (unsourced values stay unknown and out of the totals);
@@ -133,8 +144,8 @@ could collide with a real one.
 ## Usability pass (Work Order 5)
 
 No new features: everything already built, made effortless. Sticky
-navigation with mode homes (Bay home: case status plus New case and
-Knowledge base; Inventory home: counts plus Register and Add part);
+navigation with mode homes (Shop home: case status plus New case and
+Knowledge base; DIY Garage home: counts plus Register and Add part);
 guided first tasks per mode that check off inside the real flows and
 never reappear after dismissal; big thumb-sized primary actions and a
 large, separated Approve; a working bar that always says what is
@@ -169,7 +180,7 @@ verdict inputs, listing drafts, chat. Muse Spark Open, the open-weight
 model, runs through Baseten as the Compare stage: after verdicts, the
 same case re-grades through Spark Open side by side with the Spark 1.3
 demo leg, each result labeled by its engine, in the running app under
-the Compare tab. The eval harness compares the legs on the demo set;
+the Compare view. The eval harness compares the legs on the demo set;
 the Compare view is where the open model actually runs.
 
 What runs live today, and what waits:
@@ -228,9 +239,9 @@ and a browser. No keys, no signup, nothing else: the demo runs on cache.
     python server.py
     # open http://127.0.0.1:8765 in a browser
 
-A working page shows four tabs — Yard, Bay, Inventory, Compare — and, on
-the very first open, one question: shop or enthusiast. Answer it and the
-demo flows run end to end.
+A working page shows two doors — Shop and DIY Garage, with Compare
+under the DIY Garage — and, on the very first open, one question: shop or
+DIY Garage. Answer it and the demo flows run end to end.
 
 Keys are optional. The Meta Model API key lives in the local `.env` file
 (see `.env.example`) and is never committed, and the Baseten key
@@ -239,6 +250,8 @@ network, or no credits, every step
 falls back to the demo-mode cache and the flow still runs end to end.
 
 ## The flow (one web page, five steps)
+
+The photo flow runs in the DIY Garage view:
 
 1. **Intake** — upload car photos or load the demo car (anonymized Yard
    Case 4: a mid-2000s 3-series parts car). Muse Spark 1.3 identifies the car
@@ -277,7 +290,7 @@ behind it.
 - **Re-rank** — the test plan resorting itself as pass/fail results come
   in, with the evidence trail naming what changed it.
 - **Second look** (Compare) — both engines re-grading the same case side
-  by side. **Second opinion** (Bay/Yard) — one hard call reviewed by
+  by side. **Second opinion** (Bay/DIY Garage) — one hard call reviewed by
   Wonder Standard. Different stages, different names on purpose.
 - **Studio photo** — the cleaned listing shot; **cutout** is the raw crop
   it falls back to. **Mock outbox** — the on-machine outbox demo posts
@@ -300,7 +313,7 @@ behind it.
 - **Demo runs 10 out of 10.** Cache behind every step: intake, harvest,
   comps, listing, chat. Verify with `python scripts/smoke_demo.py` while
   the server runs (10 full runs by default).
-- **One working flow.** Garage, 3D explorer, marketplace watcher, and parts
+- **One working flow.** 3D explorer, marketplace watcher, and parts
   exchange are roadmap, not this build. The pipeline is staged
   (photo → facts → verdict → artifact) so they arrive as later steps.
 

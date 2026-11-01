@@ -4,3 +4,4 @@ __pycache__/
 demo_cache/live/
 shop_kb/*.json
 yard-photos/
+yard-photos-inbox/

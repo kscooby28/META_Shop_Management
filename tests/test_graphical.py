@@ -139,11 +139,11 @@ class NetworkBaselineTest(unittest.TestCase):
 class LandingTest(unittest.TestCase):
     def home(self):
         html = read("index.html")
-        return html[html.index('id="view-home"'):html.index('id="view-yard"')]
+        return html[html.index('id="view-home"'):html.index('id="view-bay"')]
 
     def test_entrances_tappable_never_primary(self):
         home = self.home()
-        for door in ("door-bay", "door-yard", "door-driveway"):
+        for door in ("door-bay", "door-garage"):
             tag = re.search(r'<button[^>]*id="%s"[^>]*>' % door,
                             home).group(0)
             self.assertNotIn("primary", tag, door)
@@ -161,8 +161,7 @@ class LandingTest(unittest.TestCase):
         press = app[at:at + 400]
         self.assertIn('"door-fade"', press)
         for door, view in (("door-bay", 'showView("bay")'),
-                           ("door-yard", 'showView("yard")'),
-                           ("door-driveway", 'showView("inventory")')):
+                           ("door-garage", 'showView("inventory")')):
             self.assertIn('"%s"' % door, app)
             self.assertIn(view, app)
 
@@ -170,8 +169,7 @@ class LandingTest(unittest.TestCase):
         home = self.home()
         self.assertNotIn("Pixar", read("index.html"))
         self.assertIn('src="assets/door-shop.png"', home)
-        for label in ("Bay — Fix it", "Yard — Strip it",
-                      "Driveway — Your own car"):
+        for label in ("Shop — Fix it", "DIY Garage — Your cars and parts"):
             self.assertIn(label, home)
 
     def test_backdrop_is_illustration_not_inventory(self):
@@ -179,21 +177,21 @@ class LandingTest(unittest.TestCase):
         scene = home[home.index('<div class="scene"'):
                      home.index('id="btnHomePhoto"')]
         self.assertIn("<img", scene)
-        self.assertIn('src="assets/landing.png"', scene)
+        self.assertIn('src="assets/landing-2door.png"', scene)
         self.assertNotIn("demo/frame", scene)
 
 
 class SettingTest(unittest.TestCase):
     def test_setting_map(self):
         app = read("app.js")
-        for view, setting in (("bay", "shop"), ("yard", "yard"),
+        for view, setting in (("bay", "shop"),
                               ("inventory", "garage"), ("home", "home")):
             self.assertIn('%s: "%s"' % (view, setting), app)
         self.assertIn("compare: null", app)
 
     def test_swap_hooks(self):
         app = read("app.js")
-        for call in ('applySetting("bay")', 'applySetting("yard")',
+        for call in ('applySetting("bay")',
                      'applySetting("inventory")', 'applySetting("home")',
                      "applySetting(dest)"):
             self.assertIn(call, app, call)
@@ -228,7 +226,7 @@ class SettingTest(unittest.TestCase):
         app = read("app.js")
         bands = app[app.index("var SETTING_BANDS"):
                     app.index("function renderSettingBand")]
-        for label in ("Illustrated shop interior", "Illustrated yard lot",
+        for label in ("Illustrated shop interior",
                       "Illustrated home garage"):
             self.assertIn(label, bands, label)
         self.assertIn("<img", bands)
@@ -243,7 +241,9 @@ class StagingTest(unittest.TestCase):
                      app.index("function stageWorkview") + 600]
         self.assertIn("Working view — the job at hand", helper)
         self.assertNotIn(".src", helper)
-        self.assertEqual(app.count("stageWorkview("), 4)
+        # definition plus call sites: harvest viewer, bay car card,
+        # inventory photo row, inventory demo-seed row.
+        self.assertEqual(app.count("stageWorkview("), 5)
 
     def test_staged_css(self):
         self.assertIn("4px solid var(--line)", rule_body(".staged"))
@@ -332,7 +332,7 @@ class SourceTilesTest(unittest.TestCase):
         btn = re.search(r'<button[^>]*id="btnDemo"[^>]*>(.*?)</button>',
                         html, re.S).group(0)
         self.assertIn("gtile", btn)
-        self.assertIn('src="demo/frame1.svg"', btn)
+        self.assertIn('src="assets/case-front.png"', btn)
         self.assertIn("Labeled demo frames", btn)
 
 
@@ -487,26 +487,25 @@ class SettingsCardsTest(unittest.TestCase):
     def test_cards(self):
         app = read("app.js")
         self.assertIn('card.className = "gcard homehead";', app)
-        for title in ('"Profile"', '"Demo"', '"Display"'):
+        for title in ('"Profile"', '"Demo"'):
             self.assertIn(title, app)
+        self.assertNotIn('"Display"', app)
         self.assertIn('wrap.className = "gcard";', app)
 
     def test_native_semantics_kept(self):
         app = read("app.js")
-        self.assertIn('sunBox.id = "sunToggle";', app)
         self.assertIn("offBox.type = \"checkbox\";", app)
-        self.assertIn("sunBox.type = \"checkbox\";", app)
-        self.assertIn('sun.className = "gtile";', app)
         self.assertIn('off.className = "gtile";', app)
+        for gone in ('sunBox', 'sunToggle', '"Display"'):
+            self.assertNotIn(gone, app, gone)
 
 
 class WayfindingTest(unittest.TestCase):
     def test_backs_show_space_and_destination(self):
         html = read("index.html")
-        for bid, text in (("backYard", "◧</span> Yard · ← Home"),
-                          ("backBay", "⚒</span> Bay · ← Home"),
-                          ("backInv", "⌂</span> Driveway · ← Home"),
-                          ("backCompare", "⇄</span> Compare · ← Yard results")):
+        for bid, text in (("backBay", "⚒</span> Shop · ← Home"),
+                          ("backInv", "⌂</span> DIY Garage · ← Home"),
+                          ("backCompare", "⇄</span> Compare · ← DIY Garage results")):
             body = re.search(r'<button[^>]*id="%s"[^>]*>(.*?)</button>' % bid,
                              html, re.S).group(1)
             self.assertIn(text, body, bid)
@@ -607,14 +606,14 @@ class JourneyTest(unittest.TestCase):
                     ".jdest"):
             self.assertNotIn("var(--accent", rule_body(sel), sel)
 
-    def test_ten_taps_end_to_end(self):
-        # The state machine, statically: ten beats, one tap advances
-        # exactly one beat, the eleventh tap cannot exist (exit at ten).
+    def test_eight_taps_end_to_end(self):
+        # The state machine, statically: eight beats, one tap advances
+        # exactly one beat, the ninth tap cannot exist (exit at eight).
         app = read("app.js")
         beats = re.findall(r'\{ id: "(\w+)"',
                            app[app.index("const TOUR_BEATS"):
                                app.index("let tourState")])
-        self.assertEqual(len(beats), 10)
+        self.assertEqual(len(beats), 8)
         nxt = app[app.index("async function tourNext"):
                   app.index("async function tourEnsureSeed")]
         self.assertIn("tourState.beat + 1 >= TOUR_BEATS.length", nxt)

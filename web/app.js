@@ -1,4 +1,4 @@
-/* Shop AI Copilot — Yard side. One page, no dependencies. */
+/* Shop AI Copilot — two doors: shop bench and home garage. One page, no dependencies. */
 "use strict";
 
 const state = {
@@ -108,23 +108,61 @@ function notice(html) {
 }
 
 const EMPTY_ART = {
-  gallery: "demo/frame1.svg",
-  parts: "demo/frame2.svg",
-  verdicts: "demo/frame3.svg",
-  baycase: "demo/frame1.svg",
-  bayplan: "demo/frame4.svg",
-  bayparts: "demo/frame4.svg",
-  invcars: "demo/frame1.svg",
-  invparts: "demo/frame4.svg",
-  comps: "demo/frame2.svg",
-  totals: "demo/frame2.svg",
-  baytests: "demo/frame3.svg",
-  baykb: "demo/frame1.svg",
-  baytrail: "demo/frame3.svg",
-  invnotes: "demo/frame3.svg",
-  compare: "demo/frame4.svg",
-  setup: "demo/frame1.svg",
+  gallery: "assets/case-side.png",
+  parts: "assets/case-bench.png",
+  verdicts: "assets/head-grade.png",
+  baycase: "assets/bay-engine.png",
+  bayplan: "assets/head-plan.png",
+  bayparts: "assets/head-parts.png",
+  invcars: "assets/empty-garage.png",
+  invparts: "assets/empty-shelf.png",
+  comps: "assets/part-wheel.png",
+  totals: "assets/part-diff.png",
+  baytests: "assets/head-wrench.png",
+  baykb: "assets/head-notes.png",
+  baytrail: "assets/head-trail.png",
+  invnotes: "assets/head-notes.png",
+  compare: "assets/head-compare.png",
+  setup: "assets/case-front.png",
 };
+
+// Demo display art: generated case-art photos (see
+// eval_caseart_results.json). These replace SVG sample drawings ONLY
+// where the picture is an identifier (empty states, rows, cards).
+// Measurement views (harvest viewer, strip, listing cutout preview)
+// keep the real frames so boxes never lie on the wrong pixels.
+const PART_ART = {
+  p_mirror: "assets/part-mirror.png",
+  p_bumper: "assets/part-bumper.png",
+  p_wheel: "assets/part-wheel.png",
+  p_headlight: "assets/part-headlight.png",
+  p_handle: "assets/part-handle.png",
+  p_taillight: "assets/part-taillight.png",
+  p_diff: "assets/part-diff.png",
+};
+const PART_LABEL_ART = {
+  "driver mirror": "assets/part-mirror.png",
+  "side mirror": "assets/part-mirror.png",
+  "front bumper cover": "assets/part-bumper.png",
+  "front bumper": "assets/part-m3bumper.png",
+  "alloy wheel": "assets/part-wheel.png",
+  "driver headlight": "assets/part-headlight.png",
+  "driver door handle": "assets/part-handle.png",
+  "left taillight": "assets/part-taillight.png",
+  "rear differential": "assets/part-diff.png",
+  "spare ignition coil": "assets/part-coil.png",
+  "engine computer": "assets/part-ecu.png",
+  "trunk lid": "assets/part-trunklid.png",
+};
+function partPhotoImg(partId, label, cls) {
+  const src = PART_ART[partId] || PART_LABEL_ART[(label || "").toLowerCase()] || "";
+  if (!src) return null;
+  const img = document.createElement("img");
+  img.className = cls || "timg";
+  img.src = src;
+  img.alt = label || partId || "";
+  return img;
+}
 
 function emptyInto(box, key, onAction) {
   const e = UX.emptyState(key);
@@ -387,7 +425,7 @@ function renderViewer() {
   if (!frame) {
     emptyInto(box, "gallery", () => {
       $("btnDemo").click();
-      document.getElementById("sec-intake").scrollIntoView();
+      goSection("sec-intake");
     });
     return;
   }
@@ -426,7 +464,7 @@ function renderPartList() {
   const parts = (state.harvest && state.harvest.parts) || [];
   if (!parts.length) {
     emptyInto(box, "parts", () => {
-      document.getElementById("sec-intake").scrollIntoView();
+      goSection("sec-intake");
       $("btnIdentify").click();
     });
     return;
@@ -436,7 +474,9 @@ function renderPartList() {
     li.className = "clickable";
     const grade = gradeOf(part.id);
     const thumb = Gallery.partThumb(part);
-    if (thumb) li.appendChild(cutoutSVG(frameSrc(thumb.frame), thumb.box, "thumb"));
+    const photo = partPhotoImg(part.id, part.label, "timg");
+    if (photo) li.appendChild(photo);
+    else if (thumb) li.appendChild(cutoutSVG(frameSrc(thumb.frame), thumb.box, "thumb"));
     li.insertAdjacentHTML("beforeend",
       (grade ? '<span class="grade grade-sm grade-' + grade + '">' + grade + "</span>" : "") +
       "<strong>" + esc(part.label) + "</strong>" +
@@ -450,7 +490,7 @@ function renderPartList() {
         renderStrip();
         renderViewer();
         highlightPart(part.id, true);
-        document.getElementById("viewer").scrollIntoView({ block: "nearest" });
+        goSection(document.getElementById("viewer"));
       });
     }
     box.appendChild(li);
@@ -561,7 +601,7 @@ function renderVerdicts() {
   const list = (state.report && state.report.verdicts) || [];
   if (!list.length) {
     emptyInto(box, "verdicts", () => {
-      document.getElementById("sec-intake").scrollIntoView();
+      goSection("sec-intake");
       $("btnRunAll").click();
     });
     return;
@@ -580,8 +620,9 @@ function renderVerdicts() {
       : '<span class="missing">no pull-time note</span>';
     const gradeWord = { A: "Pull now", B: "Worth it", C: "Leave it" }[v.verdict] || v.verdict;
     const ghpart = ((state.harvest && state.harvest.parts) || []).find((p) => p.id === v.part_id);
-    const gvthumb = ghpart ? Gallery.partThumb(ghpart) : null;
-    const gradeImg = gvthumb ? '<img class="timg" src="' + frameSrc(gvthumb.frame) + '" alt="">' : "";
+    const glabel = (ghpart && ghpart.label) || v.label || "";
+    const gart = PART_ART[v.part_id] || PART_LABEL_ART[glabel.toLowerCase()] || "";
+    const gradeImg = gart ? '<img class="timg" src="' + gart + '" alt="">' : "";
     const gradeBtn = (g) =>
       g === ""
         ? '<button type="button" class="gtile gradecard" data-override="">' +
@@ -636,8 +677,12 @@ function renderVerdicts() {
       });
     });
     const hpart = ((state.harvest && state.harvest.parts) || []).find((p) => p.id === v.part_id);
-    const vthumb = hpart ? Gallery.partThumb(hpart) : null;
-    if (vthumb) card.insertBefore(cutoutSVG(frameSrc(vthumb.frame), vthumb.box, "thumb"), card.firstChild);
+    const vphoto = partPhotoImg(v.part_id, (hpart && hpart.label) || v.label, "timg");
+    if (vphoto) card.insertBefore(vphoto, card.firstChild);
+    else {
+      const vthumb = hpart ? Gallery.partThumb(hpart) : null;
+      if (vthumb) card.insertBefore(cutoutSVG(frameSrc(vthumb.frame), vthumb.box, "thumb"), card.firstChild);
+    }
     box.appendChild(card);
   }
   // Re-color the harvest map now that grades exist.
@@ -680,7 +725,7 @@ function renderTotals() {
   const totals = state.report && state.report.totals;
   if (!totals) {
     emptyInto(box, "totals", () => {
-      document.getElementById("sec-intake").scrollIntoView();
+      goSection("sec-intake");
       $("btnRunAll").click();
     });
     return;
@@ -688,9 +733,9 @@ function renderTotals() {
   const card = (grade, t, cls, label) =>
     "<div class='totalcard " + cls + "'><div class='lbl'>" + grade + " · " + label +
     " · " + t.count + " part(s)</div><div class='big'>" + totalBig(t) + "</div></div>";
-  const yardDemo = ["intake", "harvest", "comps"].some((k) => isDemoMode(state.modes[k]));
+  const flowDemo = ["intake", "harvest", "comps"].some((k) => isDemoMode(state.modes[k]));
   box.innerHTML =
-    (yardDemo ? "<p><span class='demobadge'>DEMO</span> <span class='hint'>sample-backed totals</span></p>" : "") +
+    (flowDemo ? "<p><span class='demobadge'>DEMO</span> <span class='hint'>sample-backed totals</span></p>" : "") +
     "<div class='totalgrid'>" +
     card("A", totals.A, "total-a", "pull and list now") +
     card("B", totals.B, "total-b", "worth it if standing there") +
@@ -826,8 +871,8 @@ async function runCompare(opts) {
   if (!state.report || !(state.report.verdicts || []).length) {
     const box = $("compareOut");
     emptyInto(box, "compare", () => {
-      showView("yard");
-      document.getElementById("sec-intake").scrollIntoView();
+      showView("inventory");
+      goSection("sec-intake");
       $("btnRunAll").click();
     });
     return null;
@@ -861,13 +906,25 @@ function refreshListingParts() {
   syncPickers();
 }
 
-function renderStudio(studio, mode) {
+function renderStudio(studio, mode, partId, label) {
   // Studio photo above, cutout preview below: when the studio step is
   // unavailable the box hides and the card stands on the cutout alone.
+  // Demo-sample SVG art is upgraded to the matching case-art photo; a
+  // live-rendered studio image always wins and is never replaced.
   const box = $("studioBox");
   box.innerHTML = "";
   if (!studio || !studio.body) { box.style.display = "none"; return; }
   box.style.display = "";
+  const casePhoto = studio.kind !== "image" ? partPhotoImg(partId, label, "timg") : null;
+  if (casePhoto) {
+    box.appendChild(casePhoto);
+    const note = document.createElement("div");
+    note.className = "hint";
+    note.textContent = "Studio photo (demo sample). Source: demo case art.";
+    box.appendChild(note);
+    if (mode !== "live") box.appendChild(demoBadge());
+    return;
+  }
   if (studio.kind === "image") {
     const img = document.createElement("img");
     img.src = studio.body;
@@ -913,7 +970,7 @@ async function runDraft(partId) {
     svg.appendChild(img);
   }
   $("cutoutNote").textContent = (cut.note || "") + " Source: " + (cut.source_tag || "?");
-  renderStudio(res.studio, res.mode);
+  renderStudio(res.studio, res.mode, pid);
   const label = ((state.report.verdicts || []).find((v) => v.part_id === pid) || {}).label || pid;
   feed("Drafted a listing for the " + label,
     "tool listing.draft — " + pid + " → Edit/Approve/Post card (" + res.mode + ")");
@@ -952,7 +1009,7 @@ async function runPost() {
 }
 
 /* Mock marketplace (WO15): after the real Approve gate and the mock-outbox
- * Post, the DIY tier can walk the eBay Developer API shape as a labeled
+ * Post, the enthusiast tier can walk the eBay Developer API shape as a labeled
  * demo: approval receipt in, mock listing plus mock cha-ching out. The
  * mock adapter re-checks the approval itself, so this button cannot post
  * without it either. */
@@ -985,7 +1042,7 @@ function offerMockMarketplace(receipt) {
   wrap.appendChild(btn);
   const hint = document.createElement("div");
   hint.className = "hint";
-  hint.textContent = "Needs your eBay developer key + account authorization in Settings (DIY). " +
+  hint.textContent = "Needs your eBay developer key + account authorization in Settings (DIY Garage). " +
     "Values stay in this browser; the mock checks presence only.";
   wrap.appendChild(hint);
   box.appendChild(wrap);
@@ -1264,32 +1321,30 @@ function pokeDraft(box) {
 }
 
 /* ===== guided tour (WO12): demo-path walk, creates nothing external =====
- * Ten beats in spine order. Actions reuse the same demo calls the video
- * shows; the tour never approves or posts a listing, never touches rules,
- * and runs every leg on demo cache. Static tests scan this section: beat
- * order, exit on every beat, and no approve/post calls.
+ * Eight beats in spine order: the first-run question, four Garage beats,
+ * two Shop beats, then the forced-demo Compare. Actions reuse the same
+ * demo calls the video shows; the tour never approves or posts a listing,
+ * never touches rules, and runs every leg on demo cache. Static tests
+ * scan this section: beat order, exit on every beat, and no approve/post
+ * calls.
  */
 const TOUR_BEATS = [
   { id: "chooser", view: null, section: null, title: "One question, once",
-    line: "On the very first open, the app asks shop or enthusiast — once, never again — and remembers your answer on this machine." },
+    line: "Point your phone at any car — and know what it is, what it's worth, and what to do next." },
   { id: "register", view: "inventory", section: "sec-icars", title: "Register a parts car",
     line: "A photo names the car, a VIN photo fills the blanks, one tap registers it — the app never guesses a field it cannot see." },
-  { id: "dme", view: "inventory", section: "sec-iknow", title: "The engine-computer note",
-    line: "On this M3 parts car the app surfaces the engine computer — no EWS handshake needed, which is why E30 owners want it — owner-valued at $200." },
-  { id: "totals", view: "inventory", section: "sec-itotals", title: "Plain-money totals",
-    line: "Totals count only sourced values; unknown parts are named, never guessed into the sum." },
-  { id: "listing", view: "yard", section: "sec-listing", title: "The listing gate",
-    line: "One tap drafts the listing from the photos. Approve is a human tap — the tour shows the draft and stops here." },
-  { id: "ranking", view: "bay", section: "sec-bplan", title: "Ranked test plan",
-    line: "A symptom becomes a ranked test plan; every test shows why it sits where it sits." },
-  { id: "decline", view: "bay", section: "sec-bcase", title: "A professional decline",
-    line: "Jobs the shop will not touch get a clean decline with a next step — never an error, never silence." },
-  { id: "close", view: "bay", section: "sec-bplan", title: "Plan complete",
-    line: "Every test recorded, the plan is complete — the evidence trail shows exactly what each result changed." },
-  { id: "money", view: "yard", section: "sec-verdicts", title: "Money grade",
+  { id: "knowledge", view: "inventory", section: "sec-iknow", title: "The M3 knowledge note",
+    line: "It knows what I know. That engine computer has no EWS, the E30 crowd wants it, two hundred bucks. I taught it that. It doesn't guess." },
+  { id: "money", view: "inventory", section: "sec-verdicts", title: "Money grade",
     line: "Beside every rule grade, the money grade prices the part from real sold ranges, with count and reliability shown." },
+  { id: "trust", view: "inventory", section: "sec-listing", title: "The listing gate",
+    line: "Nothing posts without my tap. The draft waits for me. That's the rule." },
+  { id: "rerank", view: "bay", section: "sec-bplan", title: "The plan re-ranks on evidence",
+    line: "It builds the plan. Then a test fails, and it changes its mind — and shows you exactly why. That's not a chatbot. That's a tech thinking." },
+  { id: "decline", view: "bay", section: "sec-bcase", title: "A professional decline",
+    line: "And it knows when to say no — before anyone wastes time." },
   { id: "compare", view: "compare", section: "sec-compare", title: "Both engines",
-    line: "Spark 1.3 on the demo leg and Spark Open side by side on the same case — a second look only, rules still decide." },
+    line: "Two engines, one verdict. The rules decide. The open model gets a second look — and it caught what the rules missed: my own notes. It read 'roadside spare, keep, don't list' and said don't list. That's a second look worth having." },
 ];
 
 let tourState = null; // { beat } while the tour runs
@@ -1349,6 +1404,7 @@ function placeTourBar(beat, index) {
     section.parentNode.insertBefore(bar, section);
   }
   flash(bar);
+  tourAutoplayBeat(index);
 }
 
 function endTourPreview() {
@@ -1370,8 +1426,9 @@ function startTour() {
     return;
   }
   tourState = { beat: 0 };
-  feed("Tour started: ten beats, demo cache, nothing leaves this machine", "tour — guided spine walk");
+  feed("Tour started: eight beats, demo cache, nothing leaves this machine", "tour — guided spine walk");
   showTourBeat();
+  tourAutoplayStart();
 }
 
 function exitTour() {
@@ -1379,6 +1436,7 @@ function exitTour() {
   if (old) old.remove();
   endTourPreview();
   tourState = null;
+  tourAutoplayStop();
   feed("Tour exited — explore freely from here", "tour — stopped by hand");
 }
 
@@ -1386,7 +1444,7 @@ async function tourNext() {
   if (!tourState) return;
   if (tourState.beat + 1 >= TOUR_BEATS.length) {
     exitTour();
-    feed("Tour finished: the whole spine, ten beats, nothing approved", "tour — complete");
+    feed("Tour finished: the whole spine, eight beats, nothing approved", "tour — complete");
     return;
   }
   tourState.beat += 1;
@@ -1412,20 +1470,23 @@ async function showTourBeat() {
     $("setupOverlay").hidden = false;
     paintSetupChoice((Profile.loadProfile(localStorage) || {}).mode);
     tourPreview = true;
-  } else if (beat.id === "register" || beat.id === "dme" || beat.id === "totals") {
+  } else if (beat.id === "register" || beat.id === "knowledge") {
     showView("inventory");
     await tourEnsureSeed();
     if (beat.id === "register") {
       const d = document.querySelector("#sec-icars details");
       if (d) d.open = true;
     }
-  } else if (beat.id === "listing" || beat.id === "money") {
-    showView("yard");
+  } else if (beat.id === "money" || beat.id === "trust") {
+    showView("inventory");
     if (!state.report || !(state.report.verdicts || []).length) await runAll();
-  } else if (beat.id === "ranking") {
+  } else if (beat.id === "rerank") {
     showView("bay");
     if (!bay.case || bay.case.declined || bay.demoCase !== "case1") await bayCreateCase("case1");
     if (!bay.plan) await bayDraftPlan();
+    // One pass and one fail, so the re-rank and the evidence trail show live.
+    if (!bay.plan.results["t1"]) await bayRecord("t1", "pass", "tour recording");
+    if (!bay.plan.results["t4"]) await bayRecord("t4", "fail", "tour recording");
   } else if (beat.id === "decline") {
     // Oil-change decline on purpose: same decline mechanics, and no engine
     // code ever appears on screen, on camera or off.
@@ -1436,21 +1497,13 @@ async function showTourBeat() {
     $("baySymptom").value = "due for an oil change";
     $("bayCodes").value = "";
     await bayCreateCase(null);
-  } else if (beat.id === "close") {
-    showView("bay");
-    await bayCreateCase("case1");
-    for (const t of bay.plan.tests) {
-      if (!bay.plan.results[t.id]) {
-        await bayRecord(t.id, t.id === "t4" ? "fail" : "pass", "tour recording");
-      }
-    }
   } else if (beat.id === "compare") {
     showView("compare");
     await runCompare({ demo: true });
   }
   placeTourBar(beat, tourState.beat);
-  const target = beat.id === "listing" ? $("listingCard")
-    : beat.id === "close" ? $("bayTrail")
+  const target = beat.id === "trust" ? $("listingCard")
+    : beat.id === "rerank" ? $("bayTrail")
     : beat.section ? document.getElementById(beat.section) : null;
   if (target) {
     flash(target);
@@ -1458,13 +1511,155 @@ async function showTourBeat() {
   }
 }
 /* ===== end guided tour ===== */
+/* ===== tour autoplay: the demo plays itself, with voice =====
+ * Taking the tour runs the movie: beats advance on their own while
+ * a pre-rendered mp3 per beat plays the narration and the tour
+ * bar shows the same words as captions. Beats, order, gates, and
+ * guards are untouched — this only presses Next on a timer and
+ * plays the file. Pause/Mute live in a sibling bar so tourBar stays exact. */
+const TOUR_SCRIPT = {
+  chooser: { hold: 9000, say: "Point your phone at any car — and know what it is, what it's worth, and what to do next." },
+  register: { hold: 11000, say: "Meet the garage. One photo names the car. A VIN photo fills in the blanks. One tap registers it — and the app never guesses a field it cannot see." },
+  knowledge: { hold: 13000, say: "It knows what I know. That engine computer has no EWS, the E30 crowd wants it, two hundred bucks. I taught it that. It doesn't guess." },
+  money: { hold: 10000, say: "Beside every rule grade sits a money grade, priced from real sold ranges — with the sold count and the reliability right on the card." },
+  trust: { hold: 12000, say: "Nothing posts without my tap. The draft waits for me. That's the rule." },
+  rerank: { hold: 13000, say: "It builds the plan. Then a test fails, and it changes its mind — and shows you exactly why. That's not a chatbot. That's a tech thinking." },
+  decline: { hold: 9000, say: "And it knows when to say no — before anyone wastes time." },
+  compare: { hold: 22000, say: "Two engines, one verdict. The rules decide. The open model gets a second look — and it caught what the rules missed: my own notes. It read 'roadside spare, keep, don't list' and said don't list. That's a second look worth having." },
+};
+const TOUR_AUDIO = {
+  chooser: "assets/audio/tour-chooser.mp3",
+  register: "assets/audio/tour-register.mp3",
+  knowledge: "assets/audio/tour-knowledge.mp3",
+  money: "assets/audio/tour-money.mp3",
+  trust: "assets/audio/tour-trust.mp3",
+  rerank: "assets/audio/tour-rerank.mp3",
+  decline: "assets/audio/tour-decline.mp3",
+  compare: "assets/audio/tour-compare.mp3",
+};
+let tourAudio = null;
+let tourPlaying = true;
+let tourTimer = null;
+let tourToken = 0;
+let tourMuted = false;
+try { tourMuted = localStorage.getItem("tour.muted") === "1"; } catch (e) {}
 
+function tourStopTimer() {
+  tourToken += 1;
+  if (tourTimer) { clearTimeout(tourTimer); tourTimer = null; }
+  try { if (tourAudio) { tourAudio.pause(); } } catch (e) {}
+}
+
+function tourAdvance(token) {
+  if (token !== tourToken || !tourPlaying || !tourState) return;
+  tourNext();
+}
+
+function tourPlayAudio(beatId, token, hold) {
+  if (tourMuted) return false;
+  try {
+    const src = TOUR_AUDIO[beatId];
+    if (!src || typeof Audio === "undefined") return false;
+    if (!tourAudio) tourAudio = new Audio();
+    try { tourAudio.pause(); } catch (e) {}
+    tourAudio.src = src;
+    tourAudio.muted = false;
+    tourAudio.onended = () => {
+      if (token !== tourToken || !tourPlaying || !tourState) return;
+      tourTimer = setTimeout(() => tourAdvance(token), 1200);
+    };
+    const played = tourAudio.play();
+    if (played && typeof played.catch === "function") played.catch(() => {
+      if (token !== tourToken || !tourState) return;
+      if (tourTimer) { clearTimeout(tourTimer); tourTimer = null; }
+      tourTimer = setTimeout(() => tourAdvance(token), hold);
+    });
+    tourTimer = setTimeout(() => tourAdvance(token), hold + 10000);
+    return true;
+  } catch (e) { return false; }
+}
+
+function renderMovieBar() {
+  let bar = document.getElementById("movieBar");
+  if (!bar) {
+    bar = document.createElement("div");
+    bar.id = "movieBar";
+    bar.className = "pagestep";
+    const play = document.createElement("button");
+    play.type = "button";
+    play.id = "btnMoviePlay";
+    play.className = "small";
+    play.addEventListener("click", () => {
+      if (!tourState) return;
+      tourPlaying = !tourPlaying;
+      if (!tourPlaying) { tourStopTimer(); }
+      else {
+        const beat = TOUR_BEATS[tourState.beat];
+        tourAutoplayBeat(tourState.beat, beat);
+      }
+      renderMovieBar();
+    });
+    bar.appendChild(play);
+    const mute = document.createElement("button");
+    mute.type = "button";
+    mute.id = "btnMovieMute";
+    mute.className = "small";
+    mute.addEventListener("click", () => {
+      tourMuted = !tourMuted;
+      try { localStorage.setItem("tour.muted", tourMuted ? "1" : "0"); } catch (e) {}
+      if (tourMuted) { try { if (tourAudio) tourAudio.pause(); } catch (e) {} }
+      else if (tourState && tourPlaying) {
+        tourAutoplayBeat(tourState.beat, TOUR_BEATS[tourState.beat]);
+      }
+      renderMovieBar();
+    });
+    bar.appendChild(mute);
+    const cap = document.createElement("span");
+    cap.id = "movieCap";
+    bar.appendChild(cap);
+    const anchor = document.getElementById("tourBar");
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(bar, anchor.nextSibling);
+    else document.body.appendChild(bar);
+  }
+  const play = document.getElementById("btnMoviePlay");
+  if (play) play.textContent = tourPlaying ? "Pause movie" : "Play movie";
+  const mute = document.getElementById("btnMovieMute");
+  if (mute) mute.textContent = tourMuted ? "Unmute voice" : "Mute voice";
+  const cap = document.getElementById("movieCap");
+  if (cap) cap.textContent = tourState ? ("Beat " + (tourState.beat + 1) + " of " + TOUR_BEATS.length) : "";
+}
+
+function tourAutoplayStart() {
+  tourPlaying = true;
+  renderMovieBar();
+}
+
+function tourAutoplayBeat(index, beat) {
+  renderMovieBar();
+  if (!tourPlaying || !tourState) return;
+  beat = beat || TOUR_BEATS[tourState.beat];
+  if (!beat) return;
+  tourStopTimer();
+  const token = tourToken;
+  const hold = ((TOUR_SCRIPT[beat.id] || {}).hold) || 9000;
+  if (!tourPlayAudio(beat.id, token, hold)) {
+    tourTimer = setTimeout(() => tourAdvance(token), hold);
+  }
+}
+
+function tourAutoplayStop() {
+  tourStopTimer();
+  tourPlaying = true;
+  const bar = document.getElementById("movieBar");
+  if (bar) bar.remove();
+}
+/* ===== end tour autoplay ===== */
 async function init() {
   const res = await api("/api/session", {});
   state.sessionId = res.sessionId;
   await loadRules();
   feed("Ready — upload photos or load the demo car", null);
-  say("I am Shop Copilot. Run the flow on the left, then ask me about any grade — I will show the rule behind it.", "bot");
+  say("I am Shop Copilot. Open a repair case or run the photo flow, then ask me about any result — I will show the work behind it.", "bot");
 
   $("fileInput").addEventListener("change", guard(async (e) => {
     const files = Array.from(e.target.files || []);
@@ -1483,7 +1678,7 @@ async function init() {
     state.demo = true;
     state.images = DEMO_FRAMES.map((d) => ({ name: d.name, src: d.src }));
     renderThumbs();
-    feed("Loaded the demo car (anonymized Yard Case 4)", "intake — 4 sample frames, no customer data");
+    feed("Loaded the demo car (anonymized sample case)", "intake — 4 sample frames, no customer data");
   }));
 
   $("btnIdentify").addEventListener("click", guard(
@@ -1523,7 +1718,7 @@ init();
 
 /* ---------- bay side ---------- */
 
-const bay = { case: null, plan: null, parts: [], labor: null, vinPhoto: null, editing: null };
+const bay = { case: null, plan: null, parts: [], labor: null, vinPhoto: null, editing: null, estPrices: {} };
 
 function baySplit(value, byLine) {
   return (value || "").split(byLine ? "\n" : ",").map((s) => s.trim()).filter(Boolean);
@@ -1620,7 +1815,7 @@ function renderBayPlan() {
   const plan = bay.plan;
   if (!plan) {
     emptyInto(box, "bayplan", () => {
-      document.getElementById("sec-bcase").scrollIntoView();
+      goSection("sec-bcase");
       $("btnBayPlan").click();
     });
     return;
@@ -1661,7 +1856,8 @@ function renderBayPlan() {
         '<label>Expected<input data-ef="expected" type="text" value="' + esc(t.expected) + '"></label>' +
         '<label>Minutes<input data-ef="minutes" type="number" min="0" value="' + (t.minutes == null ? "" : t.minutes) + '"></label>' +
         "</div>" +
-        '<div class="row"><button type="button" class="small primary" data-save="' + t.id + '">Save</button>' +
+        '<div class="row"><button type="button" class="small primary" data-save="' + t.id + '">' +
+'<span aria-hidden="true">✓</span> Save</button>' +
         '<button type="button" class="small" data-cancel="1">Cancel</button></div>';
       card.querySelector("[data-save]").addEventListener("click", guard(async () => {
         const edited = bay.plan.tests.map((x) => {
@@ -1744,7 +1940,7 @@ function renderBayTrail() {
   const trail = (bay.plan && bay.plan.trail) || [];
   if (!trail.length) {
     emptyInto(box, "baytrail", () => {
-      document.getElementById("sec-bplan").scrollIntoView();
+      goSection("sec-bplan");
     });
     return;
   }
@@ -1765,7 +1961,7 @@ function renderBayTrail() {
     btn.setAttribute("aria-label", "Review parts");
     btn.innerHTML = '<span class="ticon" aria-hidden="true">→</span>' +
       '<span class="tbody"><span class="tword">Review parts</span></span>';
-    btn.addEventListener("click", () => document.getElementById("sec-bparts").scrollIntoView());
+    btn.addEventListener("click", () => goSection("sec-bparts"));
     div.appendChild(btn);
     box.insertBefore(div, box.firstChild);
   }
@@ -1778,6 +1974,7 @@ function renderBayParts(note) {
     const sub = document.createElement("div");
     box.appendChild(sub);
     emptyInto(sub, "bayparts", () => { $("bayPName").focus(); });
+    renderBayEstimate();
     return;
   }
   box.innerHTML = "<ul class='part-list'>" + bay.parts.map((p) =>
@@ -1785,12 +1982,13 @@ function renderBayParts(note) {
     (p.note ? "<span>" + esc(p.note) + "</span>" : "") +
     '<span class="tag">' + esc(p.source || "no source") + "</span></li>"
   ).join("") + "</ul>" + (note ? '<p class="hint">' + esc(note) + "</p>" : "");
+  renderBayEstimate();
 }
 
 function renderBayLabor() {
   const box = $("bayLabor");
   const labor = bay.labor;
-  if (!labor) { box.innerHTML = '<p class="hint">Labor appears after the plan.</p>'; return; }
+  if (!labor) { box.innerHTML = '<p class="hint">Draft the plan and the labor math lands here.</p>'; renderBayEstimate(); return; }
   box.innerHTML =
     "<ul class='part-list'>" + labor.lines.map((l) =>
       "<li data-test='" + l.test_id + "'><strong>" + esc(l.title) + "</strong>" +
@@ -1799,6 +1997,78 @@ function renderBayLabor() {
       "</li>"
     ).join("") + "</ul>" +
     "<p><strong>" + amberMoney(esc(labor.plain_words)) + "</strong></p>";
+  renderBayEstimate();
+}
+
+function renderBayEstimate() {
+  const box = $("bayEstimate");
+  if (!box) return;
+  if (!bay.plan || !bay.plan.tests.length) {
+    box.innerHTML = '<p class="hint">Draft the plan and the estimate sheet fills itself in.</p>';
+    return;
+  }
+  if (!bay.parts.length) {
+    box.innerHTML = '<p class="hint">The plan is in — add the job parts above, then price the sheet.</p>';
+    return;
+  }
+  const rate = (state.rules && state.rules.labor_rate_per_hour) || 180;
+  const priced = [];
+  const unknown = [];
+  for (const p of bay.parts) {
+    const hit = bay.estPrices[p.name];
+    if (hit && hit.value !== null && hit.source) priced.push({ name: p.name, value: hit.value, source: hit.source });
+    else unknown.push(p.name);
+  }
+  const partsTotal = priced.reduce((sum, p) => sum + p.value, 0);
+  const mins = bay.labor ? bay.labor.total_minutes : null;
+  const laborKnown = mins !== null && mins !== undefined;
+  const laborCost = laborKnown ? Math.round((mins / 60) * rate) : null;
+  let html = "<ul class='part-list'>" + bay.parts.map((p) => {
+    const hit = bay.estPrices[p.name];
+    const price = (hit && hit.value !== null && hit.source)
+      ? amberMoney(esc(money(hit.value))) + ' <span class="sourced">(' + esc(hit.source) + ")</span>"
+      : '<span class="missing">price unknown</span>';
+    return "<li><strong>" + esc(p.name) + "</strong><span>" + price + "</span></li>";
+  }).join("") + "</ul>";
+  html += laborKnown
+    ? "<p><strong>Labor: " + amberMoney(esc(mins + " min at $" + rate + "/hr = $" + laborCost)) + "</strong></p>"
+    : '<p><span class="missing">Labor time unknown</span> <span class="hint">— see the labor math above.</span></p>';
+  if (priced.length || laborKnown) {
+    const total = partsTotal + (laborCost || 0);
+    html += "<p><strong>Sheet total: " + amberMoney(esc("$" + total)) + "</strong></p>";
+    if (unknown.length || !laborKnown) {
+      const left = unknown.slice();
+      if (!laborKnown) left.push("labor time");
+      html += '<p class="hint">Left out of the total: ' + esc(left.join("; ")) + ".</p>";
+    }
+  } else {
+    html += '<p class="hint">No priced lines yet — price the parts to fill the sheet.</p>';
+  }
+  box.innerHTML = html;
+}
+
+async function priceBayParts() {
+  let priced = 0;
+  for (const p of bay.parts) {
+    if (bay.estPrices[p.name] !== undefined) {
+      if (bay.estPrices[p.name]) priced++;
+      continue;
+    }
+    try {
+      const res = await api("/api/inv/comps", { label: p.name, demo: state.forceDemo || !!bay.demoCase });
+      if (res.comp.value !== null && res.comp.source) {
+        bay.estPrices[p.name] = { value: res.comp.value, source: res.comp.source };
+        priced++;
+      } else {
+        bay.estPrices[p.name] = null;
+      }
+    } catch (err) {
+      bay.estPrices[p.name] = null;
+    }
+  }
+  renderBayEstimate();
+  feed("Priced " + priced + " of " + bay.parts.length + " job parts through comps",
+    "tool inv.comps — estimate sheet, unknowns named");
 }
 
 async function bayCreateCase(demoCase) {
@@ -1892,7 +2162,7 @@ async function bayKb() {
   const box = $("bayKb");
   if (!data.notes.length) {
     emptyInto(box, "baykb", () => {
-      document.getElementById("sec-bcase").scrollIntoView();
+      goSection("sec-bcase");
       $("baySymptom").focus();
     });
     return;
@@ -1943,6 +2213,7 @@ function stageReceipt(box, html) {
 
 function scrollSoon(el) {
   if (!el || typeof el.scrollIntoView !== "function") return;
+  if (el.closest) { const ps = el.closest("section[id]"); if (ps) revealSection(ps.id); }
   const calm = typeof matchMedia === "function" &&
     matchMedia("(prefers-reduced-motion: reduce)").matches;
   const go = () => {
@@ -1954,29 +2225,318 @@ function scrollSoon(el) {
 }
 
 function showView(which) {
-  const from = typeof currentView === "undefined" ? "yard" : currentView;
+  const from = typeof currentView === "undefined" ? "home" : currentView;
   $("view-home").hidden = which !== "home";
-  $("view-yard").hidden = which !== "yard";
   $("view-bay").hidden = which !== "bay";
   $("view-inventory").hidden = which !== "inventory";
   $("view-compare").hidden = which !== "compare";
   $("navHome").classList.toggle("active", which === "home");
-  $("bb-bay").classList.toggle("active", which === "bay");
-  $("bb-yard").classList.toggle("active", which === "yard");
-  $("bb-inv").classList.toggle("active", which === "inventory");
+  paintSideChip();
+  if (which === "home") paintSideBadges();
   const subs = {
-    home: "Three doors: fix it, strip it, or your own car.",
-    yard: "The lot: point at a parts car, learn which parts are worth pulling.",
+    home: "Two doors: the repair bench or your own garage.",
     bay: "The repair bench: symptoms in, test plans out.",
-    inventory: "Driveway: your cars and parts, what you have and what it is worth.",
+    inventory: "Your garage: cars, parts, values, and selling.",
     compare: "Two engines grade the same case, side by side.",
   };
-  document.querySelector(".top .sub").textContent = subs[which] || subs.yard;
+  document.querySelector(".top .sub").textContent = subs[which] || subs.home;
+  if (VIEW_PAGES[which]) activatePage(which, 0);
   flash(document.querySelector(".work"));
   playViewTransition(document.querySelector(".work"), UX.transitionFor(from, which));
   currentView = which;
 }
 
+/* ---------- paged views: graphical index + one page at a time ----------
+ * Each long view (Shop, Garage) opens on a visual index of step cards;
+ * tapping a card shows that page alone with Back + Continue. Flows,
+ * grades, gates, and the tour underneath run exactly as before: every
+ * scroll in the app routes through goSection/revealSection, so the
+ * tour's beats land on visible pages with zero tour-code changes. */
+const VIEW_PAGES = {
+  bay: [
+    { n: "S1", group: "Intake", title: "Open case", line: "Name the car and the symptom — the case everything hangs on.", secs: ["sec-bcase"], art: "assets/bay-engine.png" },
+    { n: "S2", group: "Diagnose", title: "Ranked test plan", line: "Work the tests in order — pass or fail re-ranks the cause.", secs: ["sec-bplan"], art: "assets/head-plan.png" },
+    { n: "S3", group: "Diagnose", title: "Evidence & notes", line: "What each result changed, plus shop repair notes.", secs: ["sec-btrail", "sec-bkb"], art: "assets/head-trail.png" },
+    { n: "S4", group: "Price", title: "Parts & labor", line: "Parts the job needs and minutes per test.", secs: ["sec-bparts", "sec-blabor"], art: "assets/head-parts.png" },
+    { n: "S5", group: "Price", title: "Estimate sheet", line: "The one-page total to hand to the customer.", secs: ["sec-best"], art: "assets/head-grade.png" },
+  ],
+  inventory: [
+    { n: "G1", group: "My garage", title: "My cars", line: "Your driver and parts cars, registered and searchable.", secs: ["sec-icars"], art: "assets/empty-garage.png" },
+    { n: "G2", group: "My garage", title: "Car notes", line: "What to look for on each car, in your own words.", secs: ["sec-iknow"], art: "assets/head-notes.png" },
+    { n: "G3", group: "My garage", title: "Parts & value", line: "Every part: which car, what condition, what worth.", secs: ["sec-iparts", "sec-itotals"], art: "assets/case-bench.png" },
+    { n: "G4", group: "Turn a find into cash", title: "Intake photos", line: "Photos in — the car gets identified.", secs: ["sec-intake"], art: "assets/case-front.png" },
+    { n: "G5", group: "Turn a find into cash", title: "Harvest map", line: "Found parts drawn on your photos.", secs: ["sec-harvest"], art: "assets/case-side.png" },
+    { n: "G6", group: "Turn a find into cash", title: "Part values", line: "Pull-it-or-leave-it grades with money evidence.", secs: ["sec-verdicts"], art: "assets/head-grade.png" },
+    { n: "G7", group: "Turn a find into cash", title: "Money & compare", line: "Plain-money totals, plus the two-engine second look.", secs: ["sec-totals"], art: "assets/part-diff.png" },
+    { n: "G8", group: "Sell", title: "Listing", line: "Draft, approve, post — nothing posts itself.", secs: ["sec-listing"], art: "assets/part-wheel.png" },
+    { n: "G9", group: "Tune", title: "Rules & rate", line: "Thresholds and the shop rate, for careful hands.", secs: ["sec-rules"], art: "assets/head-wrench.png" },
+  ],
+};
+const pageState = { bay: 0, inventory: 0 }; // 0 = index page
+
+function pageForSection(secId) {
+  const views = Object.keys(VIEW_PAGES);
+  for (let v = 0; v < views.length; v++) {
+    const pages = VIEW_PAGES[views[v]];
+    for (let i = 0; i < pages.length; i++) {
+      if (pages[i].secs.indexOf(secId) >= 0) return { view: views[v], idx: i + 1 };
+    }
+  }
+  return null;
+}
+
+function pageStatus(view, idx) {
+  try {
+    const n = VIEW_PAGES[view][idx - 1].n;
+    if (n === "S1") return bay.case ? "Ready" : "Not started";
+    if (n === "S2") {
+      if (!bay.plan) return "Not started";
+      const done = Object.keys(bay.plan.results || {}).length;
+      const total = (bay.plan.tests || []).length;
+      return total && done >= total ? "Ready" : "In progress";
+    }
+    if (n === "S3") return ((bay.plan && bay.plan.trail) || []).length ? "Ready" : "Not started";
+    if (n === "S4") return (bay.parts.length && bay.labor) ? "Ready" : (bay.parts.length || bay.labor) ? "In progress" : "Not started";
+    if (n === "S5") return (bay.plan && bay.parts.length) ? "Ready" : "Not started";
+    if (n === "G1") return invState.cars.length ? "Ready" : "Not started";
+    if (n === "G2") return ((invState.notes) || []).length ? "Ready" : "Not started";
+    if (n === "G3") return invState.parts.length ? "Ready" : "Not started";
+    if (n === "G4") return state.intake ? "Ready" : state.images.length ? "In progress" : "Not started";
+    if (n === "G5") return state.harvest ? "Ready" : "Not started";
+    if (n === "G6") return ((state.report && state.report.verdicts) || []).length ? "Ready" : "Not started";
+    if (n === "G7") return (state.report && state.report.totals) ? "Ready" : "Not started";
+    if (n === "G8") return state.draftId ? "Ready" : "Not started";
+    if (n === "G9") return state.rules ? "Ready" : "Not started";
+  } catch (e) { /* fall through to Not started */ }
+  return "Not started";
+}
+
+function refreshIndex(box, view) {
+  box.innerHTML = "";
+  const head = document.createElement("p");
+  head.className = "pagestep";
+  head.textContent = view === "bay" ? "Shop index — pick a step." : "DIY Garage index — pick a step.";
+  box.appendChild(head);
+  let group = "";
+  VIEW_PAGES[view].forEach((p, i) => {
+    if (p.group !== group) {
+      group = p.group;
+      const g = document.createElement("p");
+      g.className = "idxgroup";
+      g.textContent = group;
+      box.appendChild(g);
+    }
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "gtile idxcard";
+    b.setAttribute("aria-label", p.n + ": " + p.title + " — " + pageStatus(view, i + 1));
+    const img = document.createElement("img");
+    img.className = "timg";
+    img.src = p.art;
+    img.alt = "";
+    b.appendChild(img);
+    const body = document.createElement("span");
+    body.className = "tbody";
+    const word = document.createElement("span");
+    word.className = "tword";
+    word.textContent = p.n + " · " + p.title;
+    body.appendChild(word);
+    const field = document.createElement("span");
+    field.className = "tfield";
+    field.textContent = p.line;
+    body.appendChild(field);
+    const st = document.createElement("span");
+    st.className = "tag";
+    st.textContent = pageStatus(view, i + 1);
+    body.appendChild(st);
+    b.appendChild(body);
+    b.addEventListener("click", () => activatePage(view, i + 1));
+    box.appendChild(b);
+  });
+}
+
+function buildIndex(view) {
+  let box = $("pageidx-" + view);
+  if (box) { refreshIndex(box, view); return box; }
+  box = document.createElement("div");
+  box.id = "pageidx-" + view;
+  box.className = "pageidx";
+  $("view-" + view).appendChild(box);
+  refreshIndex(box, view);
+  return box;
+}
+
+function pagePayoff(view, idx) {
+  // Display-only payoff counts for the pager step line. Reads state,
+  // changes nothing: the Bay payoff is visible without opening a page.
+  try {
+    const n = VIEW_PAGES[view][idx - 1].n;
+    if (n === "S2" && bay.plan) {
+      const done = Object.keys(bay.plan.results || {}).length;
+      const total = (bay.plan.tests || []).length;
+      if (total) return " \u00b7 " + done + " of " + total + " recorded";
+    }
+    if (n === "S4" && bay.parts.length) {
+      return " \u00b7 " + bay.parts.length + (bay.parts.length === 1 ? " part" : " parts");
+    }
+    if (n === "G1" && invState.cars.length) {
+      return " \u00b7 " + invState.cars.length + (invState.cars.length === 1 ? " car" : " cars");
+    }
+    if (n === "G3" && invState.parts.length) {
+      return " \u00b7 " + invState.parts.length + (invState.parts.length === 1 ? " part" : " parts");
+    }
+    if (n === "G6" && state.report && state.report.verdicts) {
+      return " \u00b7 " + state.report.verdicts.length + " graded";
+    }
+  } catch (e) {}
+  return "";
+}
+
+function renderPager(view, idx) {
+  ["pagetop-" + view, "pagebar-" + view].forEach((id) => {
+    const old = document.getElementById(id);
+    if (old) old.remove();
+  });
+  if (idx === 0) return;
+  const pages = VIEW_PAGES[view];
+  const p = pages[idx - 1];
+  const host = $("view-" + view);
+  const first = document.getElementById(p.secs[0]);
+  const top = document.createElement("div");
+  top.id = "pagetop-" + view;
+  top.className = "pagestep";
+  const step = document.createElement("span");
+  step.textContent = "Step " + idx + " of " + pages.length + " · " + p.group + pagePayoff(view, idx);
+  top.appendChild(step);
+  const back = document.createElement("button");
+  back.type = "button";
+  back.className = "small";
+  back.textContent = idx === 1 ? "\u2039 Index" : "\u2039 " + pages[idx - 2].title;
+  back.setAttribute("aria-label", idx === 1 ? "Back to index" : "Back to " + pages[idx - 2].title);
+  back.addEventListener("click", () => activatePage(view, idx - 1));
+  top.appendChild(back);
+  host.insertBefore(top, first);
+  const bar = document.createElement("div");
+  bar.id = "pagebar-" + view;
+  bar.className = "pagebar";
+  const back2 = document.createElement("button");
+  back2.type = "button";
+  back2.className = "small";
+  back2.textContent = idx === 1 ? "\u2039 Index" : "\u2039 Back";
+  back2.setAttribute("aria-label", back.getAttribute("aria-label"));
+  back2.addEventListener("click", () => activatePage(view, idx - 1));
+  bar.appendChild(back2);
+  const next = document.createElement("button");
+  next.type = "button";
+  const last = idx === pages.length;
+  // One primary per visible page: if the page already carries a primary
+  // (the Approve gate), Continue stays secondary.
+  const hasPrimary = p.secs.some((id) => {
+    const s = document.getElementById(id);
+    return !!(s && s.querySelector(".primary"));
+  });
+  next.className = hasPrimary ? "small" : "primary";
+  next.textContent = last ? "Back to index" : "Next: " + pages[idx].title + " \u2192";
+  next.setAttribute("aria-label", last ? "Back to index" : "Next: " + pages[idx].title);
+  next.addEventListener("click", () => activatePage(view, last ? 0 : idx + 1));
+  bar.appendChild(next);
+  const lastSec = document.getElementById(p.secs[p.secs.length - 1]);
+  lastSec.parentNode.insertBefore(bar, lastSec.nextSibling);
+}
+
+function activatePage(view, idx, opts) {
+  const pages = VIEW_PAGES[view];
+  if (!pages) return;
+  pageState[view] = idx;
+  const box = buildIndex(view);
+  box.hidden = idx !== 0;
+  if (idx === 0) refreshIndex(box, view);
+  pages.forEach((pg, i) => {
+    pg.secs.forEach((id) => {
+      const s = document.getElementById(id);
+      if (s) s.hidden = (i + 1) !== idx;
+    });
+  });
+  renderPager(view, idx);
+  const host = $("view-" + view);
+  if (!(opts && opts.noScroll) && host && host.scrollIntoView) {
+    try { host.scrollIntoView({ behavior: "auto", block: "start" }); }
+    catch (e) { host.scrollIntoView(); }
+  }
+  if (!(opts && opts.instant) && !calmMotion() && host) flash(host);
+}
+
+function revealSection(secId) {
+  const found = pageForSection(secId);
+  if (found && pageState[found.view] !== found.idx) {
+    activatePage(found.view, found.idx, { instant: true, noScroll: true });
+  }
+}
+
+function goSection(idOrEl) {
+  const el = typeof idOrEl === "string" ? document.getElementById(idOrEl) : idOrEl;
+  if (!el) return;
+  const s = el.closest ? el.closest("section[id]") : null;
+  if (s) revealSection(s.id);
+  const calm = calmMotion();
+  try { el.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" }); }
+  catch (e) { el.scrollIntoView(); }
+}
+
+/* ---------- identity: one side per user, no casual hopping ----------
+ * The first-run answer (shop vs enthusiast) is the user's side. The
+ * bottom bar shows Home plus the side chip instead of a mode switch;
+ * changing sides happens only deliberately, in Settings profile. */
+function paintSideChip() {
+  const chip = $("sideChip");
+  if (!chip) return;
+  const p = Profile.loadProfile(localStorage);
+  if (!p) {
+    chip.innerHTML = '<span aria-hidden="true">?</span> Pick your side';
+    return;
+  }
+  const shop = p.mode === "shop";
+  chip.innerHTML = '<span aria-hidden="true">' + (shop ? "\u2692" : "\u2302") + "</span> Your side: " + (shop ? "Shop" : "DIY Garage");
+}
+
+function paintDoorStatus(doorId, text) {
+  const door = document.getElementById(doorId);
+  if (!door || !text) return;
+  const stat = document.createElement("span");
+  stat.className = "doorstat";
+  stat.textContent = text;
+  const body = door.querySelector(".tbody") || door;
+  body.appendChild(stat);
+}
+
+function bayCaseStatus() {
+  try { return (typeof bay !== "undefined" && bay.case) ? "Case open" : "No open case"; }
+  catch (e) { return ""; }
+}
+
+function garageStatus() {
+  try {
+    const cars = (typeof invState !== "undefined" && invState.cars) ? invState.cars.length : 0;
+    const parts = (typeof invState !== "undefined" && invState.parts) ? invState.parts.length : 0;
+    if (!cars && !parts) return "Empty \u2014 load the demo";
+    return cars + (cars === 1 ? " car" : " cars") + " \u00b7 " + parts + (parts === 1 ? " part" : " parts");
+  } catch (e) { return ""; }
+}
+
+function paintSideBadges() {
+  document.querySelectorAll(".yourside").forEach((el) => el.remove());
+  document.querySelectorAll(".doorstat").forEach((el) => el.remove());
+  paintDoorStatus("door-bay", bayCaseStatus());
+  paintDoorStatus("door-garage", garageStatus());
+  const p = Profile.loadProfile(localStorage);
+  if (!p) return;
+  const door = document.getElementById(p.mode === "shop" ? "door-bay" : "door-garage");
+  if (!door) return;
+  const badge = document.createElement("span");
+  badge.className = "yourside";
+  badge.textContent = "\u2605 Your side";
+  door.appendChild(badge);
+}
 /* Camera-first intake (WO17): each Take-a-photo button opens a hidden
  * capture input (device camera on phones, picker on desktop); the shot
  * is handed to the existing upload input untouched, so every flow below
@@ -2007,10 +2567,11 @@ function wireCameras() {
 /* ---------- motion + confirm + sunlight (WO18) ----------
  * Presentation, navigation, and photo-input only. The flows, grades,
  * and gates underneath run exactly as before; this section only wraps
- * them with motion, a confirm step, staged working states, and a
- * sunlight toggle. No approve, post, or rules call lives here. */
+ * them with motion, a confirm step, and staged working states.
+ * (Sunlight mode removed by owner direction.) No approve, post,
+ * or rules call lives here. */
 
-let currentView = "yard";
+let currentView = "home";
 
 function calmMotion() {
   return typeof matchMedia === "function" &&
@@ -2267,7 +2828,7 @@ function confirmUse() {
     const rect = $("confirmPhoto").getBoundingClientRect();
     const url = st.shots[st.shots.length - 1].url;
     closeConfirm();
-    showView("yard");
+    showView("inventory");
     heroExpand(rect, url);
     return;
   }
@@ -2498,25 +3059,7 @@ function revealResults() {
   }, M.maxMs);
 }
 
-/* ---- sunlight mode: one tap, header or settings, browser-local ---- */
-function applySunlight() {
-  const on = UX.loadSunlight(localStorage);
-  document.body.classList.toggle("sunlight", on);
-  const nav = $("navSun");
-  if (nav) nav.classList.toggle("active", on);
-  const box = $("sunToggle");
-  if (box) box.checked = on;
-}
-
 function initMotion() {
-  applySunlight();
-  $("navSun").addEventListener("click", () => {
-    UX.saveSunlight(localStorage, !UX.loadSunlight(localStorage));
-    applySunlight();
-    renderSettings();
-    feed("Sunlight mode " + (UX.loadSunlight(localStorage) ? "on" : "off"),
-      "settings — display only, stays in this browser");
-  });
   $("btnConfirmRetake").addEventListener("click", () => confirmRetake());
   $("btnConfirmUse").addEventListener("click", () => confirmUse());
   $("btnConfirmCancel").addEventListener("click", () => {
@@ -2543,15 +3086,17 @@ function initBay() {
     if (!$("settings").open) $("settings").hidden = true;
   });
   $("door-bay").addEventListener("click", (e) => { doorPress(e.currentTarget); applySetting("bay"); showView("bay"); bayKb(); });
-  $("door-yard").addEventListener("click", (e) => { doorPress(e.currentTarget); applySetting("yard"); showView("yard"); });
-  $("door-driveway").addEventListener("click", (e) => { doorPress(e.currentTarget); applySetting("inventory"); showView("inventory"); });
-  $("bb-bay").addEventListener("click", () => { applySetting("bay"); showView("bay"); bayKb(); });
-  $("bb-yard").addEventListener("click", () => { applySetting("yard"); showView("yard"); });
-  $("bb-inv").addEventListener("click", () => { applySetting("inventory"); showView("inventory"); });
-  $("backYard").addEventListener("click", () => { applySetting("home"); showView("home"); });
+  $("door-garage").addEventListener("click", (e) => { doorPress(e.currentTarget); applySetting("inventory"); showView("inventory"); });
+  $("bottomHome").addEventListener("click", () => { applySetting("home"); showView("home"); });
+  $("sideChip").addEventListener("click", () => {
+    const p = Profile.loadProfile(localStorage);
+    if (!p) { $("setupOverlay").hidden = false; return; }
+    $("settings").open = true;
+    goSection("profileCard");
+  });
   $("backBay").addEventListener("click", () => { applySetting("home"); showView("home"); });
   $("backInv").addEventListener("click", () => { applySetting("home"); showView("home"); });
-  $("backCompare").addEventListener("click", () => { applySetting("yard"); showView("yard"); });
+  $("backCompare").addEventListener("click", () => { applySetting("inventory"); showView("inventory"); });
   $("btnCompareOpen").addEventListener("click", () => showView("compare"));
   wireCameras();
   labelCaptureForDevice();
@@ -2626,6 +3171,9 @@ function initBay() {
     await bayLabor(bayLaborFromInputs());
     feed("Labor math updated", "tool bay.labor — shop times at $180/hr");
   }));
+  $("btnBayEstimate").addEventListener("click", guard(async () => {
+    await priceBayParts();
+  }, "pricing the estimate…"));
   $("btnBayKb").addEventListener("click", guard(bayKb));
   pressMic($("btnBayMic"), "bay", (res) => {
     if (bay.case && res.pinned) {
@@ -2656,10 +3204,9 @@ function doorPress(btn) {
  * dataset and the band art, never the case, so a setting change cannot
  * lose the open case, its grades, or its totals. Compare is neutral and
  * keeps whatever setting is current. */
-var SETTING_FOR_VIEW = { home: "home", bay: "shop", yard: "yard", inventory: "garage", compare: null };
+var SETTING_FOR_VIEW = { home: "home", bay: "shop", inventory: "garage", compare: null };
 var SETTING_BANDS = {
   shop: '<img src="assets/band-shop.png" role="img" aria-label="Illustrated shop interior: lift, workbench, tool wall">',
-  yard: '<img src="assets/band-yard.png" role="img" aria-label="Illustrated yard lot: fence, parts cars, daylight">',
   garage: '<img src="assets/band-garage.png" role="img" aria-label="Illustrated home garage: one car, shelves, warm lamp">'
 };
 function renderSettingBand(s) {
@@ -2863,26 +3410,27 @@ function renderSettings() {
   box.appendChild(line);
   const card = document.createElement("div");
   card.className = "gcard homehead";
+  card.id = "profileCard";
   box.appendChild(card);
   const ctitle = document.createElement("div");
   ctitle.className = "ctitle";
   ctitle.textContent = "Profile";
   card.appendChild(ctitle);
   const span = document.createElement("span");
-  span.textContent = p.email + " · " + p.mode;
+  span.textContent = p.email + " · " + (p.mode === "shop" ? "Shop" : "DIY Garage");
   card.appendChild(span);
   const other = p.mode === "shop" ? "enthusiast" : "shop";
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "small";
-  btn.textContent = "Switch to " + other;
+  btn.textContent = "Switch to " + (other === "shop" ? "Shop" : "DIY Garage");
   btn.addEventListener("click", guard(async () => {
     Profile.setMode(localStorage, other);
     renderSettings();
     var dest = Profile.routeFor(other);
     applySetting(dest);
     showView(dest);
-    feed("Mode switched to " + other + " in settings", "profile — deliberate change, persisted locally");
+    feed("Mode switched to " + (other === "shop" ? "Shop" : "DIY Garage") + " in settings", "profile — deliberate change, persisted locally");
   }));
   card.appendChild(btn);
   const reset = document.createElement("button");
@@ -2924,33 +3472,7 @@ function renderSettings() {
   off.appendChild(offIcon);
   off.appendChild(document.createTextNode(" Force offline demo"));
   demoCard.appendChild(off);
-  const dispCard = document.createElement("div");
-  dispCard.className = "gcard";
-  const dispTitle = document.createElement("div");
-  dispTitle.className = "ctitle";
-  dispTitle.textContent = "Display";
-  dispCard.appendChild(dispTitle);
-  box.appendChild(dispCard);
-  const sun = document.createElement("label");
-  sun.className = "gtile";
-  const sunBox = document.createElement("input");
-  sunBox.type = "checkbox";
-  sunBox.id = "sunToggle";
-  sunBox.checked = UX.loadSunlight(localStorage);
-  sunBox.addEventListener("change", () => {
-    UX.saveSunlight(localStorage, sunBox.checked);
-    applySunlight();
-    feed(sunBox.checked ? "Sunlight mode on" : "Sunlight mode off",
-      "settings — display only, stays in this browser");
-  });
-  const sunIcon = document.createElement("span");
-  sunIcon.className = "ticon";
-  sunIcon.setAttribute("aria-hidden", "true");
-  sunIcon.textContent = "☀";
-  sun.appendChild(sunBox);
-  sun.appendChild(sunIcon);
-  sun.appendChild(document.createTextNode(" Sunlight mode — bold type, solid surfaces for glare"));
-  dispCard.appendChild(sun);
+  /* Sunlight display card removed by owner direction. */
   const walk = document.createElement("button");
   walk.type = "button";
   walk.className = "small";
@@ -2977,7 +3499,7 @@ function renderCreds(box) {
       blurb: "For live retailer quotes and estimate emails (live integrations are roadmap; the mocks below are demo).",
       mockLabel: "Test distributor login (demo mock)",
       mockFn: () => Credentials.mockDistributorLogin(localStorage) },
-    { profile: "diy", title: "DIY: parts-store login + marketplace accounts",
+    { profile: "diy", title: "DIY Garage: parts-store login + marketplace accounts",
       blurb: "For price checks and posting (live integrations are roadmap; the mocks below are demo).",
       mockLabel: "Test store login (demo mock)",
       mockFn: () => Credentials.mockStoreLogin(localStorage) },
@@ -3070,7 +3592,7 @@ function renderCreds(box) {
         const fresh = Credentials.mockNewPrice(name.value);
         const hit = ((state.report && state.report.verdicts) || [])
           .filter((v) => (v.label || "").toLowerCase() === (name.value || "").trim().toLowerCase())[0];
-        let used = "Used: no graded verdict yet — run the Yard flow to grade it first.";
+        let used = "Used: no graded verdict yet — run the photo flow to grade it first.";
         if (hit && hit.inputs && hit.inputs.price_known) {
           used = "Used: " + money(hit.inputs.price_low) +
             (hit.inputs.price_high && hit.inputs.price_high !== hit.inputs.price_low
@@ -3108,7 +3630,7 @@ function initIdentity() {
     $("setupOverlay").hidden = true;
     renderSettings();
     showView("home");
-    feed("First-run setup done: " + mode, "profile — stored in this browser only, never sent");
+    feed("First-run setup done: " + (mode === "shop" ? "Shop" : "DIY Garage"), "profile — stored in this browser only, never sent");
   });
   $("btnSetupShop").addEventListener("click", choose("shop"));
   $("btnSetupFan").addEventListener("click", choose("enthusiast"));
@@ -3182,7 +3704,18 @@ function renderInvKnow() {
   const carId = $("invKnowCar").value;
   const notes = carId ? Inventory.notesForCar(invState, carId) : [];
   if (!carId) {
-    box.innerHTML = '<p class="hint">Register a car first.</p>';
+    box.innerHTML = '<p class="hint">Register a car first — its notes land here.</p>';
+    const go = document.createElement("button");
+    go.type = "button";
+    go.className = "small";
+    go.textContent = "Register a car";
+    go.addEventListener("click", () => {
+      const d = document.querySelector("#sec-icars details");
+      if (d) d.open = true;
+      goSection("sec-icars");
+      $("invCarLabel").focus();
+    });
+    box.appendChild(go);
     return;
   }
   if (!notes.length) {
@@ -3230,7 +3763,7 @@ function renderInvParts() {
     emptyInto(box, "invparts", () => {
       const d = document.querySelector("#sec-iparts details");
       d.open = true;
-      document.getElementById("sec-iparts").scrollIntoView();
+      goSection("sec-iparts");
     });
     return;
   }
@@ -3269,6 +3802,19 @@ function renderInvParts() {
         im.alt = part.label;
         li.appendChild(im);
         stageWorkview(li);
+      } else if ((part.source_tags || []).indexOf("demo-seed") >= 0) {
+        // Demo-seed rows show the matching case-art photo; owner-added
+        // parts without a photo keep the honest letter placeholder.
+        const demo = partPhotoImg("", part.label, "invphoto");
+        if (demo) {
+          li.appendChild(demo);
+          stageWorkview(li);
+        } else {
+          const ph = document.createElement("div");
+          ph.className = "invphoto-ph";
+          ph.textContent = (part.label || "?").slice(0, 1).toUpperCase();
+          li.appendChild(ph);
+        }
       } else {
         const ph = document.createElement("div");
         ph.className = "invphoto-ph";
@@ -3324,7 +3870,7 @@ function renderInvParts() {
 function renderInvTotals() {
   const box = $("invTotals");
   if (!invState.parts.length) {
-    box.innerHTML = '<p class="hint">Totals appear once parts exist.</p>';
+    box.innerHTML = '<p class="hint">Attach a part with a value and the plain-money totals land here.</p>';
     return;
   }
   const sentence = Inventory.plainTotals(Inventory.overallTotals(invState), "parts");
@@ -3356,7 +3902,7 @@ function renderInvHome() {
   const box = $("invHome");
   box.innerHTML = "";
   const strong = document.createElement("strong");
-  strong.textContent = "Inventory home";
+  strong.textContent = "DIY Garage home";
   box.appendChild(strong);
   const span = document.createElement("span");
   span.textContent = invState.cars.length + " car(s), " + invState.parts.length + " part(s).";
@@ -3368,7 +3914,7 @@ function renderInvHome() {
   reg.addEventListener("click", () => {
     const d = document.querySelector("#sec-icars details");
     d.open = true;
-    document.getElementById("sec-icars").scrollIntoView();
+    goSection("sec-icars");
   });
   box.appendChild(reg);
   const add = document.createElement("button");
@@ -3378,17 +3924,18 @@ function renderInvHome() {
   add.addEventListener("click", () => {
     const d = document.querySelector("#sec-iparts details");
     d.open = true;
-    document.getElementById("sec-iparts").scrollIntoView();
+    goSection("sec-iparts");
   });
   box.appendChild(add);
   const why = document.createElement("span");
   why.className = "hint";
-  why.textContent = "Your parts cars and their parts: what you have, what fits, what it is worth.";
+  why.textContent = "Your cars and their parts: what you have, what fits, what it is worth.";
   box.appendChild(why);
   const tour = document.createElement("button");
   tour.type = "button";
-  tour.className = "small primary";
-  tour.textContent = "Take the tour";
+  tour.className = "primary gtile";
+  tour.innerHTML = '<span class="ticon" aria-hidden="true">◉</span>' +
+    '<span class="tbody"><span class="tword">Take the tour</span></span>';
   tour.addEventListener("click", () => startTour());
   box.appendChild(tour);
 }
@@ -3398,7 +3945,7 @@ function renderBayHome() {
   if (!box) return;
   box.innerHTML = "";
   const strong = document.createElement("strong");
-  strong.textContent = "Bay home";
+  strong.textContent = "Shop home";
   box.appendChild(strong);
   const span = document.createElement("span");
   if (bay.case && !bay.case.declined) {
@@ -3415,13 +3962,13 @@ function renderBayHome() {
   fresh.type = "button";
   fresh.className = "small";
   fresh.textContent = "New case";
-  fresh.addEventListener("click", () => document.getElementById("sec-bcase").scrollIntoView());
+  fresh.addEventListener("click", () => goSection("sec-bcase"));
   box.appendChild(fresh);
   const kb = document.createElement("button");
   kb.type = "button";
   kb.className = "small";
   kb.textContent = "Knowledge base";
-  kb.addEventListener("click", () => document.getElementById("sec-bkb").scrollIntoView());
+  kb.addEventListener("click", () => goSection("sec-bkb"));
   box.appendChild(kb);
   const why = document.createElement("span");
   why.className = "hint";
@@ -3429,8 +3976,9 @@ function renderBayHome() {
   box.appendChild(why);
   const tour = document.createElement("button");
   tour.type = "button";
-  tour.className = "small primary";
-  tour.textContent = "Take the tour";
+  tour.className = "primary gtile";
+  tour.innerHTML = '<span class="ticon" aria-hidden="true">◉</span>' +
+    '<span class="tbody"><span class="tword">Take the tour</span></span>';
   tour.addEventListener("click", () => startTour());
   box.appendChild(tour);
 }
@@ -3529,9 +4077,9 @@ async function invDraftListing(partId) {
   renderGatePrice(part.id, "inv");
   $("cutoutSvg").innerHTML = "";
   $("cutoutNote").textContent = "Inventory draft: no photo cutout. Edit, Approve, then Post — nothing posts without approval.";
-  renderStudio(res.studio, res.mode);
-  showView("yard");
-  document.getElementById("sec-listing").scrollIntoView();
+  renderStudio(res.studio, res.mode, part.id, part.label);
+  showView("inventory");
+  goSection("sec-listing");
   feed("Drafted a listing from inventory: " + part.label,
     "tool listing.draft — inventory item → Edit/Approve/Post card (" + res.mode + ")");
 }
@@ -3562,7 +4110,8 @@ function renderVinCard(boxId, vehicle, mode, onConfirm) {
     "<dt>Trim</dt><dd>" + esc(v.trim || "unknown") + "</dd>" +
     "<dt>Category</dt><dd>" + esc(category) + "</dd>" +
     "</dl>" +
-    '<div class="row"><button type="button" class="small primary">Confirm into form</button></div>' +
+    '<div class="row"><button type="button" class="small primary">' +
+'<span aria-hidden="true">✓</span> Confirm into form</button></div>' +
     '<p class="hint">Confirm fills the form, or edit any field by hand. The plate photo never leaves this machine in demo.</p>';
   card.querySelector("button").addEventListener("click", onConfirm);
   box.appendChild(card);

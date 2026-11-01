@@ -3,20 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Shop AI Copilot — Yard</title>
+<title>Shop AI Copilot</title>
 <link rel="stylesheet" href="styles.css">
-<link rel="preload" href="assets/landing.png" as="image">
+<link rel="preload" href="assets/landing-2door.png" as="image">
 </head>
 <body>
 <header class="top">
   <h1>Shop AI Copilot</h1>
-  <span class="sub">The lot: point at a parts car, learn which parts are worth pulling.</span>
+  <span class="sub">Pick a door: the repair bench or your own garage.</span>
   <span class="spacer"></span>
   <span id="modePill" class="pill">not started</span>
-  <button id="navHome" type="button" class="navbtn active"><span aria-hidden="true">⌂</span> Home</button>
-  <button id="navGear" type="button" class="navbtn iconbtn" aria-label="Settings"><span aria-hidden="true">⚙</span> Settings</button>
-  <button id="navSun" type="button" class="navbtn iconbtn" aria-label="Sunlight mode"><span aria-hidden="true">☀</span> Sun</button>
-  <button id="panelToggle" type="button">Shop Copilot</button>
+  <button id="navHome" type="button" class="navbtn active"><img class="navthumb" src="assets/landing-2door.png" alt=""><span aria-hidden="true">⌂</span> Home</button>
+  <button id="navGear" type="button" class="navbtn iconbtn" aria-label="Settings"><span aria-hidden="true">⚙</span></button>
+  <button id="panelToggle" type="button"><span aria-hidden="true">◉</span> Shop Copilot</button>
 </header>
 
 <div class="layout">
@@ -28,25 +27,20 @@
     <summary><span aria-hidden="true">⚙</span> Settings &amp; profile</summary>
     <div id="settingsBody"></div>
   </details>
-  <div id="view-home" hidden>
-  <p class="screen-line">Three doors: fix a car, strip a parts car, or look after your own. Pick one to start.</p>
+  <div id="view-home">
+  <p class="screen-line">Two doors: run the repair bench, or look after your own cars and parts. Pick one to start.</p>
   <div class="scene" id="homeScene">
-    <img class="backdrop" src="assets/landing.png" alt="Illustrated shop street at dusk: repair shop, home garage, and yard gate">
+    <img class="backdrop" src="assets/landing-2door.png" alt="Illustrated street in daylight: repair shop with a Shop sign, house with home garage, and three parked enthusiast cars">
     <div class="tilegrid entrances">
       <button id="door-bay" type="button" class="door entrance">
         <img class="doorart" src="assets/door-shop.png" alt="Shop entrance">
-        <span class="tbody"><span class="door-name">Bay — Fix it</span>
+        <span class="tbody"><span class="door-name">Shop — Fix it</span>
         <span class="door-why">Turn a symptom into a ranked test plan, then record pass or fail.</span></span>
       </button>
-      <button id="door-yard" type="button" class="door entrance">
-        <img class="doorart" src="assets/door-yard.png" alt="Yard gate">
-        <span class="tbody"><span class="door-name">Yard — Strip it</span>
-        <span class="door-why">Photograph a parts car, learn which parts are worth pulling and what they sell for.</span></span>
-      </button>
-      <button id="door-driveway" type="button" class="door entrance">
+      <button id="door-garage" type="button" class="door entrance">
         <img class="doorart" src="assets/door-garage.png" alt="Home garage door">
-        <span class="tbody"><span class="door-name">Driveway — Your own car</span>
-        <span class="door-why">Register your cars, attach parts, see what you have and what it is worth.</span></span>
+        <span class="tbody"><span class="door-name">DIY Garage — Your cars and parts</span>
+        <span class="door-why">Register your cars, attach parts, value photo finds, and draft listings.</span></span>
       </button>
     </div>
   </div>
@@ -57,115 +51,8 @@
   <p class="camguide">Get the whole car in the frame.<span class="mode-tag">Whole car</span></p>
   </div>
 
-  <div id="view-yard">
-  <div class="backbar"><button id="backYard" type="button" class="small">Back · <span aria-hidden="true">◧</span> Yard · ← Home</button></div>
-  <p class="screen-line">Photo in, pull-it-or-leave-it verdict and money out.</p>
-
-  <section id="sec-intake">
-    <h2><span class="step">1</span>Intake — photos in</h2>
-    <p class="hint">Take walk-around photos or upload frames. The car is identified only as far as the photos honestly support.</p>
-    <div class="tilegrid">
-      <input id="fileCamera" type="file" accept="image/*" capture="environment" hidden>
-      <button id="btnPhoto" type="button" class="photo gtile">
-        <span class="ticon" aria-hidden="true">◉</span>
-        <span class="tbody"><span class="tword">Take a photo</span>
-        <span class="tfield">Camera first</span></span>
-      </button>
-      <input id="fileInput" type="file" accept="image/*" multiple hidden>
-      <label class="gtile" for="fileInput">
-        <span class="ticon" aria-hidden="true">⇪</span>
-        <span class="tbody"><span class="tword">Upload frames</span>
-        <span class="tfield">From this device</span></span>
-      </label>
-      <button id="btnDemo" type="button" class="gtile">
-        <img class="timg" src="demo/frame1.svg" alt="Demo car frame">
-        <span class="tbody"><span class="tword">Load demo car</span>
-        <span class="tfield">Labeled demo frames</span></span>
-      </button>
-    </div>
-    <div class="row" style="margin-top:0.6rem">
-      <button id="btnIdentify" type="button">Identify car</button>
-      <button id="btnRunAll" type="button">Run whole flow</button>
-    </div>
-    <div id="thumbs" class="thumbs"></div>
-    <div id="carCard" style="margin-top:0.8rem"></div>
-  </section>
-
-  <section id="sec-harvest">
-    <h2><span class="step">2</span>Harvest map — parts found</h2>
-    <p class="hint">Walk-around strip in order. Pick a frame to see its masks and boxes, or pick a part to jump to its frame.</p>
-    <div id="strip" class="strip"></div>
-    <div id="viewer" class="viewer"></div>
-    <ul id="partList" class="part-list"></ul>
-  </section>
-
-  <section id="sec-verdicts">
-    <h2><span class="step">3</span>Verdicts — pull it or leave it</h2>
-    <p class="hint">A means pull and list now. B means worth it if you are standing there. C means leave it. The rule and its inputs sit next to every grade, and you can overrule any grade with one tap.</p>
-    <p class="hint">The verdict engine grades every part by its sold prices and demand — the rule it used is shown on each card.</p>
-    <div id="compsNote"></div>
-    <div id="verdicts"></div>
-    <div class="row">
-      <button id="btnRerun" type="button">Re-run verdicts</button>
-    </div>
-    <div class="row" style="margin-top:0.6rem">
-      <select id="wonderPart"></select>
-      <label><input id="wonderHard" type="checkbox"> This one is hard</label>
-      <button id="btnWonderYard" type="button" class="small">Second opinion</button>
-    </div>
-    <div id="wonderYard" style="margin-top:0.6rem"></div>
-  </section>
-
-  <section id="sec-totals">
-    <h2><span class="step">4</span>Plain-money totals</h2>
-    <div id="totals" class="totals"><p class="hint">Totals appear after verdicts.</p></div>
-    <div class="row" style="margin-top:0.6rem">
-      <button id="btnCompareOpen" type="button">Compare both engines</button>
-    </div>
-  </section>
-
-  <section id="sec-listing">
-    <h2><span class="step">5</span>Listing draft — you approve, then it posts</h2>
-    <p class="hint">Pick a part, get a draft with the flaws stated. Nothing posts without your approval.</p>
-    <div class="row">
-      <select id="listingPart"></select>
-      <button id="btnDraft" type="button">Draft listing</button>
-    </div>
-    <div id="listingCard" class="gatecard" style="display:none">
-      <div id="listingPrice" class="big-money" aria-live="polite"></div>
-      <div id="studioBox" class="cutout" style="display:none"></div>
-      <div class="cutout">
-        <svg id="cutoutSvg" viewBox="0 0 100 100" role="img" aria-label="Part cutout preview"></svg>
-        <div id="cutoutNote" class="hint"></div>
-      </div>
-      <label>Title<br><input id="listingTitle" type="text" style="width:100%"></label>
-      <p></p>
-      <label>Description<br><textarea id="listingDesc"></textarea></label>
-      <div class="dest">
-        <label><input id="destEbay" type="checkbox" checked> eBay</label>
-        <label><input id="destExchange" type="checkbox"> Parts exchange <span class="roadmap">(roadmap — not built yet)</span></label>
-      </div>
-      <div class="row approve-row">
-        <button id="btnApprove" type="button" class="primary approve">Approve this listing</button>
-        <button id="btnPost" type="button">Post</button>
-        <button id="btnDiscardDraft" type="button" class="small">Discard draft</button>
-      </div>
-      <div id="receipt"></div>
-    </div>
-  </section>
-
-  <section id="sec-rules">
-    <h2><span class="step">6</span>Rules — see them, change them</h2>
-    <p class="hint">The verdict engine is these rules, in order, first match wins. Change a number or switch a rule off, save, and verdicts re-run.</p>
-    <div id="rulesForm" class="rules-form"></div>
-    <div class="row" style="margin-top:0.6rem">
-      <button id="btnSaveRules" type="button">Save rules</button>
-    </div>
-  </section>
-  </div>
-
   <div id="view-bay" hidden>
-  <div class="backbar"><button id="backBay" type="button" class="small">Back · <span aria-hidden="true">⚒</span> Bay · ← Home</button></div>
+  <div class="backbar"><button id="backBay" type="button" class="small">Back · <span aria-hidden="true">⚒</span> Shop · ← Home</button></div>
   <p class="screen-line">Answer the tests and the plan ranks the cause and prices the job.</p>
   <div id="bayHome" class="homehead"></div>
   <div id="bayGuide"></div>
@@ -187,9 +74,9 @@
       </label>
     </div>
     <div class="row">
-      <button type="button" data-baycase="case1">Demo: silent module</button>
-      <button type="button" data-baycase="case2">Demo: fluid fix</button>
-      <button type="button" data-baycase="case3">Demo: cylinder 4</button>
+      <button type="button" data-baycase="case1"><span aria-hidden="true">▶</span> Demo: silent module</button>
+      <button type="button" data-baycase="case2"><span aria-hidden="true">▶</span> Demo: fluid fix</button>
+      <button type="button" data-baycase="case3"><span aria-hidden="true">▶</span> Demo: cylinder 4</button>
     </div>
     <div class="bayform">
       <label>Year<input id="bayYear" type="text" inputmode="numeric" placeholder="e.g. 2009"></label>
@@ -208,7 +95,7 @@
     </div>
     <div id="bayVinRow" class="row" style="display:none">
       <img id="bayPlate" alt="VIN plate preview">
-      <button id="btnBayVinRead" type="button">Read VIN</button>
+      <button id="btnBayVinRead" type="button"><span aria-hidden="true">☰</span> Read VIN</button>
     </div>
     <div id="bayVinCard" style="margin-top:0.5rem"></div>
     <label>Symptom, in your own words (kept verbatim)<br><textarea id="baySymptom" style="min-height:70px" placeholder="e.g. cranks but will not start when hot"></textarea></label>
@@ -217,10 +104,10 @@
       <label>What you observed, one per line<textarea id="bayObs" style="min-height:60px" placeholder="e.g. 12.1 volts at the pins"></textarea></label>
     </div>
     <div class="row" style="margin-top:0.4rem">
-      <button id="btnBayMic" type="button" class="small">Hold to dictate a note</button>
+      <button id="btnBayMic" type="button" class="small"><span aria-hidden="true">♪</span> Hold to dictate a note</button>
     </div>
     <div class="row" style="margin-top:0.6rem">
-      <button id="btnBayCase" type="button" class="primary">Create case</button>
+      <button id="btnBayCase" type="button" class="primary"><span aria-hidden="true">✚</span> Create case</button>
     </div>
     <div id="bayCaseCard" style="margin-top:0.8rem"></div>
   </section>
@@ -229,9 +116,9 @@
     <h2><span class="step">2</span>Ranked test plan — record pass or fail</h2>
     <p class="hint">Each test shows why it sits where it sits. Record a result and the plan re-ranks, naming what changed.</p>
     <div class="row">
-      <button id="btnBayPlan" type="button">Draft plan</button>
+      <button id="btnBayPlan" type="button"><span aria-hidden="true">✎</span> Draft plan</button>
       <label><input id="bayHard" type="checkbox"> This case is hard</label>
-      <button id="btnWonderBay" type="button" class="small">Second opinion</button>
+      <button id="btnWonderBay" type="button" class="small"><span aria-hidden="true">⚖</span> Second opinion</button>
     </div>
     <div id="wonderBay" style="margin-top:0.6rem"></div>
     <div id="bayPlan" style="margin-top:0.7rem"></div>
@@ -251,47 +138,56 @@
         <label><input id="bayTCode" type="checkbox" checked> matches code</label>
         <label><input id="bayTExp2" type="checkbox"> rules out an expensive job</label>
         <label><input id="bayTQuick" type="checkbox" checked> quick</label>
-        <button id="btnBayAddTest" type="button">Add test</button>
+        <button id="btnBayAddTest" type="button"><span aria-hidden="true">✚</span> Add test</button>
       </div>
     </details>
   </section>
 
   <section id="sec-btrail">
     <h2><span class="step">3</span>Evidence trail — why the plan moved</h2>
-    <div id="bayTrail"><p class="hint">Results you record appear here with the ranking change each one caused.</p></div>
+    <div id="bayTrail"><p class="hint">Record a result above — each one lands here with the ranking change it caused.</p></div>
   </section>
 
   <section id="sec-bparts">
     <h2><span class="step">4</span>Job parts list — sourced entries only</h2>
-    <div id="bayParts"><p class="hint">Parts appear after the plan.</p></div>
+    <div id="bayParts"><p class="hint">Draft the plan and the parts it needs land here; add your own below.</p></div>
     <div class="row" style="margin-top:0.5rem">
       <input id="bayPName" type="text" placeholder="Part name" style="flex:2">
       <input id="bayPNote" type="text" placeholder="Note (fitment, donor rule…)" style="flex:3">
-      <button id="btnBayAddPart" type="button">Add part</button>
+      <button id="btnBayAddPart" type="button"><span aria-hidden="true">✚</span> Add part</button>
     </div>
   </section>
 
   <section id="sec-blabor">
     <h2><span class="step">5</span>Labor math — <span class="money">$180</span> an hour, shop times only</h2>
-    <div id="bayLabor"><p class="hint">Labor appears after the plan.</p></div>
+    <div id="bayLabor"><p class="hint">Draft the plan and the labor math lands here.</p></div>
     <div class="row" style="margin-top:0.5rem">
-      <button id="btnBayLabor" type="button">Update labor</button>
+      <button id="btnBayLabor" type="button"><span aria-hidden="true">$</span> Update labor</button>
+    </div>
+  </section>
+
+  <section id="sec-best">
+    <h2><span class="step">6</span>Estimate sheet — parts plus labor, one page</h2>
+    <p class="hint">Job parts priced through comps, plus the shop's labor math. Unknowns stay out of the total and are named.</p>
+    <div id="bayEstimate"><p class="hint">Draft the plan and the estimate sheet fills itself in.</p></div>
+    <div class="row" style="margin-top:0.5rem">
+      <button id="btnBayEstimate" type="button"><span aria-hidden="true">$</span> Price parts + refresh</button>
     </div>
   </section>
 
   <section id="sec-bkb">
-    <h2><span class="step">6</span>Repair notes — shop knowledge on demand</h2>
+    <h2><span class="step">7</span>Repair notes — shop knowledge on demand</h2>
     <p class="hint">Shop-entered notes and anonymized samples only. No factory content lives here.</p>
     <div class="row">
       <input id="bayKbQ" type="text" placeholder="Search notes…" style="flex:1">
-      <button id="btnBayKb" type="button">Search</button>
+      <button id="btnBayKb" type="button"><span aria-hidden="true">?</span> Search</button>
     </div>
     <div id="bayKb" style="margin-top:0.6rem"></div>
   </section>
   </div>
 
   <div id="view-inventory" hidden>
-  <div class="backbar"><button id="backInv" type="button" class="small">Back · <span aria-hidden="true">⌂</span> Driveway · ← Home</button></div>
+  <div class="backbar"><button id="backInv" type="button" class="small">Back · <span aria-hidden="true">⌂</span> DIY Garage · ← Home</button></div>
   <p class="screen-line">Your cars and parts, organized and searchable.</p>
   <div id="invHome" class="homehead"></div>
   <div id="invGuide"></div>
@@ -299,8 +195,8 @@
     <h2><span class="step">1</span>My cars — what do I have</h2>
     <p class="hint">Register your driver and each parts car: by picture, by VIN photo, or by hand. Demo data loads with one button and stays on this machine.</p>
     <div class="row">
-      <button id="btnInvSeed" type="button">Load demo inventory</button>
-      <button id="btnInvClear" type="button">Clear inventory</button>
+      <button id="btnInvSeed" type="button"><span aria-hidden="true">⇪</span> Load demo inventory</button>
+      <button id="btnInvClear" type="button"><span aria-hidden="true">×</span> Clear inventory</button>
     </div>
     <div id="invCars" style="margin-top:0.7rem"></div>
     <details>
@@ -332,8 +228,8 @@
         </label>
       </div>
       <div class="row" style="margin-top:0.6rem">
-        <button id="btnInvCarPhoto" type="button">Identify picture</button>
-        <button id="btnInvCarVin" type="button">Read VIN</button>
+        <button id="btnInvCarPhoto" type="button"><span aria-hidden="true">◎</span> Identify picture</button>
+        <button id="btnInvCarVin" type="button"><span aria-hidden="true">☰</span> Read VIN</button>
       </div>
       <p class="hint">Camera first; upload tiles open the file picker.</p>
       <div id="invVinRow" class="row" style="display:none">
@@ -348,7 +244,7 @@
         <label>Trim (blank stays unknown)<input id="invCarTrim" type="text" placeholder="leave blank unless a badge shows it"></label>
       </div>
       <div class="row">
-        <button id="btnInvAddCar" type="button" class="primary">Register car</button>
+        <button id="btnInvAddCar" type="button"><span aria-hidden="true">✚</span> Register car</button>
       </div>
     </details>
   </section>
@@ -368,7 +264,7 @@
         <label>Value, if you know one<input id="invKnowValue" type="number" min="0" placeholder="e.g. 200"></label>
       </div>
       <div class="row">
-        <button id="btnInvAddNote" type="button">Add note</button>
+        <button id="btnInvAddNote" type="button"><span aria-hidden="true">✚</span> Add note</button>
       </div>
     </details>
   </section>
@@ -379,7 +275,7 @@
       <select id="invFilterCar" aria-label="Filter parts by car"></select>
       <input id="invFilterPart" type="search" placeholder="Search parts…" aria-label="Search parts">
     </div>
-    <div id="invParts"><p class="hint">Parts appear here once cars exist.</p></div>
+    <div id="invParts"><p class="hint">Register a car above, then attach its parts here.</p></div>
     <details>
       <summary>Add a part by picture or by hand</summary>
       <div class="row">
@@ -401,7 +297,7 @@
         </label>
       </div>
       <div class="row" style="margin-top:0.6rem">
-        <button id="btnInvPartPhoto" type="button">Describe picture</button>
+        <button id="btnInvPartPhoto" type="button"><span aria-hidden="true">◎</span> Describe picture</button>
       </div>
       <p class="hint">Camera first; the upload tile opens the file picker.</p>
       <div class="bayform">
@@ -411,27 +307,130 @@
         <label>Value $<input id="invPartValue" type="number" min="0" placeholder="blank means unknown"></label>
       </div>
       <div class="row">
-        <button id="btnInvMic" type="button" class="small">Hold to dictate a note</button>
-        <button id="btnInvComps" type="button">Check comps</button>
-        <button id="btnInvAddPart" type="button">Attach part</button>
+        <button id="btnInvMic" type="button" class="small"><span aria-hidden="true">♪</span> Hold to dictate a note</button>
+        <button id="btnInvComps" type="button"><span aria-hidden="true">$</span> Check comps</button>
+        <button id="btnInvAddPart" type="button"><span aria-hidden="true">✚</span> Attach part</button>
       </div>
     </details>
   </section>
 
   <section id="sec-itotals">
     <h2><span class="step">4</span>Inventory totals — plain money</h2>
-    <div id="invTotals" class="totals"><p class="hint">Totals appear once parts exist.</p></div>
+    <div id="invTotals" class="totals"><p class="hint">Attach a part with a value and the plain-money totals land here.</p></div>
+  </section>
+
+  <section id="sec-intake">
+    <h2><span class="step">5</span>Intake — photos in</h2>
+    <p class="hint">Take walk-around photos or upload frames. The car is identified only as far as the photos honestly support.</p>
+    <div class="tilegrid">
+      <input id="fileCamera" type="file" accept="image/*" capture="environment" hidden>
+      <button id="btnPhoto" type="button" class="photo gtile">
+        <span class="ticon" aria-hidden="true">◉</span>
+        <span class="tbody"><span class="tword">Take a photo</span>
+        <span class="tfield">Camera first</span></span>
+      </button>
+      <input id="fileInput" type="file" accept="image/*" multiple hidden>
+      <label class="gtile" for="fileInput">
+        <span class="ticon" aria-hidden="true">⇪</span>
+        <span class="tbody"><span class="tword">Upload frames</span>
+        <span class="tfield">From this device</span></span>
+      </label>
+      <button id="btnDemo" type="button" class="gtile">
+        <img class="timg" src="assets/case-front.png" alt="Demo car photo">
+        <span class="tbody"><span class="tword">Load demo car</span>
+        <span class="tfield">Labeled demo frames</span></span>
+      </button>
+    </div>
+    <div class="row" style="margin-top:0.6rem">
+      <button id="btnIdentify" type="button"><span aria-hidden="true">◎</span> Identify car</button>
+      <button id="btnRunAll" type="button"><span aria-hidden="true">▶</span> Run whole flow</button>
+    </div>
+    <div id="thumbs" class="thumbs"></div>
+    <div id="carCard" style="margin-top:0.8rem"></div>
+  </section>
+
+  <section id="sec-harvest">
+    <h2><span class="step">6</span>Harvest map — parts found</h2>
+    <p class="hint">Walk-around strip in order. Pick a frame to see its masks and boxes, or pick a part to jump to its frame.</p>
+    <div id="strip" class="strip"></div>
+    <div id="viewer" class="viewer"></div>
+    <ul id="partList" class="part-list"></ul>
+  </section>
+
+  <section id="sec-verdicts">
+    <h2><span class="step">7</span>Part values — pull it or leave it</h2>
+    <p class="hint">A means pull and list now. B means worth it if you are standing there. C means leave it. The rule and its inputs sit next to every grade, and you can overrule any grade with one tap.</p>
+    <p class="hint">The verdict engine grades every part by its sold prices and demand — the rule it used is shown on each card.</p>
+    <div id="compsNote"></div>
+    <div id="verdicts"></div>
+    <div class="row">
+      <button id="btnRerun" type="button"><span aria-hidden="true">↻</span> Re-run verdicts</button>
+    </div>
+    <div class="row" style="margin-top:0.6rem">
+      <select id="wonderPart"></select>
+      <label><input id="wonderHard" type="checkbox"> This one is hard</label>
+      <button id="btnWonderYard" type="button" class="small"><span aria-hidden="true">⚖</span> Second opinion</button>
+    </div>
+    <div id="wonderYard" style="margin-top:0.6rem"></div>
+  </section>
+
+  <section id="sec-totals">
+    <h2><span class="step">8</span>Plain-money totals</h2>
+    <div id="totals" class="totals"><p class="hint">Grade the parts above and the plain-money totals land here.</p></div>
+    <div class="row" style="margin-top:0.6rem">
+      <button id="btnCompareOpen" type="button"><span aria-hidden="true">⇄</span> Compare both engines</button>
+    </div>
+  </section>
+
+  <section id="sec-listing">
+    <h2><span class="step">9</span>Selling — draft the listing, you approve, then it posts</h2>
+    <p class="hint">Pick a part, get a draft with the flaws stated. Nothing posts without your approval.</p>
+    <p class="hint">Selling avenues: eBay today; the parts exchange is on the roadmap.</p>
+    <div class="row">
+      <select id="listingPart"></select>
+      <button id="btnDraft" type="button"><span aria-hidden="true">✎</span> Draft listing</button>
+    </div>
+    <div id="listingCard" class="gatecard" style="display:none">
+      <div id="listingPrice" class="big-money" aria-live="polite"></div>
+      <div id="studioBox" class="cutout" style="display:none"></div>
+      <div class="cutout">
+        <svg id="cutoutSvg" viewBox="0 0 100 100" role="img" aria-label="Part cutout preview"></svg>
+        <div id="cutoutNote" class="hint"></div>
+      </div>
+      <label>Title<br><input id="listingTitle" type="text" style="width:100%"></label>
+      <p></p>
+      <label>Description<br><textarea id="listingDesc"></textarea></label>
+      <div class="dest">
+        <label><input id="destEbay" type="checkbox" checked> eBay</label>
+        <label><input id="destExchange" type="checkbox"> Parts exchange <span class="roadmap">(roadmap — not built yet)</span></label>
+      </div>
+      <div class="row approve-row">
+        <button id="btnApprove" type="button" class="primary approve"><span aria-hidden="true">✓</span> Approve this listing</button>
+        <button id="btnPost" type="button"><span aria-hidden="true">→</span> Post</button>
+        <button id="btnDiscardDraft" type="button" class="small"><span aria-hidden="true">×</span> Discard draft</button>
+      </div>
+      <div id="receipt"></div>
+    </div>
+  </section>
+
+  <section id="sec-rules">
+    <h2><span class="step">10</span>Rules — see them, change them</h2>
+    <p class="hint">The verdict engine is these rules, in order, first match wins. Change a number or switch a rule off, save, and verdicts re-run.</p>
+    <div id="rulesForm" class="rules-form"></div>
+    <div class="row" style="margin-top:0.6rem">
+      <button id="btnSaveRules" type="button"><span aria-hidden="true">⚙</span> Save rules</button>
+    </div>
   </section>
   </div>
 
   <div id="view-compare" hidden>
-  <div class="backbar"><button id="backCompare" type="button" class="small">Back · <span aria-hidden="true">⇄</span> Compare · ← Yard results</button></div>
+  <div class="backbar"><button id="backCompare" type="button" class="small">Back · <span aria-hidden="true">⇄</span> Compare · ← DIY Garage results</button></div>
   <p class="screen-line">Two engines grade the same case side by side. Rules decide; this never overrules.</p>
   <section id="sec-compare" class="neutralpanel">
     <h2>Compare — two engines, one case</h2>
     <p class="hint">Where the open model runs: after verdicts, as a second look beside the rule grade. Left column is Muse Spark 1.3 on the demo leg (Meta key rotation pending, no live call). Right column is Muse Spark Open, the open-weight model, running through Baseten — live when a key is present, demo sample otherwise. Rules decide; this view never overrules.</p>
     <div class="row">
-      <button id="btnCompare" type="button" class="primary">Run comparison</button>
+      <button id="btnCompare" type="button" class="primary"><span aria-hidden="true">▶</span> Run comparison</button>
     </div>
     <div id="compareOut" style="margin-top:0.7rem"></div>
   </section>
@@ -441,7 +440,7 @@
 <div id="setupOverlay" hidden>
   <div class="setup-card">
     <h2>First run: who are you?</h2>
-    <p>This is asked once and never again. Your answer stays on this machine with your profile. Shops get the repair bench; enthusiasts get parts cars and inventory. You can switch later in Settings.</p>
+    <p>This is asked once and never again. Your answer stays on this machine with your profile. Shops get the repair bench; the DIY Garage gets parts cars and inventory. You can switch later in Settings.</p>
     <label>Your email<br><input id="setupEmail" type="text" placeholder="you@example.com" style="width:100%"></label>
     <div class="tilegrid" style="margin-top:0.8rem">
       <button id="btnSetupShop" type="button" class="gtile">
@@ -451,8 +450,8 @@
       </button>
       <button id="btnSetupFan" type="button" class="primary gtile">
         <span class="ticon" aria-hidden="true">⌂</span>
-        <span class="tbody"><span class="tword">I'm an enthusiast</span>
-        <span class="tfield">Parts cars first</span></span>
+        <span class="tbody"><span class="tword">I wrench on my own cars</span>
+        <span class="tfield">DIY Garage · Parts cars first</span></span>
       </button>
     </div>
     <p class="hint">Demo profile: stored in this browser only, never sent anywhere.</p>
@@ -481,8 +480,8 @@
       </button>
     </div>
     <div class="confirm-actions" id="confirmWorkActions" hidden>
-      <button id="btnConfirmCancel" type="button">Cancel</button>
-      <button id="btnConfirmRetry" type="button">Retry</button>
+      <button id="btnConfirmCancel" type="button"><span aria-hidden="true">×</span> Cancel</button>
+      <button id="btnConfirmRetry" type="button"><span aria-hidden="true">↻</span> Retry</button>
     </div>
   </div>
 </div>
@@ -490,7 +489,7 @@
 <button id="copilotFab" type="button" aria-label="Open Shop Copilot"><span aria-hidden="true">◉</span> Copilot</button>
 <aside id="panel" class="panel">
   <header>
-    <div class="panelhead"><h2>Shop Copilot</h2><button id="panelClose" type="button" class="small">Close</button></div>
+    <div class="panelhead"><h2>Shop Copilot</h2><button id="panelClose" type="button" class="small"><span aria-hidden="true">×</span> Close</button></div>
     <p>Ask me about this car or part. I answer from the case file, and I never guess. Every step shows its work below.</p>
   </header>
   <div id="feed" aria-live="polite"></div>
@@ -502,15 +501,14 @@
   </div>
   <form id="chatForm">
     <input id="chatInput" type="text" placeholder="Ask about this case…" autocomplete="off">
-    <button type="submit">Send</button>
+    <button type="submit"><span aria-hidden="true">➜</span> Send</button>
   </form>
 </aside>
 </div>
 
-<nav id="bottomBar" class="bottombar" aria-label="Modes">
-  <button id="bb-bay" type="button"><span aria-hidden="true">⚒</span> Bay</button>
-  <button id="bb-yard" type="button"><span aria-hidden="true">◧</span> Yard</button>
-  <button id="bb-inv" type="button"><span aria-hidden="true">⌂</span> Driveway</button>
+<nav id="bottomBar" class="bottombar" aria-label="You are here">
+  <button id="bottomHome" type="button"><img class="navthumb" src="assets/landing-2door.png" alt=""><span aria-hidden="true">⌂</span> Home</button>
+  <button id="sideChip" type="button"><span aria-hidden="true">⚒</span> Your side</button>
 </nav>
 
 <script src="profile.js"></script>

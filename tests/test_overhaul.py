@@ -63,7 +63,7 @@ class OverhaulArtTest(unittest.TestCase):
 
     def test_scene_svgs_gone_evidence_stays(self):
         html = read_web("index.html")
-        home = html[html.index('id="view-home"'):html.index('id="view-yard"')]
+        home = html[html.index('id="view-home"'):html.index('id="view-bay"')]
         scene = home[home.index('<div class="scene"'):
                      home.index('id="btnHomePhoto"')]
         self.assertNotIn("<svg", scene)
@@ -79,16 +79,15 @@ class OverhaulArtTest(unittest.TestCase):
                       "frame4.svg"):
             path = os.path.join(ROOT, "web", "demo", frame)
             self.assertTrue(os.path.isfile(path), frame)
-        self.assertIn('gallery: "demo/frame1.svg"', app)
+        self.assertIn('gallery: "assets/case-side.png"', app)
         self.assertIn(".emptybox img", css)
 
     def test_doors_use_committed_art(self):
         html = read_web("index.html")
-        home = html[html.index('id="view-home"'):html.index('id="view-yard"')]
+        home = html[html.index('id="view-home"'):html.index('id="view-bay"')]
         for door, asset, alt in (
                 ("door-bay", "assets/door-shop.png", "Shop entrance"),
-                ("door-yard", "assets/door-yard.png", "Yard gate"),
-                ("door-driveway", "assets/door-garage.png",
+                ("door-garage", "assets/door-garage.png",
                  "Home garage door")):
             self.assertIn('id="%s"' % door, home)
             self.assertIn('src="%s"' % asset, home)
@@ -100,17 +99,16 @@ class OverhaulArtTest(unittest.TestCase):
         app = read_web("app.js")
         bands = app[app.index("var SETTING_BANDS"):
                     app.index("function renderSettingBand")]
-        for asset in ("assets/band-shop.png", "assets/band-yard.png",
-                      "assets/band-garage.png"):
+        for asset in ("assets/band-shop.png", "assets/band-garage.png"):
             self.assertIn(asset, bands)
             self.assertTrue(os.path.isfile(
                 os.path.join(ROOT, "web", asset)), asset)
 
     def test_art_labels_stay_honest(self):
         html = read_web("index.html")
-        self.assertIn("Illustrated shop street", html)
+        self.assertIn("Illustrated street in daylight", html)
         app = read_web("app.js")
-        for label in ("Illustrated shop interior", "Illustrated yard lot",
+        for label in ("Illustrated shop interior",
                       "Illustrated home garage"):
             self.assertIn(label, app)
 
@@ -234,10 +232,9 @@ class OverhaulCopilotTest(unittest.TestCase):
 class OverhaulNavTest(unittest.TestCase):
     def test_back_bar_on_every_drilled_in_screen(self):
         html = read_web("index.html")
-        for back, dest in (("backYard", "Home"),
-                            ("backBay", "Home"),
+        for back, dest in (("backBay", "Home"),
                             ("backInv", "Home"),
-                            ("backCompare", "Yard results")):
+                            ("backCompare", "DIY Garage results")):
             tag = re.search(r'<button[^>]*id="%s"[^>]*>.*?</button>'
                             % back, html, re.S).group(0)
             self.assertIn("Back", tag, back)
@@ -246,16 +243,18 @@ class OverhaulNavTest(unittest.TestCase):
         self.assertIn("min-height: 48px",
                       css_rule(css, ".backbar button.small {"))
 
-    def test_bottom_bar_exactly_three_doors(self):
+    def test_bottom_bar_is_home_plus_side(self):
         html = read_web("index.html")
         nav = html[html.index('<nav id="bottomBar"'):
                    html.index("</nav>")]
-        self.assertEqual(nav.count("<button"), 3)
-        for bid, word in (("bb-bay", "Bay"), ("bb-yard", "Yard"),
-                          ("bb-inv", "Driveway")):
-            self.assertIn('id="%s"' % bid, nav, bid)
-            self.assertIn(word, nav, bid)
-        self.assertEqual(nav.count('aria-hidden="true"'), 3)
+        self.assertEqual(nav.count("<button"), 2)
+        self.assertIn('id="bottomHome"', nav)
+        self.assertIn("Home", nav)
+        self.assertIn('id="sideChip"', nav)
+        self.assertIn("Your side", nav)
+        self.assertNotIn("bb-bay", nav)
+        self.assertNotIn("bb-inv", nav)
+        self.assertEqual(nav.count('aria-hidden="true"'), 2)
         self.assertNotIn("primary", nav)
         css = read_web("styles.css")
         self.assertIn("position: fixed", css_rule(css, ".bottombar {"))
@@ -264,13 +263,15 @@ class OverhaulNavTest(unittest.TestCase):
         self.assertNotIn("var(--accent",
                          css_rule(css, ".bottombar button.active {"))
 
-    def test_bottom_bar_routes_like_doors(self):
+    def test_side_chip_shows_identity(self):
         app = read_web("app.js")
-        for bid, view in (("bb-bay", "bay"), ("bb-yard", "yard"),
-                          ("bb-inv", "inventory")):
-            self.assertIn('"%s"' % bid, app, bid)
-            self.assertIn('showView("%s")' % view, app, view)
-        self.assertIn('$("bb-bay").classList.toggle("active"', app)
+        self.assertIn("function paintSideChip()", app)
+        self.assertIn("function paintSideBadges()", app)
+        self.assertIn("Your side: ", app)
+        self.assertIn('"\\u2605 Your side"', app)
+        self.assertIn('id = "profileCard";', app)
+        self.assertNotIn("bb-bay", app)
+        self.assertNotIn("bb-inv", app)
 
     def test_settings_behind_gear_profile_inside(self):
         html = read_web("index.html")
@@ -293,10 +294,9 @@ class OverhaulNavTest(unittest.TestCase):
     def test_purpose_line_on_every_screen(self):
         html = read_web("index.html")
         for purpose in (
-                "Photo in, pull-it-or-leave-it verdict and money out.",
+                "Two doors: run the repair bench, or look after your own cars and parts.",
                 "Answer the tests and the plan ranks the cause and prices the job.",
                 "Your cars and parts, organized and searchable.",
-                "Three doors: fix a car, strip a parts car, or look after your own.",
                 "Two engines grade the same case side by side."):
             self.assertIn(purpose, html, purpose)
         app = read_web("app.js")
@@ -313,7 +313,7 @@ class OverhaulNavTest(unittest.TestCase):
         beats = re.findall(r'\{ id: "(\w+)"',
                            app[app.index("const TOUR_BEATS"):
                                app.index("let tourState")])
-        self.assertEqual(len(beats), 10)
+        self.assertEqual(len(beats), 8)
 
 
 def load_seed():
@@ -579,11 +579,13 @@ class OverhaulGraphicalFixesTest(unittest.TestCase):
         gear = re.search(r'<button[^>]*id="navGear"[^>]*>(.*?)</button>',
                          header, re.S).group(1)
         self.assertIn("\u2699", gear)
-        self.assertIn("Settings", gear)
-        sun = re.search(r'<button[^>]*id="navSun"[^>]*>(.*?)</button>',
-                        header, re.S).group(1)
-        self.assertIn("\u2600", sun)
-        self.assertIn("Sun", sun)
+        self.assertNotIn("Settings", gear)
+        home = re.search(r'<button[^>]*id="navHome"[^>]*>(.*?)</button>',
+                         header, re.S).group(1)
+        self.assertIn("\u2302", home)
+        self.assertIn("Home", home)
+        self.assertIn('<img class="navthumb"', home)
+        self.assertNotIn("navSun", header)
         app = read_web("app.js")
         self.assertIn("\u2191 Move up", app)
         self.assertIn("\u2193 Move down", app)
@@ -623,8 +625,8 @@ class OverhaulGraphicalFixesTest(unittest.TestCase):
         app = read_web("app.js")
         fn = app[app.index("function renderVerdicts"):
                  app.index("function renderTotals")]
-        self.assertIn("Gallery.partThumb(ghpart)", fn)
-        self.assertIn("frameSrc(gvthumb.frame)", fn)
+        self.assertIn("PART_ART[v.part_id]", fn)
+        self.assertIn("PART_LABEL_ART[glabel.toLowerCase()]", fn)
         self.assertIn('class="timg"', fn)
         self.assertIn("gradeImg +", fn)
 
@@ -650,10 +652,10 @@ class OverhaulGraphicalFixesTest(unittest.TestCase):
                  app.index("function renderInvParts")]
         self.assertIn("stageIn(box.firstElementChild);", fn)
 
-    def test_yard_keeps_one_primary(self):
+    def test_garage_keeps_one_primary(self):
         html = read_web("index.html")
-        yard = html[html.index('id="view-yard"'):html.index('id="view-bay"')]
-        self.assertEqual(yard.count('class="primary'), 1)
+        garage = html[html.index('id="view-inventory"'):html.index('id="view-compare"')]
+        self.assertEqual(garage.count('class="primary'), 1)
         run = re.search(r'<button[^>]*id="btnRunAll"[^>]*>',
                         html).group(0)
         self.assertNotIn("primary", run)
@@ -673,15 +675,38 @@ class OverhaulGraphicalFixesTest(unittest.TestCase):
 
     def test_landing_art_preloads(self):
         html = read_web("index.html")
-        self.assertIn('<link rel="preload" href="assets/landing.png"'
+        self.assertIn('<link rel="preload" href="assets/landing-2door.png"'
                       ' as="image">', html)
 
     def test_no_new_art_beyond_manifest(self):
+        # The 7 Phase-1 manifest files plus the 2-door order's landing art
+        # plus the 25 case-art set files (eval_caseart_results.json),
+        # plus the audio/ dir holding the 8 tour narration mp3s
+        # (eval_voice_results.json). eval JSONs stay byte-identical history.
         assets = sorted(os.listdir(os.path.join(ROOT, "web", "assets")))
-        self.assertEqual(assets, ["band-garage.png", "band-shop.png",
-                                 "band-yard.png", "door-garage.png",
-                                 "door-shop.png", "door-yard.png",
-                                 "landing.png"])
+        with open(os.path.join(ROOT, "eval_voice_results.json"),
+                  encoding="utf-8") as fh:
+            voice = sorted("tour-%s.mp3" % f["beat"]
+                           for f in json.load(fh)["files"])
+        self.assertEqual(sorted(os.listdir(os.path.join(ROOT, "web", "assets",
+                                                         "audio"))), voice)
+        self.assertEqual(assets, ["audio", "band-garage.png", "band-shop.png",
+                                 "band-yard.png", "bay-engine.png",
+                                 "case-bench.png", "case-front.png",
+                                 "case-rear.png", "case-side.png",
+                                 "door-garage.png", "door-shop.png",
+                                 "door-yard.png", "empty-garage.png",
+                                 "empty-shelf.png", "head-compare.png",
+                                 "head-grade.png", "head-notes.png",
+                                 "head-parts.png", "head-plan.png",
+                                 "head-trail.png", "head-wrench.png",
+                                 "landing-2door.png", "landing.png",
+                                 "part-bumper.png", "part-coil.png",
+                                 "part-diff.png", "part-ecu.png",
+                                 "part-handle.png", "part-headlight.png",
+                                 "part-m3bumper.png", "part-mirror.png",
+                                 "part-taillight.png", "part-trunklid.png",
+                                 "part-wheel.png"])
 
     def test_grade_text_contrast_reproved(self):
         css = read_web("styles.css")
@@ -701,6 +726,377 @@ class OverhaulGraphicalFixesTest(unittest.TestCase):
         for grade in ("grade-a", "grade-b", "grade-c"):
             self.assertGreaterEqual(ratio(tok[grade], tok["surface"]),
                                     4.5, grade)
+
+
+class CaseArtTest(unittest.TestCase):
+    """Case-art set: generated photos wired into identifiers only.
+
+    Measurement views (harvest viewer, strip, listing cutout preview)
+    keep the real frames so boxes never lie; everything else that
+    showed a sample drawing now shows the matching case-art photo.
+    """
+
+    def test_manifest_matches_committed_files(self):
+        with open(os.path.join(ROOT, "eval_caseart_results.json"),
+                  encoding="utf-8") as fh:
+            manifest = json.load(fh)
+        self.assertEqual(manifest["model"], "muse-image-1.0")
+        self.assertEqual(manifest["path"], "/responses")
+        self.assertEqual(manifest["image_count"], 25)
+        self.assertEqual(len(manifest["images"]), 25)
+        total = 0
+        for name, info in manifest["images"].items():
+            for key in ("prompt", "file", "format", "bytes", "dims"):
+                self.assertIn(key, info, name)
+                self.assertTrue(info[key], name)
+            path = os.path.join(ROOT, info["file"])
+            self.assertTrue(os.path.isfile(path), info["file"])
+            with open(path, "rb") as fh:
+                raw = fh.read()
+            self.assertEqual(len(raw), info["bytes"], name)
+            self.assertEqual(raw[:8], b"\x89PNG\r\n\x1a\n", name)
+            total += info["bytes"]
+        self.assertEqual(manifest["total_bytes"], total)
+        self.assertEqual(manifest["live_calls_sent"],
+                         sum(manifest["attempts"].values()))
+        self.assertEqual(manifest["cost_estimate_usd"],
+                         round(manifest["live_calls_sent"] * 0.01, 2))
+
+    def test_display_maps_resolve_to_files(self):
+        app = read_web("app.js")
+        for block, end in (("const EMPTY_ART", "const PART_ART"),
+                           ("const PART_ART", "const PART_LABEL_ART"),
+                           ("const PART_LABEL_ART",
+                            "function partPhotoImg")):
+            chunk = app[app.index(block):app.index(end)]
+            self.assertNotIn("demo/frame", chunk, block)
+            for asset in re.findall(r'"(assets/[^"]+)"', chunk):
+                self.assertTrue(os.path.isfile(
+                    os.path.join(ROOT, "web", asset)), asset)
+
+    def test_yard_part_ids_all_have_art(self):
+        app = read_web("app.js")
+        chunk = app[app.index("const PART_ART"):
+                    app.index("const PART_LABEL_ART")]
+        with open(os.path.join(ROOT, "demo_cache", "harvest.demo.json"),
+                  encoding="utf-8") as fh:
+            parts = json.load(fh)["parts"]
+        self.assertTrue(parts)
+        for part in parts:
+            self.assertIn(part["id"] + ":", chunk, part["id"])
+
+    def test_seed_labels_all_have_art(self):
+        app = read_web("app.js")
+        chunk = app[app.index("const PART_LABEL_ART"):
+                    app.index("function partPhotoImg")]
+        with open(os.path.join(ROOT, "demo_cache", "inv_seed.demo.json"),
+                  encoding="utf-8") as fh:
+            seed = json.load(fh)
+        labels = {p["label"].lower() for p in seed["parts"]}
+        labels.update(n["part"].lower() for n in seed["knowledge"])
+        self.assertTrue(labels)
+        for label in labels:
+            self.assertIn('"%s"' % label, chunk, label)
+
+    def test_measurement_views_keep_real_frames(self):
+        app = read_web("app.js")
+        viewer = app[app.index("function renderViewer"):
+                     app.index("function renderPartList")]
+        self.assertIn("frameSrc(n)", viewer)
+        strip = app[app.index("function renderStrip"):
+                    app.index("function renderViewer")]
+        self.assertIn("frameSrc(n)", strip)
+        draft = app[app.index("async function runDraft"):
+                    app.index("async function runApprove")]
+        self.assertIn("frameSrc(cut.frame)", draft)
+
+    def test_demo_tile_uses_case_art(self):
+        html = read_web("index.html")
+        btn = re.search(r'<button[^>]*id="btnDemo"[^>]*>(.*?)</button>',
+                        html, re.S).group(0)
+        self.assertIn('src="assets/case-front.png"', btn)
+        self.assertIn("Labeled demo frames", btn)
+
+    def test_studio_live_image_wins(self):
+        app = read_web("app.js")
+        fn = app[app.index("function renderStudio"):
+                 app.index("async function runDraft")]
+        self.assertIn('studio.kind !== "image"', fn)
+        self.assertIn("Source: demo case art.", fn)
+        self.assertIn("renderStudio(res.studio, res.mode, pid);", app)
+        self.assertIn(
+            "renderStudio(res.studio, res.mode, part.id, part.label);", app)
+
+
+class PageTest(unittest.TestCase):
+    """Paged views: graphical index + one page at a time, flows untouched."""
+
+    def test_pages_cover_every_section(self):
+        html = read_web("index.html")
+        app = read_web("app.js")
+        chunk = app[app.index("const VIEW_PAGES"):
+                    app.index("function pageForSection")]
+        bay = html[html.index('id="view-bay"'):
+                   html.index('id="view-inventory"')]
+        inv = html[html.index('id="view-inventory"'):
+                   html.index('id="view-compare"')]
+        covered = set(re.findall(r'secs: \[([^\]]+)\]', chunk))
+        self.assertEqual(len(covered), 14)
+        for block in (bay, inv):
+            for sec in re.findall(r'<section id="([\w\-]+)"', block):
+                self.assertIn('"%s"' % sec, chunk, sec)
+        for asset in re.findall(r'art: "(assets/[^"]+)"', chunk):
+            self.assertTrue(os.path.isfile(
+                os.path.join(ROOT, "web", asset)), asset)
+
+    def test_pager_keeps_one_primary(self):
+        app = read_web("app.js")
+        fn = app[app.index("function renderPager"):
+                 app.index("function activatePage")]
+        self.assertIn('querySelector(".primary")', fn)
+        self.assertIn("hasPrimary", fn)
+        self.assertIn('next.className = hasPrimary ? "small" : "primary";',
+                      fn)
+
+    def test_scrolls_route_through_pages(self):
+        app = read_web("app.js")
+        self.assertNotIn('").scrollIntoView(', app)
+        soon = app[app.index("function scrollSoon"):
+                   app.index("function showView")]
+        self.assertIn("revealSection(ps.id)", soon)
+        view = app[app.index("function showView"):
+                   app.index("const VIEW_PAGES")]
+        self.assertIn("activatePage(which, 0)", view)
+        self.assertIn("function goSection(idOrEl)", app)
+        self.assertIn("function revealSection(secId)", app)
+
+    def test_index_cards_are_graphical(self):
+        app = read_web("app.js")
+        idx = app[app.index("function refreshIndex"):
+                  app.index("function buildIndex")]
+        self.assertIn('"gtile idxcard"', idx)
+        self.assertIn('"timg"', idx)
+        self.assertIn("pageStatus(view, i + 1)", idx)
+        self.assertIn("img.src = p.art;", idx)
+
+    def test_pager_honors_reduced_motion(self):
+        app = read_web("app.js")
+        act = app[app.index("function activatePage"):
+                  app.index("function revealSection")]
+        self.assertIn("calmMotion()", act)
+        go = app[app.index("function goSection"):
+                 app.index("/* Camera-first intake (WO17)")]
+        self.assertIn("calmMotion()", go)
+
+
+class GraphicalButtonsTest(unittest.TestCase):
+    """Every button is graphical: icon or image plus word, never bare text."""
+
+    PLAIN_OK = {"btnHomePhoto"}  # pinned pure-text hero photo button
+
+    def test_every_static_button_is_graphical(self):
+        html = read_web("index.html")
+        found = 0
+        for match in re.finditer(r"<button\b([^>]*)>(.*?)</button>",
+                                 html, re.S):
+            tag, body = match.group(0), match.group(2)
+            mid = re.search(r'id="([\w-]+)"', tag)
+            bid = mid.group(1) if mid else "<noid>"
+            if bid in self.PLAIN_OK:
+                continue
+            found += 1
+            self.assertTrue("<span" in body or "<img" in body, bid)
+        self.assertGreater(found, 30)
+
+    def test_js_buttons_are_graphical(self):
+        app = read_web("app.js")
+        self.assertEqual(app.count('tour.className = "primary gtile";'), 2)
+        self.assertEqual(app.count("tword\">Take the tour<"), 2)
+        self.assertEqual(app.count("ticon\" aria-hidden=\"true\">◉<"), 2)
+        self.assertIn("<span aria-hidden=\"true\">✓</span> Save", app)
+        self.assertIn("<span aria-hidden=\"true\">✓</span> Confirm into form",
+                      app)
+
+    def test_tour_progress_buttons_stay_pinned(self):
+        app = read_web("app.js")
+        bar = app[app.index("function tourBar"):
+                  app.index("function placeTourBar")]
+        self.assertIn('next.className = "small";', bar)
+        self.assertNotIn("movieBar", bar)
+
+
+class MovieTest(unittest.TestCase):
+    """The tour plays itself: autoplay + voice, beats and gates untouched."""
+
+    BEATS = ("chooser", "register", "knowledge", "money", "trust",
+             "rerank", "decline", "compare")
+
+    def movie_chunk(self):
+        app = read_web("app.js")
+        return app[app.index("const TOUR_SCRIPT"):
+                   app.index("async function init()")]
+
+    def test_script_covers_all_beats(self):
+        chunk = self.movie_chunk()
+        for beat in self.BEATS:
+            self.assertIn(beat + ": { hold:", chunk, beat)
+        for say in re.findall(r'say: "([^"]+)"', chunk):
+            self.assertGreater(len(say), 20)
+        for banned in ("/api/listing/approve", "/api/listing/post", "N63"):
+            self.assertNotIn(banned, chunk, banned)
+
+    def test_hooks_wired(self):
+        app = read_web("app.js")
+        start = app[app.index("function startTour"):
+                    app.index("function exitTour")]
+        self.assertIn("tourAutoplayStart();", start)
+        stop = app[app.index("function exitTour"):
+                   app.index("async function tourNext")]
+        self.assertIn("tourAutoplayStop();", stop)
+        place = app[app.index("function placeTourBar"):
+                    app.index("function endTourPreview")]
+        self.assertIn("tourAutoplayBeat(index);", place)
+
+    def test_audio_voice_guarded_and_muted(self):
+        chunk = self.movie_chunk()
+        self.assertNotIn("speechSynthesis", chunk)
+        self.assertNotIn("SpeechSynthesisUtterance", chunk)
+        self.assertNotIn("tourSpeak(", chunk)
+        for marker in ("new Audio()", "tourAudio.play()",
+                       "tourAudio.pause()", "tourAudio.muted",
+                       "tourAudio.onended", '"tour.muted"',
+                       "Mute voice", "Unmute voice"):
+            self.assertIn(marker, chunk, marker)
+
+    def test_audio_files_present(self):
+        with open(os.path.join(ROOT, "eval_voice_results.json"),
+                  encoding="utf-8") as fh:
+            man = json.load(fh)
+        self.assertEqual(man["voice"], "en_US-lessac-medium")
+        self.assertEqual(man["format"], "mp3")
+        self.assertEqual(len(man["files"]), 8)
+        self.assertEqual([f["beat"] for f in man["files"]], list(self.BEATS))
+        for f in man["files"]:
+            p = os.path.join(ROOT, f["file"])
+            self.assertTrue(os.path.exists(p), f["file"])
+            self.assertGreater(os.path.getsize(p), 10000, f["file"])
+            self.assertGreater(f["duration_s"], 0, f["file"])
+
+    def test_beat_audio_map(self):
+        chunk = self.movie_chunk()
+        for beat in self.BEATS:
+            self.assertIn(beat + ': "assets/audio/tour-' + beat + '.mp3"',
+                          chunk, beat)
+        for src in re.findall(r'assets/audio/(tour-\w+\.mp3)', chunk):
+            self.assertTrue(os.path.exists(os.path.join(ROOT, "web", "assets",
+                                                         "audio", src)), src)
+
+    def test_pause_pauses_audio_and_holds(self):
+        chunk = self.movie_chunk()
+        stop = chunk[chunk.index("function tourStopTimer"):
+                     chunk.index("function tourAdvance")]
+        self.assertIn("tourAudio.pause()", stop)
+        bar = chunk[chunk.index("function renderMovieBar"):
+                    chunk.index("function tourAutoplayStart")]
+        self.assertIn("tourPlaying = !tourPlaying", bar)
+        self.assertIn("tourStopTimer();", bar)
+
+    def test_advance_on_audio_ended(self):
+        chunk = self.movie_chunk()
+        play = chunk[chunk.index("function tourPlayAudio"):
+                     chunk.index("function renderMovieBar")]
+        self.assertIn("tourAudio.onended", play)
+        self.assertIn("setTimeout(() => tourAdvance(token), 1200)", play)
+
+    def test_movie_bar_is_separate(self):
+        chunk = self.movie_chunk()
+        self.assertIn('id = "movieBar";', chunk)
+        self.assertIn("btnMoviePlay", chunk)
+        self.assertIn("btnMovieMute", chunk)
+        self.assertIn("Pause movie", chunk)
+        self.assertIn("Play movie", chunk)
+
+    def test_tour_section_pins_intact(self):
+        app = read_web("app.js")
+        section = app[app.index("===== guided tour (WO12)"):
+                      app.index("===== end guided tour =====")]
+        ids = re.findall(r'\{ id: "(\w+)"', section)
+        self.assertEqual(tuple(ids), self.BEATS)
+        self.assertEqual(section.count('title: "'), 8)
+        self.assertEqual(section.count('line: "'), 8)
+
+
+class CraftTest(unittest.TestCase):
+    """Visual craft pass: focus, notice mark, payoff strip, door status."""
+
+    def test_focus_ring_ink_not_amber(self):
+        css = read_web("styles.css")
+        self.assertIn(":focus-visible", css)
+        ring = css[css.index(":focus-visible"):
+                   css.index(":focus-visible") + 200]
+        self.assertIn("2px solid var(--ink)", ring)
+        self.assertNotIn("accent", ring)
+
+    def test_notice_mark(self):
+        css = read_web("styles.css")
+        self.assertIn('.notice::before { content: "!";', css)
+
+    def test_payoff_strip_reads_state(self):
+        app = read_web("app.js")
+        fn = app[app.index("function pagePayoff"):
+                 app.index("function renderPager")]
+        for read in ("bay.plan.results", "bay.parts.length",
+                     "invState.cars.length", "invState.parts.length",
+                     "state.report.verdicts"):
+            self.assertIn(read, fn, read)
+        pager = app[app.index("function renderPager"):
+                    app.index("function activatePage")]
+        self.assertIn("pagePayoff(view, idx)", pager)
+
+    def test_door_status(self):
+        app = read_web("app.js")
+        for fn in ("paintDoorStatus(doorId, text)",
+                   "bayCaseStatus()", "garageStatus()"):
+            self.assertIn("function " + fn, app, fn)
+        badges = app[app.index("function paintSideBadges"):
+                     app.index("/* Camera-first intake (WO17)")]
+        self.assertIn('paintDoorStatus("door-bay", bayCaseStatus());',
+                      badges)
+        self.assertIn('paintDoorStatus("door-garage", garageStatus());',
+                      badges)
+        self.assertIn(".doorstat", read_web("styles.css"))
+
+
+class DiyGarageLabelTest(unittest.TestCase):
+    """Finalize Phase B: the enthusiast side is named DIY Garage
+    everywhere a side label appears. Old standalone labels are gone;
+    lowercase place-words (my/your/the garage), art alt text, internal
+    mode values, and comments intentionally stay."""
+
+    def test_side_label_is_diy_garage(self):
+        html = read_web("index.html")
+        app = read_web("app.js")
+        with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as fh:
+            readme = fh.read()
+        for text, name in ((html, "index.html"), (app, "app.js"),
+                           (readme, "README.md")):
+            self.assertIn("DIY Garage", text, name)
+        old = ("Garage — Your cars", "Garage · ← Home", "Garage results",
+               '"Garage home"', '"Garage index', '"Enthusiast:',
+               "(enthusiast)", "I'm an enthusiast", "the Garage gets",
+               "under the Garage", "in the Garage view", "(Bay/Garage)",
+               "or enthusiast.", "enthusiast (Garage)", "as Garage steps")
+        for text, name in ((html, "index.html"), (app, "app.js"),
+                           (readme, "README.md")):
+            masked = text.replace("DIY Garage", "DIY_GARAGE")
+            for s in old:
+                self.assertNotIn(s, masked, "%s in %s" % (s, name))
+
+    def test_mode_values_stay_logic(self):
+        app = read_web("app.js")
+        self.assertIn('p.mode === "shop" ? "enthusiast" : "shop"', app)
+        self.assertIn('Profile.saveProfile(localStorage, $("setupEmail").value, mode)',
+                      app)
 
 
 if __name__ == "__main__":

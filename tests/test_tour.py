@@ -21,8 +21,8 @@ from verdict import evaluate, load_rules
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB_APP = os.path.join(ROOT, "web", "app.js")
 
-BEAT_ORDER = ["chooser", "register", "dme", "totals", "listing", "ranking",
-              "decline", "close", "money", "compare"]
+BEAT_ORDER = ["chooser", "register", "knowledge", "money", "trust",
+              "rerank", "decline", "compare"]
 
 
 def tour_section():
@@ -39,8 +39,8 @@ class TourStaticTest(unittest.TestCase):
 
     def test_every_beat_explained(self):
         section = tour_section()
-        self.assertEqual(section.count('title: "'), 10)
-        self.assertEqual(section.count('line: "'), 10)
+        self.assertEqual(section.count('title: "'), 8)
+        self.assertEqual(section.count('line: "'), 8)
 
     def test_exit_and_restart(self):
         section = tour_section()

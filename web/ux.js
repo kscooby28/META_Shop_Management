@@ -155,7 +155,7 @@ const UX = (() => {
     },
     compare: {
       title: "No case to compare yet",
-      message: "Run the Yard flow first — the same case then runs through both engines here.",
+      message: "Run the photo flow first — the same case then runs through both engines here.",
       action: "Run whole flow",
     },
     setup: {
@@ -202,10 +202,10 @@ const UX = (() => {
     maxMs: 1000,     // nothing functional ever runs longer
   };
 
-  const DOOR_VIEWS = ["bay", "yard", "inventory"];
+  const DOOR_VIEWS = ["bay", "inventory"];
 
   // Deeper slides in from the right, back slides in from the left,
-  // doors crossfade as equals, compare hangs under yard.
+  // doors crossfade as equals, compare hangs under the enthusiast garage.
   function transitionFor(from, to) {
     if (!from || !to || from === to) return "none";
     const fromDoor = DOOR_VIEWS.indexOf(from) >= 0;
@@ -284,29 +284,12 @@ const UX = (() => {
     return "retry";
   }
 
-  // ---- sunlight mode (WO18): browser-local, like the profile ----
-  const SUN_KEY = "copilot.sunlight";
-
-  function loadSunlight(storage) {
-    try {
-      return storage.getItem(SUN_KEY) === "1";
-    } catch (err) {
-      return false;
-    }
-  }
-
-  function saveSunlight(storage, on) {
-    storage.setItem(SUN_KEY, on ? "1" : "0");
-    return !!on;
-  }
-
   return {
     saveDraft, loadDraft, clearDraft,
     guideKey, isGuideHidden, hideGuide, showGuide, guideSteps,
     emptyState, guardedDelete,
     Motion, transitionFor, stagesFor, revealOrder,
     guideFor, captureModes, failureLine, failureKinds, classifyFailure,
-    SUN_KEY, loadSunlight, saveSunlight,
   };
 })();
 

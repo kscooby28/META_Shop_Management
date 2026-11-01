@@ -39,7 +39,7 @@ const Profile = (() => {
   function routeFor(mode) {
     if (mode === "shop") return "bay";
     if (mode === "enthusiast") return "inventory";
-    return "yard";
+    return "home";
   }
 
   function setMode(storage, mode) {

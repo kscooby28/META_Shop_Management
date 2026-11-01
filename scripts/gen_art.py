@@ -13,6 +13,9 @@ Usage:
   python scripts/gen_art.py             render the full set
   python scripts/gen_art.py --only NAME  render one image (regens)
   python scripts/gen_art.py --webify     downscale assets offline, no calls
+  python scripts/gen_art.py --case       render the case-art set
+  python scripts/gen_art.py --case-only NAME  render one case image
+  python scripts/gen_art.py --case-webify     downscale case assets
 """
 
 import base64
@@ -32,6 +35,7 @@ import studio  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, "web", "assets")
 MANIFEST_NAME = "eval_art_results.json"
+CASE_MANIFEST_NAME = "eval_caseart_results.json"
 COST_PER_IMAGE = 0.01
 
 STYLE = ("Digital painting, cohesive art direction, deliberate cinematic "
@@ -67,6 +71,66 @@ PROMPTS = {
                     "with parts bins, warm lamp glow. No text, no words, "
                     "no letters. " + STYLE),
 }
+
+
+PHOTO = ("Photorealistic, sharp focus, honest used condition, no text, "
+         "no words, no letters, no watermarks, no readable license plates, "
+         "no visible brand badges or logos.")
+
+PART = ("Clean photorealistic e-commerce studio photo of a used car part "
+        "(%s): seamless warm-gray backdrop, soft shadow, centered, honest "
+        "used condition, no text, no words, no letters, no watermark.")
+
+CASE_PROMPTS = {
+    "case-front": ("Front-left three-quarter view of a silver 1990s German "
+                   "sports sedan parked inside a home garage, warm lamp "
+                   "light, honest used condition with light dust. " + PHOTO),
+    "case-side": ("Left side view of a silver 1990s German sports sedan "
+                  "parked inside a home garage, warm lamp light, honest "
+                  "used condition. " + PHOTO),
+    "case-rear": ("Rear-left three-quarter view of a silver 1990s German "
+                  "sports sedan in a home garage, taillight visible, warm "
+                  "lamp light, honest used condition. " + PHOTO),
+    "case-bench": ("Auto shop workbench with several pulled used car parts "
+                   "arranged neatly: a side mirror, a headlight, an alloy "
+                   "wheel leaning beside the bench, warm amber work lamp. "
+                   + PHOTO),
+    "part-mirror": PART % "driver side mirror, silver cap, intact glass",
+    "part-bumper": PART % "front bumper cover, silver, light scuffs",
+    "part-wheel": PART % "silver five-spoke alloy wheel, light brake dust",
+    "part-headlight": PART % "driver headlight, clear lens",
+    "part-handle": PART % "exterior door handle, black",
+    "part-taillight": PART % "red rear taillight with one small visible crack",
+    "part-diff": PART % "rear differential, greasy honest wear",
+    "part-coil": PART % "ignition coil with a short rubber boot",
+    "part-ecu": PART % ("black engine control module with connector pins "
+                        "and a blank silver label area"),
+    "part-trunklid": ("Silver sedan trunk lid panel leaning against a "
+                      "warm-gray studio wall, soft shadow, honest used "
+                      "condition. " + PHOTO),
+    "part-m3bumper": PART % "sporty front bumper with a lower air lip, black",
+    "head-notes": ("Gloved hand holding a bright inspection lamp over an "
+                   "open car engine bay, close-up. " + PHOTO),
+    "head-trail": ("Repair-order clipboard with a blank checklist and a pen "
+                   "lying on a workbench. " + PHOTO),
+    "head-parts": ("Wooden shelf of parts bins in a home garage, warm lamp "
+                   "glow. " + PHOTO),
+    "head-grade": ("Gloved hand holding a blank paper price tag tied with "
+                   "string to a used car side mirror. " + PHOTO),
+    "head-plan": ("Clipboard with a blank repair checklist leaning against "
+                  "an open car hood in a repair shop. " + PHOTO),
+    "head-compare": ("Two silver 1990s sedans parked side by side in a "
+                     "gravel lot at dusk. " + PHOTO),
+    "head-wrench": ("Combination wrench and socket set laid on a fender "
+                    "cover over a car fender. " + PHOTO),
+    "empty-garage": ("Tidy empty home garage bay, open concrete floor, "
+                     "shelves on the wall, warm lamp, no car. " + PHOTO),
+    "empty-shelf": ("Clean empty metal parts shelf in a garage, warm "
+                    "light. " + PHOTO),
+    "bay-engine": ("Open car engine bay close-up in a repair shop, warm "
+                   "work light. " + PHOTO),
+}
+
 
 
 def _jpeg_dims(blob):
@@ -180,8 +244,8 @@ def webify_one(path):
     return len(small), "%dx%d" % (got_w, got_h)
 
 
-def webify_all():
-    manifest = load_manifest()
+def webify_all(manifest_name=None):
+    manifest = load_manifest(manifest_name)
     images = manifest.get("images", {})
     failures = {}
     for name, info in sorted(images.items()):
@@ -201,7 +265,7 @@ def webify_all():
         "method": "headless render at max 960 on the long edge",
         "failures": failures,
     }
-    path = os.path.join(ROOT, MANIFEST_NAME)
+    path = os.path.join(ROOT, manifest_name or MANIFEST_NAME)
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, indent=2, sort_keys=False)
         fh.write("\n")
@@ -209,8 +273,8 @@ def webify_all():
         len(images), manifest["total_bytes"], len(failures)))
 
 
-def load_manifest():
-    path = os.path.join(ROOT, MANIFEST_NAME)
+def load_manifest(name=None):
+    path = os.path.join(ROOT, name or MANIFEST_NAME)
     try:
         with open(path, "r", encoding="utf-8") as fh:
             return json.load(fh)
@@ -218,8 +282,8 @@ def load_manifest():
         return {}
 
 
-def render_one(name):
-    prompt = PROMPTS[name]
+def render_one(name, prompts=None):
+    prompt = (prompts or PROMPTS)[name]
     started = time.time()
     result = studio.request_art_render(prompt)
     raw = base64.b64decode(result["body"].split(",", 1)[1])
@@ -239,25 +303,32 @@ def render_one(name):
 
 
 def main(argv):
-    if "--webify" in argv:
-        webify_all()
+    case = ("--case" in argv or "--case-only" in argv
+            or "--case-webify" in argv)
+    prompts = CASE_PROMPTS if case else PROMPTS
+    manifest_name = CASE_MANIFEST_NAME if case else MANIFEST_NAME
+    order = ("Case-art set: demo cars, parts, and section art (presentation)"
+             if case else "Overhaul Phase 1: scene illustration art set")
+    if "--webify" in argv or "--case-webify" in argv:
+        webify_all(manifest_name)
         return
     only = ""
-    if "--only" in argv:
-        only = argv[argv.index("--only") + 1]
-        if only not in PROMPTS:
+    flag = "--case-only" if case else "--only"
+    if flag in argv:
+        only = argv[argv.index(flag) + 1]
+        if only not in prompts:
             raise SystemExit("unknown art name: %s" % only)
-    names = [only] if only else list(PROMPTS)
+    names = [only] if only else list(prompts)
     os.makedirs(ASSETS, exist_ok=True)
     studio.IMAGE_LIVE = True  # in-process only; source default untouched
-    manifest = load_manifest()
+    manifest = load_manifest(manifest_name)
     images = manifest.get("images", {})
     attempts = manifest.get("attempts", {})
     failures = {}
     for name in names:
         attempts[name] = attempts.get(name, 0) + 1
         try:
-            images[name] = render_one(name)
+            images[name] = render_one(name, prompts)
             print("%s: ok, %s bytes, %s" % (
                 name, images[name]["bytes"], images[name]["dims"]))
         except Exception as exc:  # noqa: BLE001 - recorded, never secrets
@@ -265,7 +336,7 @@ def main(argv):
             print("%s: FAILED (%s)" % (name, failures[name][:160]))
     total_calls = sum(attempts.values())
     manifest = {
-        "order": "Overhaul Phase 1: scene illustration art set",
+        "order": order,
         "model": "muse-image-1.0",
         "path": "/responses",
         "images": images,
@@ -276,7 +347,7 @@ def main(argv):
         "live_calls_sent": total_calls,
         "cost_estimate_usd": round(total_calls * COST_PER_IMAGE, 2),
     }
-    path = os.path.join(ROOT, MANIFEST_NAME)
+    path = os.path.join(ROOT, manifest_name)
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, indent=2, sort_keys=False)
         fh.write("\n")

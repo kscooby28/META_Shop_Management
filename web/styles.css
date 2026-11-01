@@ -38,17 +38,6 @@
   --t-sheet: 300ms;
   --t-flip: 300ms;
   --t-reveal: 200ms;
-  --sun-bg: #0d0b07;
-  --sun-surface: #1a1610;
-  --sun-paper: #262017;
-  --sun-ink: #fffdf6;
-  --sun-muted: #f2e9d4;
-  --sun-line: #6b5f45;
-  --sun-accent: #f2b452;
-  --sun-solid: #000000;
-  --sun-ui: 16px;
-  --sun-meta: 12px;
-  --sun-base: 18px;
 }
 
 * { box-sizing: border-box; }
@@ -149,7 +138,7 @@ body {
 }
 .row { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
 
-/* Landing scene (WO20 item 2): illustrated shop street plus three
+/* Landing scene (WO21): two-door street plus two
  * graphical entrances. Entrances are scene elements, never primary. */
 .scene { margin: 0 0 1rem; }
 .backdrop {
@@ -736,8 +725,8 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
 
 /* ---- Graphical-choice system (WO20 item 1): one tile language, one card
  * language, segmented choices, option sheets. Tokens only; motion reuses
- * the WO18 keyframes (none added); scene art uses token fills so sunlight
- * remaps it. Imagery rules: scene and door art is app illustration
+ * the WO18 keyframes (none added); scene art uses token fills from
+ * tokens. Imagery rules: scene and door art is app illustration
  * (allowed); car and part photos are evidence (own demo frames or owner
  * photos only — never stock, never AI cars as inventory). */
 .tilegrid { display: grid; gap: 0.7rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
@@ -813,105 +802,8 @@ body[data-setting="shop"] .staged { border-top-color: var(--ink); }
 /* Tabular numerals for every money readout (WO20 item 10). */
 .money, .big-money, .totalcard .big { font-variant-numeric: tabular-nums; }
 
-/* ---- Sunlight mode: bold type, solid surfaces, zero translucency ---- */
-body.sunlight {
-  --bg: var(--sun-bg);
-  --surface: var(--sun-surface);
-  --paper: var(--sun-paper);
-  --chip: var(--sun-paper);
-  --ink: var(--sun-ink);
-  --muted: var(--sun-muted);
-  --line: var(--sun-line);
-  --accent: var(--sun-accent);
-  --accent-dim: var(--sun-accent);
-  --tint-a: var(--sun-paper);
-  --tint-b: var(--sun-paper);
-  --tint-c: var(--sun-paper);
-  --scrim: var(--sun-solid);
-  --shadow: var(--sun-solid);
-  font-size: var(--sun-base);
-  font-weight: 600;
-}
-body.sunlight .door-why { font-weight: 700; }
-body.sunlight button:disabled { opacity: 1; border-style: dashed; }
-body.sunlight .testcard.eliminated { opacity: 1; }
-body.sunlight .overlay g.dim { opacity: 1; }
-body.sunlight .top .sub,
-body.sunlight .pill,
-body.sunlight .work h2 .step,
-body.sunlight .hint,
-body.sunlight .notice,
-body.sunlight .door-name,
-body.sunlight .door-why,
-body.sunlight button,
-body.sunlight button.small,
-body.sunlight .busbar,
-body.sunlight .offlinebar,
-body.sunlight .homehead,
-body.sunlight .guide ol,
-body.sunlight .emptybox p,
-body.sunlight input,
-body.sunlight select,
-body.sunlight textarea,
-body.sunlight .car-card dl,
-body.sunlight .part-list li,
-body.sunlight .verdict .rule,
-body.sunlight .verdict .vword,
-body.sunlight .verdict .vprice,
-body.sunlight .verdict .vpull,
-body.sunlight .verdict table,
-body.sunlight .override-row,
-body.sunlight .comp-row,
-body.sunlight .totalcard .lbl,
-body.sunlight .rules-form .rule,
-body.sunlight .rules-form .explain,
-body.sunlight .dest,
-body.sunlight .testcard .tmeta,
-body.sunlight .testcard table,
-body.sunlight .testcard [data-res],
-body.sunlight .status,
-body.sunlight .gatebadge,
-body.sunlight .pccard .pchead,
-body.sunlight .enginelabel,
-body.sunlight .trail li,
-body.sunlight .kbnote,
-body.sunlight #settings,
-body.sunlight .invcar .ident,
-body.sunlight .panel header p,
-body.sunlight #feed details,
-body.sunlight .msg,
-body.sunlight #chips button,
-body.sunlight .bayform label,
-body.sunlight .vincard dl,
-body.sunlight .mode-tag,
-body.sunlight .moved-note,
-body.sunlight .camguide,
-body.sunlight .confirm-guide,
-body.sunlight .confirm-step,
-body.sunlight .rowmore,
-body.sunlight .gtile .tword,
-body.sunlight .gtile .tfield,
-body.sunlight .gtile .ticon,
-body.sunlight .gcard .ctitle,
-body.sunlight .gcard p,
-body.sunlight .seg button,
-body.sunlight .gsheet .gtitle { font-size: var(--sun-ui); font-weight: 700; }
-body.sunlight .thumbs figcaption,
-body.sunlight .part-list .tag,
-body.sunlight .sourced,
-body.sunlight .dest .roadmap,
-body.sunlight .strip figcaption,
-body.sunlight .viewer figcaption,
-body.sunlight .demobadge,
-body.sunlight .kbnote .src,
-body.sunlight .relbadge,
-body.sunlight #feed .tool,
-body.sunlight .msg .mode,
-body.sunlight .workview,
-body.sunlight .jdest { font-size: var(--sun-meta); font-weight: 700; }
-
 @media (min-width: 900px) {
-  .entrances { grid-template-columns: 1fr 1fr 1fr; }
+  .entrances { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 900px) {
   .work { max-width: none; padding: 0.9rem; }
@@ -954,3 +846,21 @@ body.sunlight .jdest { font-size: var(--sun-meta); font-weight: 700; }
   .flash { animation: fadein var(--t-door) var(--ease); }
   @keyframes fadein { from { opacity: 0.35; } to { opacity: 1; } }
 }
+
+/* Paged views: graphical index + one page at a time. Tokens only. */
+.pageidx { display: grid; gap: 0.6rem; margin: 0.6rem 0 1rem; }
+.idxgroup { font-weight: 700; margin: 0.5rem 0 0; color: var(--text-title); }
+.idxcard { text-align: left; }
+.idxcard .timg { width: 72px; height: 72px; flex: none; object-fit: cover; border-radius: var(--radius-small); }
+.pagestep { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; color: var(--text-meta); margin: 0.4rem 0; }
+.pagebar { position: sticky; bottom: 0; display: flex; gap: 0.6rem; padding: 0.6rem 0; background: var(--bg); box-shadow: inset 0 1px 0 var(--line); }
+.pagebar .primary { flex: 1; }
+.navbtn img.navthumb, .bottombar img.navthumb { width: 22px; height: 22px; object-fit: cover; border-radius: var(--radius-small); }
+.yourside { display: inline-block; margin-top: 0.4rem; padding: 0.2rem 0.6rem; background: var(--ink); color: var(--bg); border-radius: var(--radius-pill); font-size: var(--text-meta); font-weight: 700; }
+
+/* Visual craft pass: keyboard focus you can see (ink, never amber —
+ * amber means money plus primary only), notice mark, door status. */
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+button:focus:not(:focus-visible) { outline: none; }
+.notice::before { content: "!"; font-weight: 800; margin-right: 0.5rem; }
+.doorstat { font-size: var(--text-meta); color: var(--muted); }

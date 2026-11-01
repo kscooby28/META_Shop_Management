@@ -4,8 +4,8 @@ Presentation only. Every element the Step 0 audit named as still-plain
 has a test proving it changed; every element named as already-modern
 has a test proving it did not regress. Type sizes and corner radii live
 in tokens like colors already do; amber means money and the primary
-action and nothing else; sunlight mode stays fully solid; no new
-motion, no new navigation, no invented data.
+action and nothing else; no new motion, no new navigation,
+no invented data.
 """
 
 import os
@@ -33,13 +33,6 @@ def root_tokens():
     return css().partition(":root")[2].partition("}")[0]
 
 
-def sunlight_block():
-    plain = css_no_comments()
-    start = plain.index("body.sunlight {")
-    end = plain.index("@media (min-width: 900px)", start)
-    return plain[start:end]
-
-
 def keyframe_names():
     return set(re.findall(r"@keyframes\s+([\w-]+)", css_no_comments()))
 
@@ -54,7 +47,6 @@ def rule_body(selector):
 TEXT_TOKENS = {"--text-display", "--text-title", "--text-body", "--text-meta"}
 RADIUS_TOKENS = {"--radius-small", "--radius-card", "--radius-pill",
                  "--radius-round"}
-SUN_TOKENS = {"--sun-ui", "--sun-meta", "--sun-base"}
 
 
 class TypeScaleTest(unittest.TestCase):
@@ -78,7 +70,7 @@ class TypeScaleTest(unittest.TestCase):
         for value in re.findall(r"font-size:\s*([^;]+);", css_no_comments()):
             refs = set(re.findall(r"--[\w-]+", value))
             self.assertTrue(refs, value)
-            self.assertEqual(refs - TEXT_TOKENS - SUN_TOKENS, set(), value)
+            self.assertEqual(refs - TEXT_TOKENS, set(), value)
 
     def test_every_corner_is_a_token(self):
         for value in re.findall(r"border-radius:\s*([^;]+);",
@@ -91,7 +83,7 @@ class TypeScaleTest(unittest.TestCase):
         used = set()
         for value in re.findall(r"font-size:\s*([^;]+);", css_no_comments()):
             used.update(re.findall(r"--[\w-]+", value))
-        self.assertEqual(used - SUN_TOKENS, TEXT_TOKENS)
+        self.assertEqual(used, TEXT_TOKENS)
 
     def test_no_inline_font_size(self):
         for name in ("index.html", "app.js", "profile.js", "inventory.js",
@@ -152,27 +144,24 @@ class ContrastTest(unittest.TestCase):
                     self.ratio(tok[fore], tok[back]), 4.5,
                     "%s on %s" % (fore, back))
 
-    def test_sunlight_and_primary_contrast(self):
+    def test_primary_contrast(self):
         tok = self.tokens()
-        for fore in ("sun-ink", "sun-muted"):
-            for back in ("sun-bg", "sun-surface", "sun-paper"):
-                self.assertGreaterEqual(
-                    self.ratio(tok[fore], tok[back]), 4.5,
-                    "%s on %s" % (fore, back))
         self.assertGreaterEqual(
             self.ratio(tok["accent-ink"], tok["accent"]), 4.5, "primary")
 
 
-class SunlightSolidTest(unittest.TestCase):
-    def test_no_translucency_blur_or_thin_type(self):
-        block = sunlight_block()
-        self.assertNotIn("rgba", block)
-        self.assertNotIn("hsla", block)
-        self.assertNotIn("blur", block)
-        for value in re.findall(r"opacity:\s*([\d.]+)", block):
-            self.assertEqual(float(value), 1.0)
-        for weight in re.findall(r"font-weight:\s*(\d+)", block):
-            self.assertGreaterEqual(int(weight), 600)
+class SunRemovedTest(unittest.TestCase):
+    GONE = ("body.sunlight", "--sun-", "navSun", "sunToggle", "SUN_KEY",
+            "copilot.sunlight", "applySunlight", "loadSunlight",
+            "saveSunlight")
+
+    def test_no_sunlight_anywhere(self):
+        for name in ("index.html", "app.js", "styles.css", "ux.js",
+                     "profile.js", "inventory.js", "gallery.js",
+                     "credentials.js"):
+            text = read(name)
+            for marker in self.GONE:
+                self.assertNotIn(marker, text, name + ":" + marker)
 
 
 class HeroTest(unittest.TestCase):
@@ -181,11 +170,11 @@ class HeroTest(unittest.TestCase):
     # view, and the entrances carry the doors below the scene.
     def test_home_landing_scene(self):
         html = read("index.html")
-        home = html[html.index('id="view-home"'):html.index('id="view-yard"')]
+        home = html[html.index('id="view-home"'):html.index('id="view-bay"')]
         scene = home[home.index('<div class="scene"'):home.index('id="btnHomePhoto"')]
         self.assertNotIn("<svg", scene)
         self.assertIn("<img", scene)
-        self.assertIn("Illustrated shop street", scene)
+        self.assertIn("Illustrated street in daylight", scene)
         self.assertNotIn("demo/frame", home)
         self.assertNotIn("http", scene)
         self.assertLess(home.index("screen-line"), home.index('<div class="scene"'))
@@ -223,8 +212,10 @@ class MoneyTest(unittest.TestCase):
 
     def test_no_new_literal_money_amounts_in_js(self):
         # Audited baseline, all honest: "$0" is a computed zero-total
-        # display, "$180" the real shop rate in a log line, "$200" tour
-        # narrative. Any new literal would be an invented number.
+        # display, "$180" the real shop rate in a log line. The tour's
+        # "$200" narrative left with the script-words swap (the owner's
+        # verbatim voiceover spells it "two hundred bucks"). Any new
+        # literal would be an invented number.
         for name in ("profile.js", "inventory.js", "gallery.js", "ux.js",
                      "credentials.js"):
             self.assertEqual(
@@ -232,7 +223,7 @@ class MoneyTest(unittest.TestCase):
         self.assertEqual(
             sorted(set(re.findall(r"\$[0-9][\d,]*(?:\.\d+)?",
                                   read("app.js")))),
-            ["$0", "$180", "$200"])
+            ["$0", "$180"])
 
     def test_unknown_stays_styled_unknown(self):
         self.assertIn("var(--grade-c)", rule_body(".missing"))
@@ -308,9 +299,9 @@ class ChipsTest(unittest.TestCase):
 class EmptyStatesTest(unittest.TestCase):
     def test_photo_contexts_show_own_frames(self):
         app = read("app.js")
-        self.assertIn("gallery: \"demo/frame1.svg\"", app)
-        self.assertIn("parts: \"demo/frame2.svg\"", app)
-        self.assertIn("verdicts: \"demo/frame3.svg\"", app)
+        self.assertIn("gallery: \"assets/case-side.png\"", app)
+        self.assertIn("parts: \"assets/case-bench.png\"", app)
+        self.assertIn("verdicts: \"assets/head-grade.png\"", app)
         self.assertIn(".emptybox img", css_no_comments())
 
     def test_empty_card_is_designed(self):
@@ -418,9 +409,9 @@ class LeftAloneTest(unittest.TestCase):
         self.assertNotIn("primary", tag)
         self.assertIn("photo herophoto", tag)
 
-    def test_sunlight_and_guides_still_wired(self):
+    def test_guides_still_wired(self):
         app = read("app.js")
-        for marker in ('$("navSun")', '"sunToggle"', "paintShotGuide(btnId",
+        for marker in ("paintShotGuide(btnId",
                        "UX.transitionFor(from, which)"):
             self.assertIn(marker, app, marker)
 

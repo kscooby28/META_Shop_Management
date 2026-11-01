@@ -1,0 +1,75 @@
+{
+ "engine": "piper",
+ "release": "2023.11.14-2",
+ "voice": "en_US-lessac-medium",
+ "voice_source": "rhasspy/piper-voices (HuggingFace)",
+ "format": "mp3",
+ "encoder": "libmp3lame -q:a 4",
+ "files": [
+  {
+   "beat": "chooser",
+   "line": "Point your phone at any car \u2014 and know what it is, what it's worth, and what to do next.",
+   "file": "web/assets/audio/tour-chooser.mp3",
+   "voice": "en_US-lessac-medium",
+   "duration_s": 5.3,
+   "bytes": 35777
+  },
+  {
+   "beat": "register",
+   "line": "Meet the garage. One photo names the car. A VIN photo fills in the blanks. One tap registers it \u2014 and the app never guesses a field it cannot see.",
+   "file": "web/assets/audio/tour-register.mp3",
+   "voice": "en_US-lessac-medium",
+   "duration_s": 10.1,
+   "bytes": 63775
+  },
+  {
+   "beat": "knowledge",
+   "line": "It knows what I know. That engine computer has no EWS, the E30 crowd wants it, two hundred bucks. I taught it that. It doesn't guess.",
+   "file": "web/assets/audio/tour-knowledge.mp3",
+   "voice": "en_US-lessac-medium",
+   "duration_s": 9.7,
+   "bytes": 61150
+  },
+  {
+   "beat": "money",
+   "line": "Beside every rule grade sits a money grade, priced from real sold ranges \u2014 with the sold count and the reliability right on the card.",
+   "file": "web/assets/audio/tour-money.mp3",
+   "voice": "en_US-lessac-medium",
+   "duration_s": 7.5,
+   "bytes": 52036
+  },
+  {
+   "beat": "trust",
+   "line": "Nothing posts without my tap. The draft waits for me. That's the rule.",
+   "file": "web/assets/audio/tour-trust.mp3",
+   "voice": "en_US-lessac-medium",
+   "duration_s": 4.8,
+   "bytes": 30860
+  },
+  {
+   "beat": "rerank",
+   "line": "It builds the plan. Then a test fails, and it changes its mind \u2014 and shows you exactly why. That's not a chatbot. That's a tech thinking.",
+   "file": "web/assets/audio/tour-rerank.mp3",
+   "voice": "en_US-lessac-medium",
+   "duration_s": 9.2,
+   "bytes": 61273
+  },
+  {
+   "beat": "decline",
+   "line": "And it knows when to say no \u2014 before anyone wastes time.",
+   "file": "web/assets/audio/tour-decline.mp3",
+   "voice": "en_US-lessac-medium",
+   "duration_s": 3.9,
+   "bytes": 25463
+  },
+  {
+   "beat": "compare",
+   "line": "Two engines, one verdict. The rules decide. The open model gets a second look \u2014 and it caught what the rules missed: my own notes. It read 'roadside spare, keep, don't list' and said don't list. That's a second look worth having.",
+   "file": "web/assets/audio/tour-compare.mp3",
+   "voice": "en_US-lessac-medium",
+   "duration_s": 14.5,
+   "bytes": 95861
+  }
+ ],
+ "total_bytes": 426195
+}

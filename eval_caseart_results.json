@@ -1,0 +1,268 @@
+{
+  "order": "Case-art set: demo cars, parts, and section art (presentation)",
+  "model": "muse-image-1.0",
+  "path": "/responses",
+  "images": {
+    "case-front": {
+      "prompt": "Front-left three-quarter view of a silver 1990s German sports sedan parked inside a home garage, warm lamp light, honest used condition with light dust. Photorealistic, sharp focus, honest used condition, no text, no words, no letters, no watermarks, no readable license plates, no visible brand badges or logos.",
+      "file": "web/assets/case-front.png",
+      "format": "png",
+      "bytes": 840723,
+      "dims": "960x640",
+      "latency_ms": 39130,
+      "webified_from": 3319672
+    },
+    "case-side": {
+      "prompt": "Left side view of a silver 1990s German sports sedan parked inside a home garage, warm lamp light, honest used condition. Photorealistic, sharp focus, honest used condition, no text, no words, no letters, no watermarks, no readable license plates, no visible brand badges or logos.",
+      "file": "web/assets/case-side.png",
+      "format": "png",
+      "bytes": 820180,
+      "dims": "960x640",
+      "latency_ms": 13655,
+      "webified_from": 3233496
+    },
+    "case-rear": {
+      "prompt": "Rear-left three-quarter view of a silver 1990s German sports sedan in a home garage, taillight visible, warm lamp light, honest used condition. Photorealistic, sharp focus, honest used condition, no text, no words, no letters, no watermarks, no readable license plates, no visible brand badges or logos.",
+      "file": "web/assets/case-rear.png",
+      "format": "png",
+      "bytes": 769574,
+      "dims": "960x640",
+      "latency_ms": 16377,
+      "webified_from": 3063999
+    },
+    "case-bench": {
+      "prompt": "Auto shop workbench with several pulled used car parts arranged neatly: a side mirror, a headlight, an alloy wheel leaning beside the bench, warm amber work lamp. Photorealistic, sharp focus, honest used condition, no text, no words, no letters, no watermarks, no readable license plates, no visible brand badges or logos.",
+      "file": "web/assets/case-bench.png",
+      "format": "png",
+      "bytes": 837884,
+      "dims": "960x640",
+      "latency_ms": 10572,
+      "webified_from": 3230746
+    },
+    "part-mirror": {
+      "prompt": "Clean photorealistic e-commerce studio photo of a used car part (driver side mirror, silver cap, intact glass): seamless warm-gray backdrop, soft shadow, centered, honest used condition, no text, no words, no letters, no watermark.",
+      "file": "web/assets/part-mirror.png",
+      "format": "png",
+      "bytes": 501062,
+      "dims": "960x640",
+      "latency_ms": 15416,
+      "webified_from": 2267476
+    },
+    "part-bumper": {
+      "prompt": "Clean photorealistic e-commerce studio photo of a used car part (front bumper cover, silver, light scuffs): seamless warm-gray backdrop, soft shadow, centered, honest used condition, no text, no words, no letters, no watermark.",
+      "file": "web/assets/part-bumper.png",
+      "format": "png",
+      "bytes": 531952,
+      "dims": "960x640",
+      "latency_ms": 10737,
+      "webified_from": 2361388
+    },
+    "part-wheel": {
+      "prompt": "Clean photorealistic e-commerce studio photo of a used car part (silver five-spoke alloy wheel, light brake dust): seamless warm-gray backdrop, soft shadow, centered, honest used condition, no text, no words, no letters, no watermark.",
+      "file": "web/assets/part-wheel.png",
+      "format": "png",
+      "bytes": 855474,
+      "dims": "960x960",
+      "latency_ms": 24602,
+      "webified_from": 2644868
+    },
+    "part-headlight": {
+      "prompt": "Clean photorealistic e-commerce studio photo of a used car part (driver headlight, clear lens): seamless warm-gray backdrop, soft shadow, centered, honest used condition, no text, no words, no letters, no watermark.",
+      "file": "web/assets/part-headlight.png",
+      "format": "png",
+      "bytes": 692899,
+      "dims": "960x640",
+      "latency_ms": 11279,
+      "webified_from": 2882576
+    },
+    "part-handle": {
+      "prompt": "Clean photorealistic e-commerce studio photo of a used car part (exterior door handle, black): seamless warm-gray backdrop, soft shadow, centered, honest used condition, no text, no words, no letters, no watermark.",
+      "file": "web/assets/part-handle.png",
+      "format": "png",
+      "bytes": 662006,
+      "dims": "960x960",
+      "latency_ms": 16817,
+      "webified_from": 2169287
+    },
+    "part-taillight": {
+      "prompt": "Clean photorealistic e-commerce studio photo of a used car part (red rear taillight with one small visible crack): seamless warm-gray backdrop, soft shadow, centered, honest used condition, no text, no words, no letters, no watermark.",
+      "file": "web/assets/part-taillight.png",
+      "format": "png",
+      "bytes": 630218,
+      "dims": "960x640",
+      "latency_ms": 24321,
+      "webified_from": 2673332
+    },
+    "part-diff": {
+      "prompt": "Clean photorealistic e-commerce studio photo of a used car part (rear differential, greasy honest wear): seamless warm-gray backdrop, soft shadow, centered, honest used condition, no text, no words, no letters, no watermark.",
+      "file": "web/assets/part-diff.png",
+      "format": "png",
+      "bytes": 499228,
+      "dims": "960x640",
+      "latency_ms": 28150,
+      "webified_from": 2270374
+    },
+    "part-coil": {
+      "prompt": "Clean photorealistic e-commerce studio photo of a used car part (ignition coil with a short rubber boot): seamless warm-gray backdrop, soft shadow, centered, honest used condition, no text, no words, no letters, no watermark.",
+      "file": "web/assets/part-coil.png",
+      "format": "png",
+      "bytes": 789437,
+      "dims": "960x960",
+      "latency_ms": 33125,
+      "webified_from": 2480619
+    },
+    "part-ecu": {
+      "prompt": "Clean photorealistic e-commerce studio photo of a used car part (black engine control module with connector pins and a blank silver label area): seamless warm-gray backdrop, soft shadow, centered, honest used condition, no text, no words, no letters, no watermark.",
+      "file": "web/assets/part-ecu.png",
+      "format": "png",
+      "bytes": 568363,
+      "dims": "960x640",
+      "latency_ms": 15039,
+      "webified_from": 2482900
+    },
+    "part-trunklid": {
+      "prompt": "Silver sedan trunk lid panel leaning against a warm-gray studio wall, soft shadow, honest used condition. Photorealistic, sharp focus, honest used condition, no text, no words, no letters, no watermarks, no readable license plates, no visible brand badges or logos.",
+      "file": "web/assets/part-trunklid.png",
+      "format": "png",
+      "bytes": 785311,
+      "dims": "960x640",
+      "latency_ms": 24402,
+      "webified_from": 3214644
+    },
+    "part-m3bumper": {
+      "prompt": "Clean photorealistic e-commerce studio photo of a used car part (sporty front bumper with a lower air lip, black): seamless warm-gray backdrop, soft shadow, centered, honest used condition, no text, no words, no letters, no watermark.",
+      "file": "web/assets/part-m3bumper.png",
+      "format": "png",
+      "bytes": 531924,
+      "dims": "960x640",
+      "latency_ms": 13940,
+      "webified_from": 2371745
+    },
+    "head-notes": {
+      "prompt": "Gloved hand holding a bright inspection lamp over an open car engine bay, close-up. Photorealistic, sharp focus, honest used condition, no text, no words, no letters, no watermarks, no readable license plates, no visible brand badges or logos.",
+      "file": "web/assets/head-notes.png",
+      "format": "png",
+      "bytes": 899924,
+      "dims": "960x640",
+      "latency_ms": 19074,
+      "webified_from": 3409206
+    },
+    "head-trail": {
+      "prompt": "Repair-order clipboard with a blank checklist and a pen lying on a workbench. Photorealistic, sharp focus, honest used condition, no text, no words, no letters, no watermarks, no readable license plates, no visible brand badges or logos.",
+      "file": "web/assets/head-trail.png",
+      "format": "png",
+      "bytes": 796932,
+      "dims": "960x640",
+      "latency_ms": 10703,
+      "webified_from": 3147037
+    },
+    "head-parts": {
+      "prompt": "Wooden shelf of parts bins in a home garage, warm lamp glow. Photorealistic, sharp focus, honest used condition, no text, no words, no letters, no watermarks, no readable license plates, no visible brand badges or logos.",
+      "file": "web/assets/head-parts.png",
+      "format": "png",
+      "bytes": 969665,
+      "dims": "960x640",
+      "latency_ms": 15160,
+      "webified_from": 3668135
+    },
+    "head-grade": {
+      "prompt": "Gloved hand holding a blank paper price tag tied with string to a used car side mirror. Photorealistic, sharp focus, honest used condition, no text, no words, no letters, no watermarks, no readable license plates, no visible brand badges or logos.",
+      "file": "web/assets/head-grade.png",
+      "format": "png",
+      "bytes": 832139,
+      "dims": "960x640",
+      "latency_ms": 13539,
+      "webified_from": 3270986
+    },
+    "head-plan": {
+      "prompt": "Clipboard with a blank repair checklist leaning against an open car hood in a repair shop. Photorealistic, sharp focus, honest used condition, no text, no words, no letters, no watermarks, no readable license plates, no visible brand badges or logos.",
+      "file": "web/assets/head-plan.png",
+      "format": "png",
+      "bytes": 939655,
+      "dims": "960x640",
+      "latency_ms": 14060,
+      "webified_from": 3535033
+    },
+    "head-compare": {
+      "prompt": "Two silver 1990s sedans parked side by side in a gravel lot at dusk. Photorealistic, sharp focus, honest used condition, no text, no words, no letters, no watermarks, no readable license plates, no visible brand badges or logos.",
+      "file": "web/assets/head-compare.png",
+      "format": "png",
+      "bytes": 840895,
+      "dims": "960x640",
+      "latency_ms": 35061,
+      "webified_from": 3336473
+    },
+    "head-wrench": {
+      "prompt": "Combination wrench and socket set laid on a fender cover over a car fender. Photorealistic, sharp focus, honest used condition, no text, no words, no letters, no watermarks, no readable license plates, no visible brand badges or logos.",
+      "file": "web/assets/head-wrench.png",
+      "format": "png",
+      "bytes": 919911,
+      "dims": "960x640",
+      "latency_ms": 38900,
+      "webified_from": 3550052
+    },
+    "empty-garage": {
+      "prompt": "Tidy empty home garage bay, open concrete floor, shelves on the wall, warm lamp, no car. Photorealistic, sharp focus, honest used condition, no text, no words, no letters, no watermarks, no readable license plates, no visible brand badges or logos.",
+      "file": "web/assets/empty-garage.png",
+      "format": "png",
+      "bytes": 764427,
+      "dims": "960x640",
+      "latency_ms": 11878,
+      "webified_from": 3193037
+    },
+    "empty-shelf": {
+      "prompt": "Clean empty metal parts shelf in a garage, warm light. Photorealistic, sharp focus, honest used condition, no text, no words, no letters, no watermarks, no readable license plates, no visible brand badges or logos.",
+      "file": "web/assets/empty-shelf.png",
+      "format": "png",
+      "bytes": 767170,
+      "dims": "960x640",
+      "latency_ms": 11603,
+      "webified_from": 3084383
+    },
+    "bay-engine": {
+      "prompt": "Open car engine bay close-up in a repair shop, warm work light. Photorealistic, sharp focus, honest used condition, no text, no words, no letters, no watermarks, no readable license plates, no visible brand badges or logos.",
+      "file": "web/assets/bay-engine.png",
+      "format": "png",
+      "bytes": 945869,
+      "dims": "960x640",
+      "latency_ms": 22463,
+      "webified_from": 3529942
+    }
+  },
+  "attempts": {
+    "case-front": 1,
+    "case-side": 1,
+    "case-rear": 1,
+    "case-bench": 1,
+    "part-mirror": 1,
+    "part-bumper": 1,
+    "part-wheel": 1,
+    "part-headlight": 1,
+    "part-handle": 1,
+    "part-taillight": 1,
+    "part-diff": 1,
+    "part-coil": 1,
+    "part-ecu": 1,
+    "part-trunklid": 1,
+    "part-m3bumper": 1,
+    "head-notes": 1,
+    "head-trail": 1,
+    "head-parts": 1,
+    "head-grade": 1,
+    "head-plan": 1,
+    "head-compare": 1,
+    "head-wrench": 1,
+    "empty-garage": 1,
+    "empty-shelf": 1,
+    "bay-engine": 1
+  },
+  "failures": {},
+  "image_count": 25,
+  "total_bytes": 18992822,
+  "live_calls_sent": 25,
+  "cost_estimate_usd": 0.25,
+  "webify": {
+    "method": "headless render at max 960 on the long edge",
+    "failures": {}
+  }
+}

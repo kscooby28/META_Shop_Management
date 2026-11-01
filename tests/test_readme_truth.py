@@ -1,7 +1,7 @@
 """README truth tests (WO14): every shipped feature named, no stale words.
 
 Documentation-only order: these tests pin the README claims against the
-shipped code. The tour count ties the README's "ten taps" to the actual
+shipped code. The tour count ties the README's "eight taps" to the actual
 tour beats in web/app.js so the two cannot drift apart.
 """
 
@@ -27,7 +27,7 @@ class ReadmeTruthTest(unittest.TestCase):
     def test_spine_section_names_tour(self):
         text = readme()
         spine, _, _ = text.partition("## The Bay side")
-        for phrase in ("guided tour", "Take the tour", "ten taps",
+        for phrase in ("guided tour", "Take the tour", "eight taps",
                        "no hunting", "no keys", "recording path",
                        "first-run path"):
             self.assertIn(phrase, spine, phrase)
@@ -36,8 +36,8 @@ class ReadmeTruthTest(unittest.TestCase):
         import re
 
         beats = re.findall(r'\{ id: "(\w+)"', tour_section())
-        self.assertEqual(len(beats), 10)
-        self.assertIn("ten taps", readme())
+        self.assertEqual(len(beats), 8)
+        self.assertIn("eight taps", readme())
 
     def test_layout_names_tour_entries(self):
         text = readme()
@@ -58,7 +58,7 @@ class ReadmeTruthTest(unittest.TestCase):
     def test_zero_key_cold_start_named(self):
         run = readme().partition("## Run it")[2].partition("## The flow")[0]
         for phrase in ("No keys, no signup", "python server.py",
-                       "http://127.0.0.1:8765", "four tabs"):
+                       "http://127.0.0.1:8765", "two doors"):
             self.assertIn(phrase, run, phrase)
 
     def test_money_grade_count_and_reliability_named(self):

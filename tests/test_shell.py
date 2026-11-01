@@ -26,34 +26,33 @@ def view_block(html, view_id):
     return html[start:end]
 
 
-VIEWS = ("view-home", "view-yard", "view-bay", "view-inventory", "view-compare")
+VIEWS = ("view-home", "view-bay", "view-inventory", "view-compare")
 
 
 class DoorsTest(unittest.TestCase):
-    def test_three_doors(self):
+    def test_two_doors(self):
         html = read("web/index.html")
-        for door, words in (("door-bay", ("Bay", "Fix it")),
-                            ("door-yard", ("Yard", "Strip it")),
-                            ("door-driveway", ("Driveway", "Your own car"))):
+        for door, words in (("door-bay", ("Shop", "Fix it")),
+                            ("door-garage", ("DIY Garage", "Your cars and parts"))):
             self.assertIn('id="%s"' % door, html)
             for word in words:
                 self.assertIn(word, html)
 
     def test_doors_route_to_views(self):
         app = read("web/app.js")
-        for door, view in (("door-bay", "bay"), ("door-yard", "yard"),
-                           ("door-driveway", "inventory")):
+        for door, view in (("door-bay", "bay"),
+                           ("door-garage", "inventory")):
             self.assertIn('"%s"' % door, app)
             self.assertIn('showView("%s")' % view, app)
 
-    def test_compare_lives_under_yard(self):
+    def test_compare_lives_under_garage(self):
         html = read("web/index.html")
-        self.assertIn('id="btnCompareOpen"', view_block(html, "view-yard"))
-        self.assertIn("Yard results", view_block(html, "view-compare"))
+        self.assertIn('id="btnCompareOpen"', view_block(html, "view-inventory"))
+        self.assertIn("DIY Garage results", view_block(html, "view-compare"))
 
     def test_back_out_of_every_screen(self):
         html = read("web/index.html")
-        for view, back in (("view-yard", "backYard"), ("view-bay", "backBay"),
+        for view, back in (("view-bay", "backBay"),
                            ("view-inventory", "backInv"),
                            ("view-compare", "backCompare")):
             self.assertIn('id="%s"' % back, view_block(html, view), view)

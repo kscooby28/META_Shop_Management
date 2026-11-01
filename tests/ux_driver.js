@@ -66,11 +66,11 @@ ok(!out.done && ran === 1, "cancelled delete does nothing");
 
 // ---- navigation skeleton: doors point at views that exist, backs lead out ----
 const html = fs.readFileSync(path.join(__dirname, "..", "web", "index.html"), "utf-8");
-for (const pair of [["door-bay", "view-bay"], ["door-yard", "view-yard"], ["door-driveway", "view-inventory"], ["navHome", "view-home"]]) {
+for (const pair of [["door-bay", "view-bay"], ["door-garage", "view-inventory"], ["navHome", "view-home"]]) {
   ok(html.indexOf('id="' + pair[0] + '"') >= 0 && html.indexOf('id="' + pair[1] + '"') >= 0,
     "door '" + pair[0] + "' has its '" + pair[1] + "' view (a way there and back)");
 }
-for (const id of ["backYard", "backBay", "backInv", "backCompare", "btnCompareOpen", "navGear"]) {
+for (const id of ["backBay", "backInv", "backCompare", "btnCompareOpen", "navGear"]) {
   ok(html.indexOf('id="' + id + '"') >= 0, "navigation control '" + id + "' is on the page (never stranded)");
 }
 ok(html.indexOf('id="settings"') >= 0 && html.indexOf('id="setupOverlay"') >= 0,
@@ -94,13 +94,13 @@ for (const k of ["tapMs", "doorMs", "pageMs", "pageMaxMs", "sheetMs", "flipMs",
 }
 
 // ---- direction means something (WO18) ----
-ok(UX.transitionFor("bay", "yard") === "door-fade", "door to door crossfades, never slides");
+ok(UX.transitionFor("bay", "inventory") === "door-fade", "door to door crossfades, never slides");
 ok(UX.transitionFor("inventory", "bay") === "door-fade", "doors are equals in both directions");
-ok(UX.transitionFor("home", "yard") === "page-in-right", "going deeper slides in from the right");
-ok(UX.transitionFor("yard", "compare") === "page-in-right", "compare hangs under yard, deeper");
-ok(UX.transitionFor("yard", "home") === "page-in-left", "going back slides in from the left");
-ok(UX.transitionFor("compare", "yard") === "page-in-left", "compare backtracks to the left");
-ok(UX.transitionFor("yard", "yard") === "none", "same view plays no transition");
+ok(UX.transitionFor("home", "inventory") === "page-in-right", "going deeper slides in from the right");
+ok(UX.transitionFor("inventory", "compare") === "page-in-right", "compare hangs under the garage, deeper");
+ok(UX.transitionFor("inventory", "home") === "page-in-left", "going back slides in from the left");
+ok(UX.transitionFor("compare", "inventory") === "page-in-left", "compare backtracks to the left");
+ok(UX.transitionFor("inventory", "inventory") === "none", "same view plays no transition");
 
 // ---- staged analysis (WO18): plain words, answer first ----
 for (const flow of ["yard", "identify", "vin", "part"]) {
@@ -145,13 +145,9 @@ ok(UX.classifyFailure("low confidence match") === "low", "uncertainty maps to lo
 ok(UX.classifyFailure("Failed to fetch") === "retry", "unknown errors map to retry, photo saved");
 ok(UX.classifyFailure("attach a picture first") === "subject", "missing file maps to the no-subject fix");
 
-// ---- sunlight mode (WO18): browser-local, like the profile ----
-ok(UX.SUN_KEY === "copilot.sunlight", "sunlight state has its own local key");
-const sunBacking = {};
-ok(UX.loadSunlight(memStore(sunBacking)) === false, "sunlight defaults off");
-UX.saveSunlight(memStore(sunBacking), true);
-ok(UX.loadSunlight(memStore(sunBacking)) === true, "sunlight toggle persists across reloads");
-UX.saveSunlight(memStore(sunBacking), false);
-ok(UX.loadSunlight(memStore(sunBacking)) === false, "sunlight toggles back off");
+// ---- sunlight mode removed by owner direction: nothing exported ----
+ok(UX.SUN_KEY === undefined, "no sunlight key exported");
+ok(UX.loadSunlight === undefined, "no sunlight loader exported");
+ok(UX.saveSunlight === undefined, "no sunlight saver exported");
 
 if (!process.exitCode) console.log("ALL " + count + " UX CHECKS PASSED");
