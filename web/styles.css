@@ -244,7 +244,7 @@ button.approve { min-height: 56px; font-size: var(--text-title); padding-left: 1
 .emptybox p { margin: 0.15rem 0 0.5rem; font-size: var(--text-body); color: var(--muted); }
 
 .panelhead { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
-#panelClose { display: none; }
+#panelClose { display: inline-block; } /* the sheet overlays on every viewport, so Close is always available */
 button:disabled { opacity: 0.45; cursor: default; }
 button.small { font-size: var(--text-meta); padding: 0.25rem 0.6rem; min-height: 44px; }
 

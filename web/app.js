@@ -1711,7 +1711,7 @@ async function init() {
     btn.addEventListener("click", () => sendChat(btn.getAttribute("data-chip")));
   });
   $("panelToggle").addEventListener("click", () => $("panel").classList.toggle("open"));
-  $("copilotFab").addEventListener("click", openCopilot);
+  $("copilotFab").addEventListener("click", () => $("panel").classList.toggle("open"));
 }
 
 init();
@@ -4403,6 +4403,9 @@ function initUx() {
     $("listingDesc").value = savedListing.listingDesc || "";
   }
   $("panelClose").addEventListener("click", () => $("panel").classList.remove("open"));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") $("panel").classList.remove("open");
+  });
   $("btnDiscardDraft").addEventListener("click", () => {
     UX.guardedDelete(
       window.confirm.bind(window),

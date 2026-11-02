@@ -187,6 +187,18 @@ class OverhaulCopilotTest(unittest.TestCase):
                    css.index("prefers-reduced-motion: no-preference")]
         self.assertIn(".panel.open { animation: none; }", calm)
 
+    def test_sheet_close_always_available(self):
+        css = read_web("styles.css")
+        base = css[:css.index("@media")]
+        self.assertIn("#panelClose { display: inline-block; }", base)
+        app = read_web("app.js")
+        self.assertIn('$("copilotFab").addEventListener("click", '
+                      '() => $("panel").classList.toggle("open"));', app)
+        self.assertIn('$("panelClose").addEventListener("click", '
+                      '() => $("panel").classList.remove("open"));', app)
+        self.assertIn('if (e.key === "Escape") '
+                      '$("panel").classList.remove("open");', app)
+
     def test_yard_question_grounded_offline(self):
         from server import Handler
         answer = Handler._local_chat_answer(
