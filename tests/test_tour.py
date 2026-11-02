@@ -63,10 +63,10 @@ class TourStaticTest(unittest.TestCase):
     def test_compare_beat_forces_demo(self):
         self.assertIn("runCompare({ demo: true })", tour_section())
 
-    def test_entry_on_both_homes(self):
+    def test_entry_on_homes_and_photo_result(self):
         src = open(WEB_APP, encoding="utf-8").read()
-        self.assertEqual(src.count("Take the tour"), 2)
-        self.assertEqual(src.count("startTour()"), 3)  # 2 entries + def
+        self.assertEqual(src.count("Take the tour"), 3)
+        self.assertEqual(src.count("startTour()"), 4)  # 2 homes + photo result + def
 
 
 class FakeHandler:

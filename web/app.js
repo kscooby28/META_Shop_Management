@@ -3897,6 +3897,245 @@ const NETWORK_MARKETS = ["eBay", "Craigslist", "Facebook"];
  * network sees them, one deterministic home market per listing. Demo
  * data only — nothing here posts anywhere. Prices come from the part
  * record (comps-backed) or stay unknown, never invented. */
+/* Photo result seed (Corey order, DEMO first): the four panels shown
+ * automatically on the DIY photo result screen after autofill. This
+ * const is the committed demo seed for this build: every value is
+ * sample data, prices mirror the demo_cache/inv_seed.demo.json
+ * partComps board, and every store and shop name is fake and
+ * DEMO-marked. Canonical copy: demo_cache/photo_result.demo.json.
+ * No real names, addresses, or contact info. Nothing here posts. */
+const PHOTO_RESULT_DEMO = {
+  "source": "DEMO seed — committed sample data, nothing real",
+  "estimatedParts": [
+    {"label": "driver headlight", "price": 65, "source": "demo-sample: inventory seed"},
+    {"label": "alloy wheel", "price": 40, "source": "demo-sample: inventory seed"},
+    {"label": "rear differential", "price": 1000, "source": "demo-sample: inventory seed"},
+    {"label": "trunk lid", "price": null, "source": ""},
+  ],
+  "nearbyParts": [
+    {"label": "driver headlight", "where": "Demo Auto Parts — Northside (DEMO)", "distance": "0.8 mi (DEMO)", "price": 65, "source": "demo-sample: inventory seed"},
+    {"label": "alloy wheel", "where": "Demo Auto Parts — Riverside (DEMO)", "distance": "1.9 mi (DEMO)", "price": 40, "source": "demo-sample: inventory seed"},
+    {"label": "rear differential", "where": "Demo Salvage — East Lot (DEMO)", "distance": "3.2 mi (DEMO)", "price": 1000, "source": "demo-sample: inventory seed"},
+  ],
+  "networkCars": [
+    {"label": "2004 BMW 325i parts car (DEMO)", "detail": "Same make and model as yours"},
+    {"label": "2006 BMW 325i parts car (DEMO)", "detail": "Same make and model as yours"},
+    {"label": "1995 BMW M3 parts car (DEMO)", "detail": "Same make as yours"},
+  ],
+  "willingShops": [
+    {"name": "Demo Shop — Northside (DEMO)", "note": "Accepts customer-supplied parts (DEMO)", "distance": "1.2 mi (DEMO)"},
+    {"name": "Demo Shop — Riverside (DEMO)", "note": "BMW experience stated in demo profile (DEMO)", "distance": "2.4 mi (DEMO)"},
+  ],
+};
+
+let photoAnalyzeTimer = null;
+let invIdentifyFn = null;
+
+/* Photo result screen, built under the DIY register form on first use:
+ * the car photo lands here, analyzing ticks visibly beside it, then
+ * the API result auto-fills the fields it supports and the four demo
+ * panels render automatically on the same screen. Fields the photo
+ * cannot support stay unknown. */
+function buildPhotoResultScreen() {
+  if ($("invPhotoResult")) return;
+  const host = document.querySelector("#sec-icars details");
+  if (!host) return;
+  const box = document.createElement("div");
+  box.id = "invPhotoResult";
+  box.hidden = true;
+  const head = document.createElement("h3");
+  head.textContent = "Photo result";
+  box.appendChild(head);
+  const img = document.createElement("img");
+  img.id = "invPhotoImg";
+  img.alt = "Car photo just taken";
+  img.style.width = "100%";
+  img.style.maxWidth = "420px";
+  box.appendChild(img);
+  const work = document.createElement("div");
+  work.id = "invPhotoAnalyzing";
+  work.hidden = true;
+  const pline = document.createElement("p");
+  const strong = document.createElement("strong");
+  strong.textContent = "Analyzing…";
+  pline.appendChild(strong);
+  pline.appendChild(document.createTextNode(" "));
+  const hint = document.createElement("span");
+  hint.className = "hint";
+  hint.textContent = "The photo stays on screen while the car is identified.";
+  pline.appendChild(hint);
+  work.appendChild(pline);
+  const prog = document.createElement("div");
+  prog.className = "progress";
+  prog.setAttribute("role", "progressbar");
+  prog.setAttribute("aria-label", "Analyzing photo");
+  const bar = document.createElement("div");
+  bar.id = "invPhotoBar";
+  bar.style.width = "0%";
+  prog.appendChild(bar);
+  work.appendChild(prog);
+  const steps = document.createElement("ol");
+  steps.id = "invPhotoSteps";
+  work.appendChild(steps);
+  box.appendChild(work);
+  const fields = document.createElement("div");
+  fields.id = "invPhotoFields";
+  box.appendChild(fields);
+  const panels = ["photoPanelEstimated", "photoPanelNearby", "photoPanelNetwork", "photoPanelShops"];
+  for (const id of panels) {
+    const panel = document.createElement("div");
+    panel.id = id;
+    box.appendChild(panel);
+  }
+  const honest = document.createElement("p");
+  honest.className = "hint";
+  honest.textContent = "Demo data — nothing is posted anywhere.";
+  box.appendChild(honest);
+  host.appendChild(box);
+}
+
+function showPhotoAnalyzing(photoSrc) {
+  buildPhotoResultScreen();
+  const box = $("invPhotoResult");
+  if (!box) return;
+  if (photoSrc) $("invPhotoImg").src = photoSrc;
+  box.hidden = false;
+  const work = $("invPhotoAnalyzing");
+  work.hidden = false;
+  const strong = work.querySelector("strong");
+  if (strong) strong.textContent = "Analyzing…";
+  const bar = $("invPhotoBar");
+  bar.style.width = "0%";
+  const steps = $("invPhotoSteps");
+  steps.innerHTML = "";
+  const labels = ["Reading photo…", "Identifying…", "Matching parts…"];
+  const items = labels.map((text) => {
+    const li = document.createElement("li");
+    li.textContent = text;
+    steps.appendChild(li);
+    return li;
+  });
+  let tick = 0;
+  if (photoAnalyzeTimer) clearTimeout(photoAnalyzeTimer);
+  const advance = () => {
+    if (tick < items.length) {
+      items[tick].textContent = labels[tick] + " — done";
+      tick += 1;
+      bar.style.width = Math.round((tick / items.length) * 100) + "%";
+      photoAnalyzeTimer = setTimeout(advance, 450);
+    }
+  };
+  photoAnalyzeTimer = setTimeout(advance, 450);
+  scrollSoon(box);
+}
+
+function finishPhotoResult(photoSrc, car) {
+  const box = $("invPhotoResult");
+  if (!box) return;
+  if (photoAnalyzeTimer) { clearTimeout(photoAnalyzeTimer); photoAnalyzeTimer = null; }
+  if (photoSrc) $("invPhotoImg").src = photoSrc;
+  box.hidden = false;
+  $("invPhotoBar").style.width = "100%";
+  Array.from($("invPhotoSteps").children).forEach((li) => {
+    if (li.textContent.indexOf("— done") < 0) li.textContent = li.textContent + " — done";
+  });
+  const strong = $("invPhotoAnalyzing").querySelector("strong");
+  if (strong) strong.textContent = "Analyzing done";
+  const c = car || {};
+  const val = (v) => (v == null || v === "" ? "unknown" : v);
+  const fields = $("invPhotoFields");
+  fields.innerHTML = "";
+  const card = document.createElement("div");
+  card.className = "car-card";
+  card.innerHTML = '<div class="name">Auto-filled from photo</div><dl>' +
+    "<dt>Year</dt><dd>" + esc(val(c.year)) + "</dd>" +
+    "<dt>Make</dt><dd>" + esc(val(c.make)) + "</dd>" +
+    "<dt>Model</dt><dd>" + esc(val(c.model)) + "</dd>" +
+    "<dt>Trim</dt><dd>" + esc(val(c.trim)) + "</dd></dl>";
+  fields.appendChild(card);
+  renderPhotoPanels();
+  ensurePhotoTourEntry();
+  flash(box);
+  scrollSoon(box);
+  feed("Photo result ready: auto-filled fields plus four demo panels",
+    "tool inv.identify — photo → analyzing → autofill → panels");
+}
+
+function renderPhotoPanels() {
+  // All four panels render automatically on the result screen. Every
+  // value comes from PHOTO_RESULT_DEMO; prices are demo seed comps or
+  // stay unknown. Nothing is posted anywhere.
+  const seed = PHOTO_RESULT_DEMO;
+  const priceHtml = (p) => (p.price !== null && p.price !== undefined && p.source)
+    ? amberMoney(esc(money(p.price))) + ' <span class="sourced">(' + esc(p.source) + ")</span>"
+    : '<span class="missing">price unknown</span>';
+  const fill = (id, title, rows) => {
+    const host = $(id);
+    host.innerHTML = "";
+    const card = document.createElement("div");
+    card.className = "gcard";
+    const head = document.createElement("div");
+    head.className = "ctitle";
+    head.textContent = title;
+    card.appendChild(head);
+    card.appendChild(demoBadge());
+    const ul = document.createElement("ul");
+    ul.className = "part-list";
+    for (const html of rows) {
+      const li = document.createElement("li");
+      li.innerHTML = html;
+      ul.appendChild(li);
+    }
+    card.appendChild(ul);
+    host.appendChild(card);
+  };
+  fill("photoPanelEstimated", "Estimated parts for this car",
+    seed.estimatedParts.map((p) =>
+      "<strong>" + esc(p.label) + "</strong><span>" + priceHtml(p) + "</span>"));
+  fill("photoPanelNearby", "Local parts near you",
+    seed.nearbyParts.map((p) =>
+      "<strong>" + esc(p.label) + "</strong><span>" + esc(p.where) + " · " + esc(p.distance) +
+      "</span><span>" + priceHtml(p) + "</span>"));
+  fill("photoPanelNetwork", "Other cars in the network like yours",
+    seed.networkCars.map((n) =>
+      "<strong>" + esc(n.label) + "</strong><span>" + esc(n.detail) + "</span>"));
+  const honest = document.createElement("p");
+  honest.className = "hint";
+  honest.textContent = "Demo data — nothing is posted anywhere.";
+  $("photoPanelNetwork").querySelector(".gcard").appendChild(honest);
+  fill("photoPanelShops", "Shops willing to work on it",
+    seed.willingShops.map((s) =>
+      "<strong>" + esc(s.name) + "</strong><span>" + esc(s.note) + " · " + esc(s.distance) + "</span>"));
+}
+
+function ensurePhotoTourEntry() {
+  // Prominent tour entry on the result screen. Tap-only: the tour is
+  // never auto-started for a real user.
+  if ($("btnPhotoTour")) return;
+  const tour = document.createElement("button");
+  tour.id = "btnPhotoTour";
+  tour.type = "button";
+  tour.className = "primary gtile";
+  tour.innerHTML = '<span class="ticon" aria-hidden="true">◉</span>' +
+    '<span class="tbody"><span class="tword">Take the tour</span></span>';
+  tour.addEventListener("click", () => startTour());
+  $("invPhotoResult").appendChild(tour);
+}
+
+async function identifyInvCarPhotoResult() {
+  // Result-screen flow for the DIY car photo: the picture lands under
+  // DIY, analyzing ticks visibly, then autofill plus the four demo
+  // panels. The live identify call inside identifyInvCarPhoto is
+  // untouched; this only stages the result screen around it.
+  const file = ($("invCarPhoto").files || [])[0];
+  if (!file) { await invIdentifyFn(); return; }
+  let photo = null;
+  try { photo = await downscale(file); } catch (err) { photo = null; }
+  showPhotoAnalyzing(photo);
+  const car = await invIdentifyFn();
+  finishPhotoResult(photo, car || {});
+}
+
 function renderNetworkFeed() {
   const box = $("networkCards");
   if (!box) return;
@@ -4247,8 +4486,9 @@ function initInventory() {
     if (car.trim && car.trim !== "unknown") $("invCarTrim").value = car.trim;
     feed("Picture identified: " + [car.year, car.make, car.model].filter(Boolean).join(" "),
       "tool inv.identify — photo → car ID (" + res.mode + ")");
+    return car;
   }
-  async function identifyInvCarPhotoStaged() {
+  async function identifyInvCarPhotoStaged() { // superseded: DIY car photos flow through identifyInvCarPhotoResult (result screen); kept so the wrapped overlay path stays intact
     const file = ($("invCarPhoto").files || [])[0];
     let photo = null;
     if (file) { try { photo = await downscale(file); } catch (err) { photo = null; } }
@@ -4258,10 +4498,11 @@ function initInventory() {
       tick(1);
     });
   }
-  $("btnInvCarPhoto").addEventListener("click", guard(identifyInvCarPhotoStaged, "identifying the picture…"));
+  invIdentifyFn = identifyInvCarPhoto;
+  $("btnInvCarPhoto").addEventListener("click", guard(identifyInvCarPhotoResult, "identifying the picture…"));
   $("invCarPhoto").addEventListener("change", guard(async (e) => {
     if (!(e.target.files || []).length) return;
-    await identifyInvCarPhotoStaged();
+    await identifyInvCarPhotoResult();
   }, "identifying the picture…"));
 
   async function readInvVin() {

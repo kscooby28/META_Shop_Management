@@ -70,7 +70,7 @@ FENCE_PINNED = {
     "rules.json":
         "1861d550c7680f5c0199906fda321f6c66108df2ee7d948639c683ed2b521a86",
 }
-WEB_TREE_PINNED = ("fb9354b18a4045e3d563d21fad9a5d66e6680c38a4fc5cf1f5beb9e8d3670ca1"
+WEB_TREE_PINNED = ("c11cebf2a3548befb4aebbab242b3aa4fcaee94f2204605159763a3df298f5a0"
                    "")
 
 

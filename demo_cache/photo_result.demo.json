@@ -1,0 +1,24 @@
+{
+  "_note": "DEMO seed — committed sample data for the DIY photo result panels. Nothing real. Prices mirror partComps in inv_seed.demo.json. Demo data — nothing is posted anywhere.",
+  "source": "DEMO seed — committed sample data, nothing real",
+  "estimatedParts": [
+    {"label": "driver headlight", "price": 65, "source": "demo-sample: inventory seed"},
+    {"label": "alloy wheel", "price": 40, "source": "demo-sample: inventory seed"},
+    {"label": "rear differential", "price": 1000, "source": "demo-sample: inventory seed"},
+    {"label": "trunk lid", "price": null, "source": ""}
+  ],
+  "nearbyParts": [
+    {"label": "driver headlight", "where": "Demo Auto Parts — Northside (DEMO)", "distance": "0.8 mi (DEMO)", "price": 65, "source": "demo-sample: inventory seed"},
+    {"label": "alloy wheel", "where": "Demo Auto Parts — Riverside (DEMO)", "distance": "1.9 mi (DEMO)", "price": 40, "source": "demo-sample: inventory seed"},
+    {"label": "rear differential", "where": "Demo Salvage — East Lot (DEMO)", "distance": "3.2 mi (DEMO)", "price": 1000, "source": "demo-sample: inventory seed"}
+  ],
+  "networkCars": [
+    {"label": "2004 BMW 325i parts car (DEMO)", "detail": "Same make and model as yours"},
+    {"label": "2006 BMW 325i parts car (DEMO)", "detail": "Same make and model as yours"},
+    {"label": "1995 BMW M3 parts car (DEMO)", "detail": "Same make as yours"}
+  ],
+  "willingShops": [
+    {"name": "Demo Shop — Northside (DEMO)", "note": "Accepts customer-supplied parts (DEMO)", "distance": "1.2 mi (DEMO)"},
+    {"name": "Demo Shop — Riverside (DEMO)", "note": "BMW experience stated in demo profile (DEMO)", "distance": "2.4 mi (DEMO)"}
+  ]
+}

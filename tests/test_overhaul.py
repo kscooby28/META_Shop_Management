@@ -919,9 +919,9 @@ class GraphicalButtonsTest(unittest.TestCase):
 
     def test_js_buttons_are_graphical(self):
         app = read_web("app.js")
-        self.assertEqual(app.count('tour.className = "primary gtile";'), 2)
-        self.assertEqual(app.count("tword\">Take the tour<"), 2)
-        self.assertEqual(app.count("ticon\" aria-hidden=\"true\">◉<"), 2)
+        self.assertEqual(app.count('tour.className = "primary gtile";'), 3)
+        self.assertEqual(app.count("tword\">Take the tour<"), 3)
+        self.assertEqual(app.count("ticon\" aria-hidden=\"true\">◉<"), 3)
         self.assertIn("<span aria-hidden=\"true\">✓</span> Save", app)
         self.assertIn("<span aria-hidden=\"true\">✓</span> Confirm into form",
                       app)
