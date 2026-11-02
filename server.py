@@ -69,6 +69,75 @@ _sessions = {}
 _sessions_lock = threading.Lock()
 
 
+def _plain_condition(value):
+    word = (value or "unknown").lower()
+    if word == "yes":
+        return "intact"
+    if word == "no":
+        return "broken"
+    return word
+
+
+def _plain_frames(count):
+    try:
+        number = int(count or 0)
+    except (TypeError, ValueError):
+        number = 0
+    return "1 frame" if number == 1 else "%d frames" % number
+
+
+def _plain_price(inputs):
+    if not inputs.get("price_known"):
+        return "no reliable price"
+    high = inputs.get("price_high")
+    low = inputs.get("price_low")
+    value = high if high is not None else low
+    if value is None:
+        return "no reliable price"
+    return "$%g" % value
+
+
+def _a_margin(inputs):
+    """Name why B-grade inputs miss the A bar, in plain words."""
+    try:
+        thresholds = load_rules(RULES_PATH).get("thresholds", {})
+    except Exception:
+        thresholds = {}
+    need_frames = thresholds.get("min_frames_a", 2)
+    need_price = thresholds.get("min_list_price_a", 40)
+    frames = inputs.get("frames_seen") or 0
+    if frames < need_frames:
+        return ("It misses A on evidence: seen in %s, needs %d frames."
+                % (_plain_frames(frames), need_frames))
+    if (inputs.get("demand") or "").lower() not in ("high", "medium"):
+        return ("It misses A on demand: demand is %s."
+                % (inputs.get("demand") or "unknown"))
+    if inputs.get("price_known") and (inputs.get("price_high") or 0) < need_price:
+        return ("It misses A on price: tops %s, needs $%g."
+                % (_plain_price(inputs), need_price))
+    if (inputs.get("intact") or "").lower() != "yes":
+        return ("It misses A on condition: condition is %s."
+                % (inputs.get("intact") or "unknown"))
+    return "It just misses the A bar."
+
+
+def _manual_notice(exc, tail):
+    """Honest hand-entry notice naming why the AI leg stayed off."""
+    kind = getattr(exc, "kind", "unreachable")
+    message = str(exc)
+    if kind == "auth" and message.startswith("no API key"):
+        head = "No API key found, so the AI step stayed off."
+    elif kind == "auth":
+        head = "The API key was not accepted, so the AI step stayed off."
+    elif kind == "credits":
+        head = "API credits ran out, so the AI step stayed off."
+    elif kind == "bad_response":
+        head = "Live AI gave an unusable answer, so this step stayed hand-entry."
+    else:
+        head = "Live AI is unreachable, so this step stayed hand-entry."
+    return head + " " + tail
+
+
 def new_session_id():
     return "s-%d-%d" % (int(time.time() * 1000), os.getpid())
 
@@ -532,7 +601,7 @@ class Handler(BaseHTTPRequestHandler):
         session_id, session = self._bay_session(payload)
         demo_case = payload.get("demoCase")
         notices = []
-        mode = "live"
+        mode = "manual-entry"
         if demo_case in ("case1", "case2", "case3"):
             try:
                 manual = load_bay_case("intake", demo_case, ROOT)
@@ -570,9 +639,12 @@ class Handler(BaseHTTPRequestHandler):
                     session_vin = read.get("vin")
                     if session_vin and session_vin != "unknown":
                         session.setdefault("bay_vin", session_vin)  # memory only, never disk
+                    mode = "live"
                 except MetaAPIError:
-                    mode = "demo-cache"
+                    mode = "manual-entry"
                     notices.append("Could not read the VIN plate, so the case uses manual entry only.")
+        if mode == "manual-entry":
+            notices.append("Manual entry: no photo read, no VIN decoded.")
         vehicle = manual.get("vehicle", manual)
         intake = {
             "symptom": manual.get("symptom", ""),
@@ -659,10 +731,8 @@ class Handler(BaseHTTPRequestHandler):
                 StepCache(ROOT).save_live(session_id, "bay-plan-%s" % case["case_id"], strip_vin(raw_tests))
             except MetaAPIError as exc:
                 mode = "manual"
-                notice = (
-                    StepCache(ROOT).notice("plan", exc)
-                    + " Add the tests by hand below; the ranking still works."
-                )
+                notice = _manual_notice(
+                    exc, "Add the tests by hand below; the ranking still works.")
         if raw_tests is None and bay.get("demo_case"):
             self._send_json({"ok": False, "error": "demo plan missing"}, status=500)
             return
@@ -795,12 +865,17 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             found = identify_car([photo])
-        except MetaAPIError:
-            self._send_json(
-                {"ok": False, "error": "could not identify the car offline; enter it by hand"},
-                status=400,
+        except MetaAPIError as exc:
+            return self._send_json(
+                {
+                    "ok": True,
+                    "mode": "manual",
+                    "notice": _manual_notice(
+                        exc, "Enter the car by hand below."),
+                    "car": {"year": "unknown", "make": "unknown",
+                            "model": "unknown", "trim": "unknown"},
+                }
             )
-            return
         self._send_json({"ok": True, "mode": "live", "notice": "", "car": found["car"]})
 
     def _api_inv_vin(self, payload):
@@ -1088,16 +1163,16 @@ class Handler(BaseHTTPRequestHandler):
             for v in verdicts:
                 inputs = v.get("inputs", {})
                 lines.append(
-                    "Part %s: grade %s (%s) by rule '%s'. Inputs: intact=%s, frames=%s, demand=%s, price=%s."
+                    "Part %s: grade %s (%s) by rule '%s'. Inputs: condition %s, seen in %s, demand %s, price %s."
                     % (
                         v.get("label"),
                         v.get("verdict"),
                         v.get("verdict_means"),
                         v.get("rule_name"),
-                        inputs.get("intact"),
-                        inputs.get("frames_seen"),
+                        _plain_condition(inputs.get("intact")),
+                        _plain_frames(inputs.get("frames_seen")),
                         inputs.get("demand"),
-                        inputs.get("price_high") if inputs.get("price_known") else "no reliable price",
+                        _plain_price(inputs),
                     )
                 )
             totals = (session.get("verdicts") or {}).get("totals", {})
@@ -1162,11 +1237,11 @@ class Handler(BaseHTTPRequestHandler):
                 car.get("trim", "?"),
                 car.get("trim_note", ""),
             )
-        if "why" in text and ("b" in text or "grade" in text or "verdict" in text):
+        if "why" in text and re.search(r"\b(grade|verdict|b)\b", text):
             verdicts = list(session_verdicts)
             if not verdicts:
                 shown = [v for v in (ctx_yard.get("verdicts") or [])
-                         if isinstance(v, dict)]
+                         if isinstance(v, dict) and v.get("grade") == "B"]
                 if shown:
                     grades = "; ".join(
                         "%s is %s%s" % (
@@ -1176,24 +1251,47 @@ class Handler(BaseHTTPRequestHandler):
                     return ("From the results on your screen: %s. "
                             "Open any card for its rule and money reasons."
                             % grades)
+                visible = [v for v in (ctx_yard.get("verdicts") or [])
+                           if isinstance(v, dict)]
+                if visible:
+                    return ("No B parts on screen. The grades are: " + "; ".join(
+                        "%s is %s" % (v.get("label", "part"), v.get("grade", "?"))
+                        for v in visible))
                 return "No verdicts yet — run the flow first, then ask me about any grade."
             b_parts = [v for v in verdicts if v.get("verdict") == "B"]
             if not b_parts:
                 return "Nothing graded B in this run. The grades are: " + ", ".join(
                     "%s is %s" % (v.get("label"), v.get("verdict")) for v in verdicts
                 )
-            v = b_parts[0]
+            words = set(w for w in re.split(r"[^a-z0-9]+", text) if len(w) > 3)
+            named = [v for v in verdicts
+                     if words & set(re.split(r"[^a-z0-9]+",
+                                            (v.get("label") or "").lower()))]
+            named_b = [v for v in named if v.get("verdict") == "B"]
+            if named and not named_b:
+                v = named[0]
+                return "The %s is %s, not B (%s)." % (
+                    v.get("label"), v.get("verdict"), v.get("verdict_means"))
+            v = (named_b or b_parts)[0]
+            others = [p.get("label") for p in b_parts if p is not v]
             inputs = v.get("inputs", {})
-            return "The %s is B (%s) because of the rule '%s': %s Inputs: condition %s, seen in %s frame(s), demand %s, price %s." % (
-                v.get("label"),
-                v.get("verdict_means"),
-                v.get("rule_name"),
-                v.get("rule_explain"),
-                inputs.get("intact"),
-                inputs.get("frames_seen"),
-                inputs.get("demand"),
-                ("$%d" % inputs.get("price_high")) if inputs.get("price_known") else "no reliable price",
-            )
+            lead = ""
+            if others:
+                lead = "B parts here: %s. " % ", ".join(
+                    [v.get("label")] + others)
+            return ("%sThe %s is B (%s) because of the rule '%s': %s %s "
+                    "Inputs: condition %s, seen in %s, demand %s, price %s." % (
+                        lead,
+                        v.get("label"),
+                        v.get("verdict_means"),
+                        v.get("rule_name"),
+                        v.get("rule_explain"),
+                        _a_margin(inputs),
+                        _plain_condition(inputs.get("intact")),
+                        _plain_frames(inputs.get("frames_seen")),
+                        inputs.get("demand"),
+                        _plain_price(inputs),
+                    ))
         inv_specific = any(key in text for key in (
             "inventory", "driveway", "m3", "e30", "ews", "coil",
             "computer", "dme", "knowledge", "note"))
@@ -1370,7 +1468,7 @@ if __name__ == "__main__":
         if match:
             port = int(match.group(1))
             continue
-        match = re.match(r"--host=([0-9A-Za-z.]+)$", arg)
+        match = re.match(r"--host=([0-9A-Za-z.-]+)$", arg)
         if match:
             host = match.group(1)
     run(host=host, port=port)

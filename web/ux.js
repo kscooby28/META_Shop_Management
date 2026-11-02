@@ -289,7 +289,17 @@ const UX = (() => {
     return "retry";
   }
 
+  // ---- video help: honest YouTube search queries, never faked picks ----
+  // Drops unknowns; needs at least two words or there is no link.
+  function ytQuery(words) {
+    const kept = (words || []).map((w) => (w == null ? "" : String(w)).trim())
+      .filter((w) => w && w.toLowerCase() !== "unknown" && w.toLowerCase() !== "not sure");
+    const joined = kept.join(" ").replace(/\s+/g, " ").trim();
+    return joined.split(" ").filter(Boolean).length >= 2 ? joined : null;
+  }
+
   return {
+    ytQuery,
     saveDraft, loadDraft, clearDraft,
     guideKey, isGuideHidden, hideGuide, showGuide, guideSteps,
     emptyState, guardedDelete,

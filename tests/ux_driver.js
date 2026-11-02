@@ -150,4 +150,13 @@ ok(UX.SUN_KEY === undefined, "no sunlight key exported");
 ok(UX.loadSunlight === undefined, "no sunlight loader exported");
 ok(UX.saveSunlight === undefined, "no sunlight saver exported");
 
+// ---- video help queries: honest, unknowns dropped ----
+ok(UX.ytQuery(["2006", "BMW", "325i", "rough idle"]) === "2006 BMW 325i rough idle",
+  "full query joins");
+ok(UX.ytQuery(["unknown", "not sure", ""]) === null, "unknowns drop out");
+ok(UX.ytQuery(["mirror"]) === null, "single word is no link");
+ok(UX.ytQuery(["BMW", "mirror", "replacement"]) === "BMW mirror replacement",
+  "two-plus words link");
+ok(UX.ytQuery([]) === null && UX.ytQuery(null) === null, "empty is no link");
+
 if (!process.exitCode) console.log("ALL " + count + " UX CHECKS PASSED");

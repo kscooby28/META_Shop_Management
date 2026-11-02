@@ -19,6 +19,9 @@ API_BASE = "https://api.meta.ai/v1"
 SPARK_MODEL = "muse-spark-1.3"
 SAM_MODEL = "sam-3.1"  # corrected WO16: the live list names sam-3.1, no sam-3-1
 TIMEOUT_SECONDS = 12
+# Image-bearing legs run far longer (Spark image calls measured
+# 15s+); they get their own budget while text legs stay at 12s.
+IMAGE_TIMEOUT_SECONDS = 60
 
 
 class MetaAPIError(Exception):
@@ -88,7 +91,7 @@ def _api_key():
     return key
 
 
-def _post(path, payload):
+def _post(path, payload, timeout=None):
     cfg = settings()
     url = cfg["api_base"] + path
     body = json.dumps(payload).encode("utf-8")
@@ -102,7 +105,8 @@ def _post(path, payload):
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+        with urllib.request.urlopen(request,
+                                    timeout=timeout or TIMEOUT_SECONDS) as response:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         try:
@@ -164,6 +168,7 @@ def identify_car(images):
             "messages": [{"role": "user", "content": content}],
             "response_format": {"type": "json_object"},
         },
+        IMAGE_TIMEOUT_SECONDS,
     )
     try:
         text = raw["choices"][0]["message"]["content"]
@@ -198,6 +203,7 @@ def segment_parts(images, phrases, intake):
                 "phrases": phrases,
                 "coordinate_grid": 1000,
             },
+            IMAGE_TIMEOUT_SECONDS,
         )
         try:
             masks = raw["masks"]
@@ -392,6 +398,7 @@ def read_vin_photo(image):
             ],
             "response_format": {"type": "json_object"},
         },
+        IMAGE_TIMEOUT_SECONDS,
     )
     try:
         text = raw["choices"][0]["message"]["content"]
@@ -443,6 +450,7 @@ def describe_part(image):
             ],
             "response_format": {"type": "json_object"},
         },
+        IMAGE_TIMEOUT_SECONDS,
     )
     try:
         text = raw["choices"][0]["message"]["content"]

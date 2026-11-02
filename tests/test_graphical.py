@@ -116,6 +116,11 @@ class AccentFrozenTest(unittest.TestCase):
 
 
 class NetworkBaselineTest(unittest.TestCase):
+    # Static hrefs only: the SVG namespace plus the YouTube search
+    # base for video-help links. No fetch, no API, no new calls.
+    ALLOWED_URLS = ("http://www.w3.org/2000/svg",
+                    "https://www.youtube.com/results?search_query=")
+
     def test_no_new_network_paths(self):
         fetches = 0
         for name in os.listdir(WEB):
@@ -132,8 +137,7 @@ class NetworkBaselineTest(unittest.TestCase):
                 except (UnicodeDecodeError, ValueError):
                     continue  # binary assets hold no URLs
                 for url in re.findall(r"https?://[^\s\"'<>]+", text):
-                    self.assertEqual(url, "http://www.w3.org/2000/svg",
-                                     path)
+                    self.assertIn(url, self.ALLOWED_URLS, path)
 
 
 class LandingTest(unittest.TestCase):

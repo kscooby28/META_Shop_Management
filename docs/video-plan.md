@@ -6,6 +6,8 @@ presented as app output, no capability the app lacks.
 
 ## Shots in record order (180 seconds)
 
+0. Intro snap-cut. The locked 10-second intro ends on the shutter
+   snap; cut on that sound straight into the app landing below.
 1. Door tap + first-run setup (~15s). Open on the street landing.
    Tap the shop or garage half. Answer the one first-run question.
 2. Photo demo to result screen (~30s). Register a parts car by photo
@@ -24,6 +26,8 @@ presented as app output, no capability the app lacks.
 
 - Clear site data or set localStorage `tour.muted` to 0, and confirm
   the movie bar reads Mute voice: a muted rehearsal records silent.
+- Flip Force offline demo in Settings before shot 2: a real photo
+  otherwise attempts live identify, which is not deterministic.
 - Seed the demo data; run the tour once as a timed dry run and keep
   the full take under 180 seconds.
 - The Approve gate stays visible and unpressed on camera (trust beat);

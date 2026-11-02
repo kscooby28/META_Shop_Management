@@ -214,7 +214,7 @@ def bay_run(n):
         },
     )
     check(not vinoff["case"]["declined"], "bay %d: manual case must open" % n)
-    check("key rotation" in vinoff["notice"], "bay %d: must say live read is off" % n)
+    check("demo build" in vinoff["notice"], "bay %d: must say live read is off" % n)
 
     # Forced-demo plan on a manual case: empty hand-entry plan, no API call.
     _, manplan = post("/api/bay/plan", {"sessionId": sid, "demo": True})

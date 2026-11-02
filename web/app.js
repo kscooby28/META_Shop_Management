@@ -36,7 +36,7 @@ function updateOffline() {
     bar.textContent = "Offline demo, forced on in settings: everything below runs on demo cache.";
   } else if (state.offlineSeen) {
     bar.hidden = false;
-    bar.textContent = "Live AI is unreachable, so this page runs on demo cache. Your work still saves.";
+    bar.textContent = "Live AI is unreachable: this page runs hand-entry, and your work still saves.";
   } else {
     bar.hidden = true;
     bar.textContent = "";
@@ -203,7 +203,7 @@ function setPill() {
   pill.hidden = false;
   if (modes.every((m) => m === "live" || m === "live-adapter")) {
     pill.textContent = "live AI"; pill.className = "pill live";
-  } else if (modes.some((m) => m === "manual")) {
+  } else if (modes.some((m) => m === "manual" || m === "manual-entry")) {
     pill.textContent = "hand entry (AI unreachable)"; pill.className = "pill demo";
   } else if (modes.every((m) => m !== "live" && m !== "live-adapter")) {
     pill.textContent = "demo cache"; pill.className = "pill demo";
@@ -597,6 +597,24 @@ function moneyRow(v) {
     ' <span class="sourced">(' + esc(inp.price_source || "no source") + ")</span>";
 }
 
+function ytLink(query, label) {
+  return '<a class="ytlink" href="https://www.youtube.com/results?search_query=' +
+    encodeURIComponent(query) + '" target="_blank" rel="noopener">' +
+    '<span aria-hidden="true">\u25b6</span> ' + esc(label) + "</a>";
+}
+
+function ytSection(title, links) {
+  const live = (links || []).filter((l) => l && l.query);
+  if (!live.length) return null;
+  const div = document.createElement("div");
+  div.className = "ytbox";
+  div.innerHTML = "<div class='etitle'>" + esc(title) + "</div>" +
+    live.map((l) => ytLink(l.query, l.label)).join("") +
+    '<p class="hint">YouTube search results, not our picks. ' +
+    "Judge the video before the wrench.</p>";
+  return div;
+}
+
 function renderVerdicts() {
   const box = $("verdicts");
   box.innerHTML = "";
@@ -687,6 +705,14 @@ function renderVerdicts() {
     }
     box.appendChild(card);
   }
+  const hcar = (state.harvest && state.harvest.car) || {};
+  const hwords = [hcar.year, hcar.make, hcar.model];
+  const pullable = list.filter((v) => v.verdict === "A" || v.verdict === "B").slice(0, 2);
+  const ytv = ytSection("Pull-it videos", pullable.map((v) => ({
+    query: UX.ytQuery(hwords.concat([v.label, "replacement"])),
+    label: "Replacing a " + v.label,
+  })));
+  if (ytv) box.appendChild(ytv);
   // Re-color the harvest map now that grades exist.
   renderFrames();
   renderPartList();
@@ -883,7 +909,7 @@ async function runCompare(opts) {
   state.sessionId = res.sessionId;
   renderCompare(res);
   feed("Compared both engines on " + res.rows.length + " parts",
-    "tool compare.run — spark 1.3 (" + res.mode13 + ") vs spark open (" + res.modeOpen + ")");
+    "tool compare.run — rules engine (" + res.mode13 + ") vs spark open (" + res.modeOpen + ")");
   return res;
 }
 
@@ -1832,7 +1858,9 @@ function renderBayPlan() {
   const pct = total ? Math.round((done / total) * 100) : 0;
   box.insertAdjacentHTML("beforeend",
     "<p><strong>" + done + " of " + total + " recorded</strong>" +
-    (isDemoMode(state.modes.bayPlan) ? " <span class='demobadge'>DEMO</span>" : "") + "</p>" +
+    (isDemoMode(state.modes.bayPlan) ? " <span class='demobadge'>DEMO</span>" : "") +
+    (state.modes.bayPlan === "live" ? " <span class='sourced'>AI-drafted</span>" : "") +
+    (state.modes.bayPlan === "manual" ? " <span class='sourced'>hand-entered</span>" : "") + "</p>" +
     "<div class='progress' style='margin-bottom:0.7rem'><div style='width:" + pct + "%'></div></div>");
   plan.tests.forEach((t, i) => {
     const result = plan.results[t.id];
@@ -1933,6 +1961,22 @@ function renderBayPlan() {
     }
     box.appendChild(card);
   });
+  const veh = (bay.case && bay.case.vehicle) || {};
+  const carWords = [veh.year, veh.make, veh.model];
+  const topTest = (plan.tests[0] && plan.tests[0].title) || "";
+  const code0 = ((bay.case && bay.case.codes) || [])[0] || "";
+  const ytLinks = [
+    { query: UX.ytQuery(carWords.concat([bay.case.symptom])),
+      label: "Repairs for this symptom" },
+    { query: code0 ? UX.ytQuery(carWords.concat([code0, "fix"])) : null,
+      label: "Code " + code0 + " fixes" },
+  ];
+  if (topTest) ytLinks.push({
+    query: UX.ytQuery(carWords.concat(["how to", topTest])),
+    label: "How to: " + topTest,
+  });
+  const ytb = ytSection("Fix-it videos", ytLinks);
+  if (ytb) box.appendChild(ytb);
   renderBayTrail();
   flash(box);
 }
@@ -4148,7 +4192,14 @@ async function identifyInvCarPhotoResult() {
   let photo = null;
   try { photo = await downscale(file); } catch (err) { photo = null; }
   showPhotoAnalyzing(photo);
-  const car = await invIdentifyFn();
+  let car = null;
+  try {
+    car = await invIdentifyFn();
+  } catch (err) {
+    notice(esc(err.message));
+    feed("Photo kept for hand entry: " + err.message,
+      "tool inv.identify — photo → hand entry");
+  }
   finishPhotoResult(photo, car || {});
 }
 
@@ -4384,7 +4435,7 @@ async function invDraftListing(partId) {
   const car = invState.cars.find((c) => c.id === part.carId) || {};
   const res = await api("/api/listing", {
     sessionId: state.sessionId,
-    demo: invSeeded,
+    demo: state.forceDemo,
     invPart: {
       id: part.id, label: part.label, condition: part.condition,
       value: part.value, valueSource: part.valueSource,
@@ -4395,7 +4446,7 @@ async function invDraftListing(partId) {
   state.draftId = res.draftId;
   state.modes.listing = res.mode;
   setPill();
-  watchFallback(invSeeded, res.mode);
+  watchFallback(state.forceDemo, res.mode);
   if (res.notice) notice(esc(res.notice));
   $("listingCard").style.display = "";
   $("listingTitle").value = res.draft.title || "";
@@ -4494,14 +4545,20 @@ function initInventory() {
   async function identifyInvCarPhoto() {
     const photo = await readPhotoInput($("invCarPhoto"));
     if (!photo) throw new Error("attach a picture first");
-    const res = await api("/api/inv/identify", { photo, demo: invSeeded });
+    const res = await api("/api/inv/identify", { photo, demo: state.forceDemo });
+    if (res.notice) notice(esc(res.notice));
     const car = res.car || {};
     if (car.year && car.year !== "unknown") $("invCarYear").value = car.year;
     if (car.make && car.make !== "unknown") $("invCarMake").value = car.make;
     if (car.model && car.model !== "unknown") $("invCarModel").value = car.model;
     if (car.trim && car.trim !== "unknown") $("invCarTrim").value = car.trim;
-    feed("Picture identified: " + [car.year, car.make, car.model].filter(Boolean).join(" "),
-      "tool inv.identify — photo → car ID (" + res.mode + ")");
+    if (res.mode === "manual") {
+      feed("Picture kept for hand entry",
+        "tool inv.identify — photo → hand entry (" + res.mode + ")");
+    } else {
+      feed("Picture identified: " + [car.year, car.make, car.model].filter(Boolean).join(" "),
+        "tool inv.identify — photo → car ID (" + res.mode + ")");
+    }
     return car;
   }
   async function identifyInvCarPhotoStaged() { // superseded: DIY car photos flow through identifyInvCarPhotoResult (result screen); kept so the wrapped overlay path stays intact
@@ -4524,7 +4581,7 @@ function initInventory() {
   async function readInvVin() {
     const photo = await readPhotoInput($("invCarVin"));
     if (!photo) throw new Error("attach a VIN photo first");
-    const res = await api("/api/inv/vin", { photo, demo: invSeeded });
+    const res = await api("/api/inv/vin", { photo, demo: state.forceDemo });
     if (res.notice) notice(esc(res.notice));
     renderVinCard("invVinCard", res.vehicle, res.mode, () => {
       const v = res.vehicle || {};
@@ -4580,7 +4637,7 @@ function initInventory() {
     const photo = await readPhotoInput($("invPartPhoto"));
     if (!photo) throw new Error("attach a part picture first");
     invPartPhotoData = photo.data; // owner's photo, kept in this browser only
-    const res = await api("/api/inv/part-photo", { photo, demo: invSeeded });
+    const res = await api("/api/inv/part-photo", { photo, demo: state.forceDemo });
     if (res.part.label) $("invPartLabel").value = res.part.label.replace(" (demo sample)", "");
     if (res.part.condition) $("invPartCond").value = res.part.condition;
     if (res.notice) notice(esc(res.notice));
@@ -4606,7 +4663,7 @@ function initInventory() {
   $("btnInvComps").addEventListener("click", guard(async () => {
     const label = $("invPartLabel").value.trim();
     if (!label) throw new Error("name the part first");
-    const res = await api("/api/inv/comps", { label, demo: invSeeded });
+    const res = await api("/api/inv/comps", { label, demo: state.forceDemo });
     if (res.comp.value !== null && res.comp.source) {
       $("invPartValue").value = res.comp.value;
       $("invPartValue").dataset.source = res.comp.source;
@@ -4626,7 +4683,7 @@ function initInventory() {
     if (valueRaw === "" && labelRaw !== "") {
       // One tap saved: look up comps on attach. A miss stays unknown.
       try {
-        const lookup = await api("/api/inv/comps", { label: labelRaw, demo: invSeeded });
+        const lookup = await api("/api/inv/comps", { label: labelRaw, demo: state.forceDemo });
         if (lookup.comp.value !== null && lookup.comp.source) {
           valueRaw = String(lookup.comp.value);
           valueSource = lookup.comp.source;

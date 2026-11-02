@@ -92,7 +92,7 @@ class PhotoAutofillTest(unittest.TestCase):
         fn = app[app.index("async function identifyInvCarPhoto("):app.index("async function identifyInvCarPhotoStaged")]
         self.assertEqual(fn.count('!== "unknown"'), 4)
         self.assertIn("return car;", fn)
-        self.assertIn('api("/api/inv/identify", { photo, demo: invSeeded })', fn)
+        self.assertIn('api("/api/inv/identify", { photo, demo: state.forceDemo })', fn)
 
     def test_unknowns_rendered_not_invented(self):
         app = read_app()

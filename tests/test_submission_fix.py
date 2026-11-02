@@ -196,7 +196,8 @@ class VideoPlanTest(unittest.TestCase):
                   encoding="utf-8") as fh:
             plan = fh.read()
         for phrase in ("tour.muted", "outro", "180",
-                       "Take the tour", "Approve", "dry run"):
+                       "Take the tour", "Approve", "dry run",
+                       "Force offline", "snap"):
             self.assertIn(phrase, plan, phrase)
 
 

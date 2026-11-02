@@ -515,14 +515,18 @@ class OverhaulVerdictTest(unittest.TestCase):
 class OverhaulGraphicalFixesTest(unittest.TestCase):
     """WO20 graphical-build repairs: each fix below pins its guard."""
 
-    def test_drawer_shadow_replaced_by_solid_border(self):
+    def test_one_sheet_everywhere(self):
         css = read_web("styles.css")
-        self.assertNotIn("-4px 0 16px", css)
+        self.assertNotIn("translateX(100%)", css)
         mobile = css[css.index("@media (max-width: 900px)"):
                      css.index("@media (prefers-reduced-motion: reduce)")]
-        panel = mobile[mobile.index(".panel {"):mobile.index("#panelToggle")]
-        self.assertNotIn("box-shadow", panel)
-        self.assertIn("border-left: 2px solid var(--line);", panel)
+        self.assertNotIn(".panel {", mobile)
+        self.assertNotIn(".panel.open", mobile)
+        sheet = css_rule(css, ".panel {")
+        for text in ("position: fixed", "bottom: 1rem",
+                     "max-width: 34rem", "margin-left: auto",
+                     "margin-right: auto", "max-height: 70vh"):
+            self.assertIn(text, sheet, text)
         for value in re.findall(r"box-shadow:\s*([^;]+);",
                                 re.sub(r"/\*.*?\*/", "", css, flags=re.S)):
             self.assertEqual(value.strip(),
