@@ -368,6 +368,12 @@ class LeftAloneTest(unittest.TestCase):
         self.assertIn(".door.zone:hover", css)
         self.assertIn(".door.zone:focus-visible", css)
         self.assertIn("outline: 3px solid var(--ink);", css)
+        # The image stays fully visible under hover and focus:
+        # outline only, never a painted background.
+        self.assertIn("background: transparent;",
+                      rule_body(".door.zone:hover"))
+        self.assertIn("background: transparent;",
+                      rule_body(".door.zone:focus-visible"))
         self.assertNotIn(".door-name", css)
         self.assertNotIn(".door-why", css)
 

@@ -162,10 +162,12 @@ body {
   cursor: pointer;
 }
 .door.zone:hover {
+  background: transparent;
   outline: 3px solid var(--ink);
   outline-offset: -6px;
 }
 .door.zone:focus-visible {
+  background: transparent;
   outline: 3px solid var(--ink);
   outline-offset: -6px;
 }
