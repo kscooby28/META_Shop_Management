@@ -7,9 +7,9 @@ note like any other: local, never sent anywhere except the transcription
 API when live, and never bypassing the listing Approve gate.
 
 Isolated adapter with its own transport and key loading, following the
-meta_client pattern. VOICE_LIVE stays False until the owner confirms the
-Meta API key rotation; while False every call serves the demo cache and
-never touches the network. The live model id and endpoint path come from
+meta_client pattern. VOICE_LIVE stays False in this demo build; while
+False every call serves the demo cache and never touches the network.
+The live model id and endpoint path come from
 the local environment (MUSE_VOICE_MODEL, MUSE_VOICE_PATH) and are never
 guessed: live refuses when either is unset.
 """
@@ -21,10 +21,10 @@ import urllib.request
 
 from meta_client import MetaAPIError
 
-# Live transcription stays OFF until the owner confirms the Meta API key
-# rotation. While False, every mic press serves a demo-cache transcript
-# and never calls the live API. Flipping this flag later changes the data
-# source only; the interface does not change.
+# Live transcription stays OFF in this demo build. While False, every
+# mic press serves a demo-cache transcript and never calls the live API.
+# Flipping this flag later changes the data source only; the interface
+# does not change.
 VOICE_LIVE = False
 TIMEOUT_SECONDS = 30
 KINDS = ("bay", "inv")
@@ -84,7 +84,7 @@ def transcribe_live(audio_b64, mime=""):
     is on, audio is present, and a model id and path are configured.
     """
     if not VOICE_LIVE:
-        raise MetaAPIError("voice live is off until the key rotation", kind="unreachable")
+        raise MetaAPIError("voice live is off in this demo build", kind="unreachable")
     if not (audio_b64 or "").strip():
         raise MetaAPIError("no audio in request", kind="bad_response")
     cfg = _live_settings()

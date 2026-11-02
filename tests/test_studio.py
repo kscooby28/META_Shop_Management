@@ -25,7 +25,7 @@ class StudioDemoTest(unittest.TestCase):
     def test_live_refuses_without_network(self):
         with self.assertRaises(MetaAPIError) as ctx:
             studio.request_studio_render("data:image/png;base64,xx", "diff")
-        self.assertIn("key rotation", str(ctx.exception))
+        self.assertIn("demo build", str(ctx.exception))
 
     def test_live_refuses_without_cutout_even_if_flagged(self):
         real, studio.IMAGE_LIVE = studio.IMAGE_LIVE, True

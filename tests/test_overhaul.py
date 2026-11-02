@@ -234,7 +234,7 @@ class OverhaulCopilotTest(unittest.TestCase):
         from server import Handler
         summary = Handler._case_summary(None, None, yard_context())
         self.assertIn("Open tab: yard", summary)
-        self.assertIn("Yard results on screen", summary)
+        self.assertIn("Results on screen", summary)
         self.assertIn("driver mirror is B", summary)
 
 
@@ -902,6 +902,10 @@ class GraphicalButtonsTest(unittest.TestCase):
     """Every button is graphical: icon or image plus word, never bare text."""
 
     PLAIN_OK = set()  # every static button is graphical; no exceptions
+    # Landing click zones are invisible by design: no visible body,
+    # named by aria-label, outlined on hover/focus.
+    ZONE_OK = {"door-bay": "Shop \u2014 Fix it",
+               "door-garage": "DIY Garage \u2014 Your cars and parts"}
 
     def test_every_static_button_is_graphical(self):
         html = read_web("index.html")
@@ -912,6 +916,13 @@ class GraphicalButtonsTest(unittest.TestCase):
             mid = re.search(r'id="([\w-]+)"', tag)
             bid = mid.group(1) if mid else "<noid>"
             if bid in self.PLAIN_OK:
+                continue
+            if bid in self.ZONE_OK:
+                self.assertIn("zone", tag, bid)
+                self.assertIn('aria-label="%s"' % self.ZONE_OK[bid],
+                              tag, bid)
+                self.assertEqual(body.strip(), "", bid)
+                found += 1
                 continue
             found += 1
             self.assertTrue("<span" in body or "<img" in body, bid)
@@ -981,7 +992,7 @@ class MovieTest(unittest.TestCase):
         with open(os.path.join(ROOT, "eval_voice_results.json"),
                   encoding="utf-8") as fh:
             man = json.load(fh)
-        self.assertEqual(man["voice"], "en_US-lessac-medium")
+        self.assertEqual(man["voice"], "en_US-libritts-high")
         self.assertEqual(man["format"], "mp3")
         self.assertEqual(len(man["files"]), 8)
         self.assertEqual([f["beat"] for f in man["files"]], list(self.BEATS))
@@ -1040,11 +1051,18 @@ class CraftTest(unittest.TestCase):
 
     def test_focus_ring_ink_not_amber(self):
         css = read_web("styles.css")
-        self.assertIn(":focus-visible", css)
-        ring = css[css.index(":focus-visible"):
-                   css.index(":focus-visible") + 200]
-        self.assertIn("2px solid var(--ink)", ring)
-        self.assertNotIn("accent", ring)
+        ats = [m.start() for m in
+               re.finditer(":focus-visible", css)]
+        self.assertTrue(ats)
+        inked = 0
+        for at in ats:
+            ring = css[at:at + 200]
+            self.assertNotIn("accent", ring)
+            if "outline: none" in ring:
+                continue
+            self.assertIn("var(--ink)", ring)
+            inked += 1
+        self.assertGreaterEqual(inked, 1)
 
     def test_notice_mark(self):
         css = read_web("styles.css")
@@ -1074,6 +1092,11 @@ class CraftTest(unittest.TestCase):
         self.assertIn('paintDoorStatus("door-garage", garageStatus());',
                       badges)
         self.assertIn(".doorstat", read_web("styles.css"))
+        # Zone doors stay clean: status and badges skip them,
+        # so the landing is just the image.
+        status = app[app.index("function paintDoorStatus"):
+                     app.index("function bayCaseStatus")]
+        self.assertIn('contains("zone")', status)
 
 
 class DiyGarageLabelTest(unittest.TestCase):

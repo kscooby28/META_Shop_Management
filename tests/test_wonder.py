@@ -60,7 +60,7 @@ class WonderUnitTest(unittest.TestCase):
     def test_live_refuses_without_network(self):
         with self.assertRaises(MetaAPIError) as ctx:
             wonder.request_opinion({"kind": "yard"})
-        self.assertIn("key rotation", str(ctx.exception))
+        self.assertIn("demo build", str(ctx.exception))
 
     def test_yard_triggers(self):
         self.assertEqual(wonder.assess_yard(clean_verdict())["triggers"], [])
@@ -138,7 +138,7 @@ class WonderEndpointTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue(body["escalated"])
         self.assertIn("borderline grade (B)", body["triggers"])
-        self.assertIn("key rotation", body["notice"])
+        self.assertIn("demo build", body["notice"])
 
     def test_bay_second_opinion_uses_demo_case_ref(self):
         fake = FakeHandler()

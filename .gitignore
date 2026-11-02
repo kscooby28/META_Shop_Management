@@ -5,3 +5,15 @@ demo_cache/live/
 shop_kb/*.json
 yard-photos/
 yard-photos-inbox/
+BRAUBUS_*
+_tmp_*
+.piper-tools/
+*.research.json
+yard-report.html
+viewer.html
+scene.html
+HEARTBEAT.bat
+*-RESEARCH.md
+SEXY-RESEARCH.md
+scripts/yard_followup.py
+*.log

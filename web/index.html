@@ -13,7 +13,7 @@
   <span class="sub">Pick a door: the repair bench or your own garage.</span>
   <span class="spacer"></span>
   <span id="modePill" class="pill">not started</span>
-  <button id="navHome" type="button" class="navbtn active"><img class="navthumb" src="assets/landing-2door.png" alt=""><span aria-hidden="true">⌂</span> Home</button>
+  <button id="navHome" type="button" class="navbtn active"><img class="navthumb" src="assets/landing-2door.jpg" alt=""><span aria-hidden="true">⌂</span> Home</button>
   <button id="navGear" type="button" class="navbtn iconbtn" aria-label="Settings"><span aria-hidden="true">⚙</span></button>
   <button id="panelToggle" type="button"><span aria-hidden="true">◉</span> Shop Copilot</button>
 </header>
@@ -31,16 +31,8 @@
   <div class="scene" id="homeScene">
     <img class="backdrop" src="assets/landing-2door.jpg" alt="American street: auto repair shop with customer cars on the left, home garage with enthusiast cars on the right">
     <div class="tilegrid entrances">
-      <button id="door-bay" type="button" class="door entrance">
-        <span class="ticon" aria-hidden="true">⚒</span>
-        <span class="tbody"><span class="door-name">Shop — Fix it</span>
-        <span class="door-why">Turn a symptom into a ranked test plan, then record pass or fail.</span></span>
-      </button>
-      <button id="door-garage" type="button" class="door entrance">
-        <span class="ticon" aria-hidden="true">⌂</span>
-        <span class="tbody"><span class="door-name">DIY Garage — Your cars and parts</span>
-        <span class="door-why">Register your cars, attach parts, value photo finds, and draft listings.</span></span>
-      </button>
+      <button id="door-bay" type="button" class="door entrance zone" aria-label="Shop — Fix it"></button>
+      <button id="door-garage" type="button" class="door entrance zone" aria-label="DIY Garage — Your cars and parts"></button>
     </div>
   </div>
   </div>
@@ -433,7 +425,7 @@
   <p class="screen-line">Two engines grade the same case side by side. Rules decide; this never overrules.</p>
   <section id="sec-compare" class="neutralpanel">
     <h2>Compare — two engines, one case</h2>
-    <p class="hint">Where the open model runs: after verdicts, as a second look beside the rule grade. Left column is Muse Spark 1.3 on the demo leg (Meta key rotation pending, no live call). Right column is Muse Spark Open, the open-weight model, running through Baseten — live when a key is present, demo sample otherwise. Rules decide; this view never overrules.</p>
+    <p class="hint">Where the open model runs: after verdicts, as a second look beside the rule grade. Left column is the money grade from the rules engine on the demo leg (no live call). Right column is Muse Spark Open, the open-weight model, running through Baseten — live when a key is present, demo sample otherwise. Rules decide; this view never overrules.</p>
     <div class="row">
       <button id="btnCompare" type="button" class="primary"><span aria-hidden="true">▶</span> Run comparison</button>
     </div>
@@ -447,6 +439,7 @@
     <h2>First run: who are you?</h2>
     <p>This is asked once and never again. Your answer stays on this machine with your profile. Shops get the repair bench; the DIY Garage gets parts cars and inventory. You can switch later in Settings.</p>
     <label>Your email<br><input id="setupEmail" type="text" placeholder="you@example.com" style="width:100%"></label>
+    <p id="setupHint" class="hint" hidden></p>
     <div class="tilegrid" style="margin-top:0.8rem">
       <button id="btnSetupShop" type="button" class="gtile">
         <span class="ticon" aria-hidden="true">⚒</span>
@@ -512,7 +505,7 @@
 </div>
 
 <nav id="bottomBar" class="bottombar" aria-label="You are here">
-  <button id="bottomHome" type="button"><img class="navthumb" src="assets/landing-2door.png" alt=""><span aria-hidden="true">⌂</span> Home</button>
+  <button id="bottomHome" type="button"><img class="navthumb" src="assets/landing-2door.jpg" alt=""><span aria-hidden="true">⌂</span> Home</button>
   <button id="sideChip" type="button"><span aria-hidden="true">⚒</span> Your side</button>
 </nav>
 

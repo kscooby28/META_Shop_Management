@@ -150,7 +150,8 @@ class CompareEndpointTest(unittest.TestCase):
         diff = next(r for r in body["rows"] if r["part_id"] == "p_diff")
         self.assertEqual(diff["grade13"], "A")
         self.assertEqual(diff["gradeOpen"], "A")
-        self.assertIn("rotation", body["notice13"])
+        self.assertIn("rules engine", body["notice13"])
+        self.assertNotIn("rotation", body["notice13"])
         self.assertIn("demo sample", body["noticeOpen"])
 
     def test_missing_key_notice_names_key(self):
@@ -186,7 +187,8 @@ class CompareLabelsTest(unittest.TestCase):
     def test_engine_labels_in_render(self):
         with open(os.path.join(ROOT, "web", "app.js"), encoding="utf-8") as fh:
             src = fh.read()
-        for phrase in ("Muse Spark 1.3", "Muse Spark Open, open-weight via Baseten"):
+        for phrase in ("Money grade (rules engine)",
+                       "Muse Spark Open, open-weight via Baseten"):
             self.assertIn(phrase, src, phrase)
 
 

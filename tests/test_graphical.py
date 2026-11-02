@@ -169,8 +169,18 @@ class LandingTest(unittest.TestCase):
         home = self.home()
         self.assertNotIn("Pixar", read("index.html"))
         self.assertIn('src="assets/landing-2door.jpg"', home)
-        for label in ("Shop — Fix it", "DIY Garage — Your cars and parts"):
-            self.assertIn(label, home)
+        # The street photo is the navigation: names live in
+        # aria-labels on the invisible zones, nowhere visible.
+        for door, label in (("door-bay", "Shop — Fix it"),
+                            ("door-garage",
+                             "DIY Garage — Your cars and parts")):
+            tag = re.search(r'<button[^>]*id="%s"[^>]*>' % door,
+                            home).group(0)
+            self.assertIn('aria-label="%s"' % label, tag, door)
+            self.assertIn("zone", tag, door)
+        zones = home[home.index('class="tilegrid entrances'):];
+        self.assertNotIn("door-name", zones)
+        self.assertNotIn("door-why", zones)
 
     def test_backdrop_is_scene_not_inventory(self):
         home = self.home()
@@ -439,7 +449,8 @@ class MotionChoiceTest(unittest.TestCase):
         for marker in ('pc.className = "pccard";',
                        'class="pchead"', 'class="engines"',
                        'class="enginecol"', 'class="enginelabel"',
-                       "Muse Spark 1.3", "Muse Spark Open, open-weight via Baseten"):
+                       "Money grade (rules engine)",
+                       "Muse Spark Open, open-weight via Baseten"):
             self.assertIn(marker, app, marker)
         css = css_no_comments()
         self.assertIn("@media (max-width: 700px)", css)

@@ -199,7 +199,8 @@ function isDemoMode(mode) {
 function setPill() {
   const pill = $("modePill");
   const modes = Object.values(state.modes);
-  if (!modes.length) { pill.textContent = "not started"; pill.className = "pill"; return; }
+  if (!modes.length) { pill.hidden = true; return; }
+  pill.hidden = false;
   if (modes.every((m) => m === "live" || m === "live-adapter")) {
     pill.textContent = "live AI"; pill.className = "pill live";
   } else if (modes.some((m) => m === "manual")) {
@@ -825,7 +826,7 @@ function renderCompare(res) {
   box.appendChild(head);
   const table = document.createElement("table");
   table.innerHTML = "<tr><th>Part</th><th>Rule grade</th>" +
-    "<th>Muse Spark 1.3" + modeTag(res.mode13) + "</th>" +
+    "<th>Money grade (rules engine)" + modeTag(res.mode13) + "</th>" +
     "<th>Muse Spark Open, open-weight via Baseten" + modeTag(res.modeOpen) + "</th></tr>";
   for (const r of res.rows) {
     const tr = document.createElement("tr");
@@ -849,7 +850,7 @@ function renderCompare(res) {
     pc.innerHTML = '<div class="pchead"><strong>' + esc(r.label) + "</strong>" +
       gradePill(r.rule) + "</div>" +
       '<div class="engines">' +
-      '<div class="enginecol"><div class="enginelabel">Muse Spark 1.3' + modeTag(res.mode13) + "</div>" +
+      '<div class="enginecol"><div class="enginelabel">Money grade (rules engine)' + modeTag(res.mode13) + "</div>" +
       gradePill(r.grade13) + ' <span class="hint">' + esc(r.reason13) + "</span></div>" +
       '<div class="enginecol"><div class="enginelabel">Muse Spark Open, open-weight via Baseten' + modeTag(res.modeOpen) + "</div>" +
       gradePill(r.gradeOpen) + ' <span class="hint">' + esc(r.reasonOpen) + "</span></div>" +
@@ -1333,11 +1334,11 @@ const TOUR_BEATS = [
   { id: "chooser", view: null, section: null, title: "One question, once",
     line: "Point your phone at any car — and know what it is, what it's worth, and what to do next." },
   { id: "register", view: "inventory", section: "sec-icars", title: "Register a parts car",
-    line: "A photo names the car, a VIN photo fills the blanks, one tap registers it — the app never guesses a field it cannot see." },
+    line: "Meet the garage. One photo names the car. A VIN photo fills in the blanks. One tap registers it — and the app never guesses a field it cannot see." },
   { id: "knowledge", view: "inventory", section: "sec-iknow", title: "The M3 knowledge note",
     line: "It knows what I know. That engine computer has no EWS, the E30 crowd wants it, two hundred bucks. I taught it that. It doesn't guess." },
   { id: "money", view: "inventory", section: "sec-verdicts", title: "Money grade",
-    line: "Beside every rule grade, the money grade prices the part from real sold ranges, with count and reliability shown." },
+    line: "Beside every rule grade sits a money grade, priced from sample sold ranges — with the sold count and the reliability right on the card." },
   { id: "trust", view: "inventory", section: "sec-listing", title: "The listing gate",
     line: "Nothing posts without my tap. The draft waits for me. That's the rule." },
   { id: "rerank", view: "bay", section: "sec-bplan", title: "The plan re-ranks on evidence",
@@ -1522,7 +1523,7 @@ const TOUR_SCRIPT = {
   chooser: { hold: 9000, say: "Point your phone at any car — and know what it is, what it's worth, and what to do next." },
   register: { hold: 11000, say: "Meet the garage. One photo names the car. A VIN photo fills in the blanks. One tap registers it — and the app never guesses a field it cannot see." },
   knowledge: { hold: 13000, say: "It knows what I know. That engine computer has no EWS, the E30 crowd wants it, two hundred bucks. I taught it that. It doesn't guess." },
-  money: { hold: 10000, say: "Beside every rule grade sits a money grade, priced from real sold ranges — with the sold count and the reliability right on the card." },
+  money: { hold: 10000, say: "Beside every rule grade sits a money grade, priced from sample sold ranges — with the sold count and the reliability right on the card." },
   trust: { hold: 12000, say: "Nothing posts without my tap. The draft waits for me. That's the rule." },
   rerank: { hold: 13000, say: "It builds the plan. Then a test fails, and it changes its mind — and shows you exactly why. That's not a chatbot. That's a tech thinking." },
   decline: { hold: 9000, say: "And it knows when to say no — before anyone wastes time." },
@@ -2503,6 +2504,7 @@ function paintSideChip() {
 function paintDoorStatus(doorId, text) {
   const door = document.getElementById(doorId);
   if (!door || !text) return;
+  if (door.classList && door.classList.contains("zone")) return;
   const stat = document.createElement("span");
   stat.className = "doorstat";
   stat.textContent = text;
@@ -2533,6 +2535,7 @@ function paintSideBadges() {
   if (!p) return;
   const door = document.getElementById(p.mode === "shop" ? "door-bay" : "door-garage");
   if (!door) return;
+  if (door.classList && door.classList.contains("zone")) return;
   const badge = document.createElement("span");
   badge.className = "yourside";
   badge.textContent = "\u2605 Your side";
@@ -3093,6 +3096,7 @@ function initBay() {
   $("sideChip").addEventListener("click", () => {
     const p = Profile.loadProfile(localStorage);
     if (!p) { $("setupOverlay").hidden = false; return; }
+    $("settings").hidden = false;
     $("settings").open = true;
     goSection("profileCard");
   });
@@ -3619,6 +3623,13 @@ function paintSetupChoice(mode) {
   fan.setAttribute("aria-pressed", mode === "enthusiast" ? "true" : "false");
 }
 
+function setupHint(msg) {
+  const el = document.getElementById("setupHint");
+  if (!el) return;
+  el.textContent = msg;
+  el.hidden = false;
+}
+
 function initIdentity() {
   if (Profile.needsSetup(localStorage)) {
     $("setupOverlay").hidden = false;
@@ -3628,7 +3639,12 @@ function initIdentity() {
   }
   const choose = (mode) => guard(async () => {
     paintSetupChoice(mode);
-    Profile.saveProfile(localStorage, $("setupEmail").value, mode);
+    try {
+      Profile.saveProfile(localStorage, $("setupEmail").value, mode);
+    } catch (err) {
+      setupHint(err.message);
+      return;
+    }
     $("setupOverlay").hidden = true;
     renderSettings();
     showView("home");

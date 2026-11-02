@@ -9,10 +9,10 @@ API and is not covered by hackathon credits, so it is never an option
 here (WONDER_VARIANT is pinned and tested).
 
 Isolated adapter with its own transport and key loading, following the
-meta_client pattern. WONDER_LIVE stays False until the owner confirms
-the Meta API key rotation; while False every escalation serves the demo
-cache and never touches the network. The live model id and endpoint path
-come from the local environment (MUSE_WONDER_MODEL, MUSE_WONDER_PATH)
+meta_client pattern. WONDER_LIVE stays False in this demo build;
+while False every escalation serves the demo cache and never touches
+the network. The live model id and endpoint path come from
+the local environment (MUSE_WONDER_MODEL, MUSE_WONDER_PATH)
 and are never guessed: live refuses when either is unset.
 """
 
@@ -23,10 +23,10 @@ import urllib.request
 
 from meta_client import MetaAPIError
 
-# Live second opinions stay OFF until the owner confirms the Meta API key
-# rotation. While False, every escalation serves a demo-cache opinion and
-# never calls the live API. Flipping this flag later changes the data
-# source only; the interface does not change.
+# Live second opinions stay OFF in this demo build. While False, every
+# escalation serves a demo-cache opinion and never calls the live API.
+# Flipping this flag later changes the data source only; the interface
+# does not change.
 WONDER_LIVE = False
 WONDER_VARIANT = "standard"
 TIMEOUT_SECONDS = 30
@@ -97,7 +97,7 @@ def request_opinion(evidence):
     if WONDER_VARIANT != "standard":
         raise MetaAPIError("only Wonder Standard is allowed here", kind="unreachable")
     if not WONDER_LIVE:
-        raise MetaAPIError("wonder live is off until the key rotation", kind="unreachable")
+        raise MetaAPIError("wonder live is off in this demo build", kind="unreachable")
     if not evidence:
         raise MetaAPIError("no evidence to review", kind="bad_response")
     cfg = _live_settings()

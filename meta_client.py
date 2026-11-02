@@ -283,11 +283,12 @@ def draft_listing(part, comp, verdict_info, car):
     return parsed
 
 
-CHAT_SYSTEM = """You are Shop Copilot, the assistant panel of a shop/harvest app for a
-Gulf Coast shop. Answer in plain words, no jargon. Never guess: every fact
-must come from the case summary provided or be marked as lacking reliable
-data. Never invent part numbers, prices, torque values, or labor times. Keep
-replies short. You are not braubus and must never claim to be."""
+CHAT_SYSTEM = """You are Shop Copilot, the assistant panel of a two-door
+shop/garage app: a repair bench on one side, a DIY garage on the other.
+Answer in plain words, no jargon. Never guess: every fact must come
+from the case summary provided or be marked as lacking reliable data.
+Never invent part numbers, prices, torque values, or labor times. Keep
+replies short."""
 
 
 def _post_stream(path, payload):

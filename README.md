@@ -55,6 +55,13 @@ as if it already exists.
 The submission itself: the demo video is submitted as a URL link and
 the repository as a public URL. Both are required.
 
+Tour narration: the self-playing tour speaks eight pre-rendered
+MP3s (`web/assets/audio/tour-*.mp3`, manifest in
+`eval_voice_results.json`), rendered at build time with Piper
+en_US-libritts-high (LibriTTS data, CC BY 4.0). No runtime
+text-to-speech, no model call, and unrelated to the Muse Voice
+Transcribe demo leg, which is speech-to-text microphone input.
+
 ## Two doors (restructure note)
 
 Two doors, one page: Shop opens the Bay repair bench, DIY Garage opens
@@ -188,7 +195,12 @@ What runs live today, and what waits:
 - Spark Open via Baseten: live when `BASETEN_API_KEY` is present in the
   local environment, one call per case, demo sample otherwise.
 - Every Meta leg (Spark 1.3, SAM, Image, Voice, Wonder): demo cache
-  until the Meta key rotation is confirmed.
+  in this demo build. Spark and Wonder already proved live in the
+  evals below (Spark 11/15, Wonder 4 live opinions); the flags stay
+  off so the demo runs with zero keys.
+- Reading the WO16 table: its "every Spark 1.3 grade matched" line
+  covers 0/0 grades (the leg stopped on a timeout); the follow-up
+  revived Spark at 11/15. Cite the pooled 22/30, never 0/0.
 - Spark Open demo sample and the Spark 1.3 demo leg: always available,
   always labeled, so the Compare view runs 10 out of 10 with no keys.
 
@@ -237,11 +249,19 @@ and a browser. No keys, no signup, nothing else: the demo runs on cache.
     git clone https://github.com/kscooby28/META_Shop_Management
     cd META_Shop_Management
     python server.py
+    # macOS and Linux say python3 instead of python
     # open http://127.0.0.1:8765 in a browser
+    # a phone on the same Wi-Fi uses python server.py
+    # --host=0.0.0.0, then http://<this-pc-ip>:8765 on the phone
 
 A working page shows two doors — Shop and DIY Garage, with Compare
 under the DIY Garage — and, on the very first open, one question: shop or
 DIY Garage. Answer it and the demo flows run end to end.
+
+Verify a cold clone two ways: `python -m unittest` runs the suite
+(the five browser suites need Node.js installed), and with the
+server running, `python scripts/smoke_demo.py` replays ten demo
+flows against it.
 
 Keys are optional. The Meta Model API key lives in the local `.env` file
 (see `.env.example`) and is never committed, and the Baseten key
@@ -257,7 +277,9 @@ The photo flow runs in the DIY Garage view:
    Case 4: a mid-2000s 3-series parts car). Muse Spark 1.3 identifies the car
    — year, make, model, trim only as far as the photo honestly supports —
    and grounds each money part it can see on a 0–1000 grid.
-2. **Harvest map** — SAM 3.1 masks each grounded part and tracks it across
+2. **Harvest map** — demo cache stands in for SAM 3.1 here (the SAM live
+   leg closed after four probes with zero geometry; see the EVAL-SAM
+   sections), masking each grounded part and tracking it across
    the walk-around frames; Spark counts repeated parts. Every entry carries
    the frame it came from.
 3. **Verdicts** — each part gets A (pull and list now), B (worth it if you
@@ -393,6 +415,10 @@ The same anonymized demo set through each engine. Demo legs are measured below; 
 - GLIMMER_ENDPOINT: unset, endpoint unconfirmed.
 - Key names only were read; no values were printed or logged.
 <!-- EVAL-LAB:END -->
+
+The eval-lab table above was measured on the owner machine with
+keys present; a cold clone regenerates it keyless. Its "needs
+rotation confirmed" lines predate the WO16 live runs.
 
 <!-- EVAL-SCALE:START -->
 ## Live evaluation at scale (Work Order 13)

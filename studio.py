@@ -1,8 +1,8 @@
 """Muse Image studio adapter: cutout in, studio-background listing photo out.
 
 Isolated adapter with its own transport and key loading, following the
-meta_client pattern. IMAGE_LIVE stays False until the owner confirms the
-Meta API key rotation; while False every call serves the demo cache and
+meta_client pattern. IMAGE_LIVE stays False in this demo build; while
+False every call serves the demo cache and
 never touches the network. The live model id and endpoint path come from
 the local environment (MUSE_IMAGE_MODEL, MUSE_IMAGE_PATH) and are never
 guessed: live refuses when either is unset, so flipping the flag later is
@@ -18,7 +18,7 @@ import xml.sax.saxutils as saxutils
 
 from meta_client import MetaAPIError
 
-# Live studio stays OFF until the owner confirms the Meta API key rotation.
+# Live studio stays OFF in this demo build.
 # While False, the listing card serves demo-cache studio photos and never
 # calls the live API. Flipping this flag later changes the data source
 # only; the interface does not change.
@@ -89,7 +89,7 @@ def request_studio_render(cutout_data_url, label):
     is on, a model id is configured, and a key is present.
     """
     if not IMAGE_LIVE:
-        raise MetaAPIError("studio live is off until the key rotation", kind="unreachable")
+        raise MetaAPIError("studio live is off in this demo build", kind="unreachable")
     if not cutout_data_url:
         raise MetaAPIError("no cutout bytes in request", kind="bad_response")
     cfg = _live_settings()
@@ -149,7 +149,7 @@ def request_art_render(prompt):
     model id and path are configured, and a key is present.
     """
     if not IMAGE_LIVE:
-        raise MetaAPIError("studio live is off until the key rotation", kind="unreachable")
+        raise MetaAPIError("studio live is off in this demo build", kind="unreachable")
     if not (prompt or "").strip():
         raise MetaAPIError("no prompt in art request", kind="bad_response")
     cfg = _live_settings()

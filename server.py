@@ -59,6 +59,10 @@ CONTENT_TYPES = {
     ".css": "text/css; charset=utf-8",
     ".svg": "image/svg+xml",
     ".json": "application/json",
+    ".mp3": "audio/mpeg",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
 }
 
 _sessions = {}
@@ -549,7 +553,7 @@ class Handler(BaseHTTPRequestHandler):
             if vin_photo:
                 if not VIN_LIVE:
                     notices.append(
-                        "VIN live read is off until the key rotation, "
+                        "VIN live read is off in this demo build, "
                         "so the case uses manual entry only."
                     )
                     vin_photo = None
@@ -804,7 +808,7 @@ class Handler(BaseHTTPRequestHandler):
             notice = "Demo sample vehicle; no VIN stored."
             if payload.get("photo") and not VIN_LIVE and not payload.get("demo"):
                 notice = (
-                    "VIN live read is off until the key rotation, "
+                    "VIN live read is off in this demo build, "
                     "so this is the demo sample. Confirm or edit by hand."
                 )
             return self._send_json(
@@ -881,7 +885,7 @@ class Handler(BaseHTTPRequestHandler):
         notice = ""
         if not VOICE_LIVE:
             notice = (
-                "Voice live is off until the key rotation, so this is a demo "
+                "Voice live is off in this demo build, so this is a demo "
                 "sample transcript. Read it before trusting it."
             )
         pinned = False
@@ -941,7 +945,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         if result["escalated"] and not WONDER_LIVE:
             notice = (
-                "Wonder live is off until the key rotation, so this is a demo "
+                "Wonder live is off in this demo build, so this is a demo "
                 "sample opinion. The triggers above are computed from your evidence."
             )
         elif not result["escalated"]:
@@ -963,8 +967,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def _api_compare(self, payload):
         # Second look only: reads the session's verdicts, writes nothing,
-        # changes no grade. Spark 1.3 side runs on the demo leg (money
-        # stats already in the verdict inputs) until key rotation; the
+        # changes no grade. Left side runs on the demo leg (money
+        # stats already in the verdict inputs) in this demo build; the
         # Spark Open side attempts one live Baseten call, else demo sample.
         session_id = payload.get("sessionId")
         session = get_session(session_id) if session_id else None
@@ -1013,9 +1017,9 @@ class Handler(BaseHTTPRequestHandler):
                 "mode13": "demo-cache",
                 "modeOpen": opened["mode"],
                 "sourceOpen": opened["source"],
-                "notice13": ("Muse Spark 1.3 side runs on the demo leg until the "
-                             "Meta key rotation is confirmed: money-grade second "
-                             "look computed from demo cache, no live call."),
+                "notice13": ("Left side is the money-grade second look "
+                             "computed from demo cache by the rules engine; "
+                             "no live call on this side in the demo build."),
                 "noticeOpen": opened["notice"],
                 "rows": rows,
             }
@@ -1040,7 +1044,7 @@ class Handler(BaseHTTPRequestHandler):
                     shown.append("%s is %s%s" % (
                         v.get("label", "part"), v.get("grade", "?"),
                         (" ($%s)" % price) if price else ""))
-                lines.append("Yard results on screen: %s." % "; ".join(shown))
+                lines.append("Results on screen: %s." % "; ".join(shown))
             totals = yard.get("totals")
             if isinstance(totals, dict):
                 for grade in ("A", "B"):
@@ -1065,7 +1069,7 @@ class Handler(BaseHTTPRequestHandler):
                     drill.append("%s (%s)%s" % (
                         p.get("label", "part"), p.get("car", "?"),
                         (" $%s" % price) if price else " price unknown"))
-                lines.append("Driveway on screen: %d cars (%s); %d parts: %s." % (
+                lines.append("DIY Garage on screen: %d cars (%s); %d parts: %s." % (
                     len(cars), ", ".join(cars[:6]), len(parts), "; ".join(drill) or "none listed"))
             for note in notes[:4]:
                 lines.append("Owner note: %s" % note)
@@ -1169,7 +1173,7 @@ class Handler(BaseHTTPRequestHandler):
                             v.get("label", "part"), v.get("grade", "?"),
                             (": " + v["reason"]) if v.get("reason") else "")
                         for v in shown)
-                    return ("From the Yard results on your screen: %s. "
+                    return ("From the results on your screen: %s. "
                             "Open any card for its rule and money reasons."
                             % grades)
                 return "No verdicts yet — run the flow first, then ask me about any grade."
@@ -1208,7 +1212,7 @@ class Handler(BaseHTTPRequestHandler):
                      if any(word in (p.get("label") or "").lower()
                             for word in text.split() if len(word) > 3)]
             if hits:
-                return "From your Driveway notes: %s" % hits[0]
+                return "From your DIY Garage notes: %s" % hits[0]
             if named:
                 lines = []
                 for p in named[:4]:
@@ -1217,12 +1221,12 @@ class Handler(BaseHTTPRequestHandler):
                         p.get("label", "part"), p.get("car", "?"),
                         ("$%s" % price) if price else
                         "price unknown — check comps or mark it"))
-                return "From your Driveway: %s." % "; ".join(lines)
-            return ("Driveway shows %d cars and %d parts. "
+                return "From your DIY Garage: %s." % "; ".join(lines)
+            return ("DIY Garage shows %d cars and %d parts. "
                     "Ask about one by name." % (len(ctx_cars),
                                                 len(ctx_parts)))
         if inv_specific:
-            return ("Driveway is empty on screen — open Driveway and load "
+            return ("DIY Garage is empty on screen — open DIY Garage and load "
                     "the demo inventory, then ask me about any car or part.")
         if money_words and not session_verdicts:
             totals = ctx_yard.get("totals")
@@ -1237,7 +1241,7 @@ class Handler(BaseHTTPRequestHandler):
                 known = ["%s $%s" % (p.get("label", "part"), p.get("price"))
                          for p in ctx_parts[:6] if p.get("price")]
                 if known:
-                    return ("Driveway prices on screen: %s. The rest are "
+                    return ("DIY Garage prices on screen: %s. The rest are "
                             "marked unknown until comps back them."
                             % "; ".join(known))
         if "list" in text:
@@ -1365,4 +1369,8 @@ if __name__ == "__main__":
         match = re.match(r"--port=(\d+)$", arg)
         if match:
             port = int(match.group(1))
+            continue
+        match = re.match(r"--host=([0-9A-Za-z.]+)$", arg)
+        if match:
+            host = match.group(1)
     run(host=host, port=port)

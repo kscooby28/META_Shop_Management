@@ -96,7 +96,7 @@ class AccentDisciplineTest(unittest.TestCase):
                  ".strip figure.sel img", ".progress > div", ".msg.user",
                  ".gatebadge", ".moved-flash", ".moved-note", ".mode-tag",
                  ".confirm-frame", ".navbtn.active", ".pill.demo",
-                 ".door:hover", ".grade-B", ".totalcard.total-b")
+                 ".door.zone:hover", ".grade-B", ".totalcard.total-b")
 
     def test_amber_only_money_and_primary(self):
         plain = css_no_comments()
@@ -323,7 +323,8 @@ class HairlineTest(unittest.TestCase):
     def test_cards_carry_one_hairline(self):
         plain = css_no_comments()
         self.assertGreaterEqual(plain.count(self.HAIRLINE.strip(";")), 12)
-        for selector in (".work section", ".door", ".verdict", ".testcard",
+        # Zones are transparent by design: no hairline on the image.
+        for selector in (".work section", ".verdict", ".testcard",
                          ".invcar", ".decline", ".totalcard"):
             self.assertIn("inset 0 1px 0 var(--line)",
                           rule_body(selector), selector)
@@ -356,17 +357,19 @@ class LeftAloneTest(unittest.TestCase):
     """Audit findings marked already-modern: prove zero regression."""
 
     def test_doors_structure_kept(self):
-        # WO20: doors are graphical entrances (art on top, labels below);
-        # ids, routing, words, and the ink hover all stand.
+        # Click zones: invisible halves over the street photo,
+        # ink outline on hover/focus, never amber, never labeled.
         door = rule_body(".door")
-        for_keep = ("display: flex;", "flex-direction: row;",
-                    "2px solid var(--line);", "overflow: hidden;")
+        for_keep = ("background: transparent;", "border: none;",
+                    "cursor: pointer;")
         for text in for_keep:
             self.assertIn(text, door, text)
-        self.assertIn("border-color: var(--ink);",
-                      rule_body(".door:hover"))
-        self.assertIn("var(--text-title)", rule_body(".door-name"))
-        self.assertIn("var(--text-body)", rule_body(".door-why"))
+        css = css_no_comments()
+        self.assertIn(".door.zone:hover", css)
+        self.assertIn(".door.zone:focus-visible", css)
+        self.assertIn("outline: 3px solid var(--ink);", css)
+        self.assertNotIn(".door-name", css)
+        self.assertNotIn(".door-why", css)
 
     def test_grade_pills_kept(self):
         self.assertIn(".grade-A { background: var(--grade-a); }",

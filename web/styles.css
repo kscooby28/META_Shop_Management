@@ -138,8 +138,11 @@ body {
 }
 .row { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
 
-/* Landing scene (WO21): two-door street plus two
- * graphical entrances. Entrances are scene elements, never primary. */
+/* Landing scene: the street photo IS the navigation. Two invisible
+ * click zones (shop half, garage half) sit over the image; names live
+ * in aria-labels and on the next screen. Hover or keyboard focus draws
+ * the outline; otherwise the image stands alone. Zones are scene
+ * elements, never primary, and the outline is ink, never amber. */
 .scene { position: relative; margin: 0 0 1rem; }
 .backdrop {
   width: 100%; height: min(68vh, 34rem); object-fit: cover; display: block;
@@ -147,26 +150,25 @@ body {
   background: var(--paper);
 }
 .entrances {
-  position: absolute; left: 1rem; right: 1rem; bottom: 1rem;
-  margin-top: 0;
+  position: absolute; inset: 0;
+  grid-template-columns: 1fr 1fr; gap: 0; margin-top: 0;
+  border-radius: var(--radius-card); overflow: hidden;
 }
 .door {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.8rem;
-  text-align: left;
-  padding: 0.8rem 1rem;
-  background: var(--surface);
-  border: 2px solid var(--line);
-  border-radius: var(--radius-card);
-  box-shadow: inset 0 1px 0 var(--line);
-  overflow: hidden;
+  background: transparent;
+  border: none;
+  padding: 0;
+  min-height: 100%;
+  cursor: pointer;
 }
-.door:hover { border-color: var(--ink); background: var(--surface); }
-.door .tbody { padding: 0; display: flex; flex-direction: column; gap: 0.25rem; flex: 1; }
-.door-name { font-size: var(--text-title); font-weight: 800; }
-.door-why { font-size: var(--text-body); font-weight: 400; color: var(--muted); }
+.door.zone:hover {
+  outline: 3px solid var(--ink);
+  outline-offset: -6px;
+}
+.door.zone:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: -6px;
+}
 .entrance { cursor: pointer; }
 
 button {
@@ -852,10 +854,10 @@ body[data-setting="shop"] .staged { border-top-color: var(--ink); }
 
 /* Paged views: graphical index + one page at a time. Tokens only. */
 .pageidx { display: grid; gap: 0.6rem; margin: 0.6rem 0 1rem; }
-.idxgroup { font-weight: 700; margin: 0.5rem 0 0; color: var(--text-title); }
+.idxgroup { font-weight: 700; margin: 0.5rem 0 0; color: var(--muted); }
 .idxcard { text-align: left; }
 .idxcard .timg { width: 72px; height: 72px; flex: none; object-fit: cover; border-radius: var(--radius-small); }
-.pagestep { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; color: var(--text-meta); margin: 0.4rem 0; }
+.pagestep { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; color: var(--muted); margin: 0.4rem 0; }
 .pagebar { position: sticky; bottom: 0; display: flex; gap: 0.6rem; padding: 0.6rem 0; background: var(--bg); box-shadow: inset 0 1px 0 var(--line); }
 .pagebar .primary { flex: 1; }
 .navbtn img.navthumb, .bottombar img.navthumb { width: 22px; height: 22px; object-fit: cover; border-radius: var(--radius-small); }

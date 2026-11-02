@@ -18,7 +18,7 @@ class VoiceDemoTest(unittest.TestCase):
     def test_live_refuses_without_network(self):
         with self.assertRaises(MetaAPIError) as ctx:
             voice.transcribe_live("audiodata", "audio/webm")
-        self.assertIn("key rotation", str(ctx.exception))
+        self.assertIn("demo build", str(ctx.exception))
 
     def test_demo_transcript_per_kind(self):
         bay = voice.demo_transcript("bay", ROOT)
@@ -69,7 +69,7 @@ class VoiceEndpointTest(unittest.TestCase):
         self.assertEqual(body["mode"], "demo-cache")
         self.assertTrue(body["text"])
         self.assertTrue(body["pinned"])
-        self.assertIn("key rotation", body["notice"])
+        self.assertIn("demo build", body["notice"])
         case = server.get_session(sid)["bay"]["case"]
         self.assertEqual(len(case["voice_notes"]), 1)
         self.assertIn("demo-cache", case["voice_notes"][0]["source"])
