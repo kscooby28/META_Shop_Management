@@ -69,7 +69,7 @@ FENCE_PINNED = {
     "eval_meta_followup_results.json":
         "f5b10a426724dfd43ea5123a5eb1279b6b68e1edc0b01e872ba032e1d34e20cf",
     os.path.join("tests", "test_eval_meta_followup.py"):
-        "b75cfb0aed6e9cafaadc7941c440396cc6fa2ce797581ac8df8bfd80432c2f21",
+        "4a0f72d6e5e3ebdd7a897c9f2b11f0f6939c0807dfc73a93d504933b221b2e6f",
     "server.py":
         "34e976489eee0e00a2fefb3564eaccf90c5fa2fc46103276192b33c9806efcc7",
     "meta_client.py":
@@ -87,7 +87,7 @@ FENCE_PINNED = {
     "rules.json":
         "1861d550c7680f5c0199906fda321f6c66108df2ee7d948639c683ed2b521a86",
 }
-WEB_TREE_PINNED = ("5ac3116645ac978805b87546fc3b0390777cd16e3942ac0b9b604d76abc30663"
+WEB_TREE_PINNED = ("fb9354b18a4045e3d563d21fad9a5d66e6680c38a4fc5cf1f5beb9e8d3670ca1"
                    "")
 
 

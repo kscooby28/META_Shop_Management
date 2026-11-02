@@ -171,20 +171,26 @@ class HeroTest(unittest.TestCase):
     def test_home_landing_scene(self):
         html = read("index.html")
         home = html[html.index('id="view-home"'):html.index('id="view-bay"')]
-        scene = home[home.index('<div class="scene"'):home.index('id="btnHomePhoto"')]
+        scene = home[home.index('<div class="scene"'):
+                     home.index('class="tilegrid entrances"')]
         self.assertNotIn("<svg", scene)
         self.assertIn("<img", scene)
-        self.assertIn("Illustrated street in daylight", scene)
+        self.assertIn('src="assets/landing-2door.jpg"', scene)
+        self.assertIn("American street", scene)
         self.assertNotIn("demo/frame", home)
         self.assertNotIn("http", scene)
-        self.assertLess(home.index("screen-line"), home.index('<div class="scene"'))
-        self.assertLess(home.index('<div class="scene"'),
-                        home.index('class="tilegrid entrances"'))
+        # Image plus two tabs, nothing else on the landing.
+        for gone in ("screen-line", "btnHomePhoto",
+                     "homeHeroCamera", "camguide"):
+            self.assertNotIn(gone, home, gone)
+        self.assertEqual(len(re.findall(r"<button", home)), 2)
 
     def test_scene_css_exists(self):
         self.assertIn("display: block", rule_body(".backdrop"))
         self.assertIn("var(--radius-card)", rule_body(".backdrop"))
-        self.assertIn("6.5rem", rule_body(".doorart"))
+        self.assertIn("object-fit: cover", rule_body(".backdrop"))
+        self.assertIn("position: absolute", rule_body(".entrances"))
+        self.assertNotIn(".doorart", css_no_comments())
 
 
 class MoneyTest(unittest.TestCase):
@@ -353,9 +359,8 @@ class LeftAloneTest(unittest.TestCase):
         # WO20: doors are graphical entrances (art on top, labels below);
         # ids, routing, words, and the ink hover all stand.
         door = rule_body(".door")
-        for_keep = ("display: flex;", "flex-direction: column;",
-                    "min-height: 12rem;", "2px solid var(--line);",
-                    "overflow: hidden;")
+        for_keep = ("display: flex;", "flex-direction: row;",
+                    "2px solid var(--line);", "overflow: hidden;")
         for text in for_keep:
             self.assertIn(text, door, text)
         self.assertIn("border-color: var(--ink);",
@@ -403,11 +408,15 @@ class LeftAloneTest(unittest.TestCase):
     def test_copilot_header_kept(self):
         self.assertIn("never guess", read("index.html"))
 
-    def test_hero_not_reclassified(self):
-        tag = re.search(r'<button[^>]*id="btnHomePhoto"[^>]*>',
-                        read("index.html")).group(0)
-        self.assertNotIn("primary", tag)
-        self.assertIn("photo herophoto", tag)
+    def test_home_has_no_photo_button(self):
+        html = read("index.html")
+        home = html[html.index('id="view-home"'):html.index('id="view-bay"')]
+        self.assertNotIn("btnHomePhoto", html)
+        self.assertNotIn("homeHeroCamera", html)
+        for door in ("door-bay", "door-garage"):
+            tag = re.search(r'<button[^>]*id="%s"[^>]*>' % door,
+                            home).group(0)
+            self.assertNotIn("primary", tag, door)
 
     def test_guides_still_wired(self):
         app = read("app.js")

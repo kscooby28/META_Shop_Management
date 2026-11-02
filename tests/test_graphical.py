@@ -168,16 +168,18 @@ class LandingTest(unittest.TestCase):
     def test_generic_shop_signage_only(self):
         home = self.home()
         self.assertNotIn("Pixar", read("index.html"))
-        self.assertIn('src="assets/door-shop.png"', home)
+        self.assertIn('src="assets/landing-2door.jpg"', home)
         for label in ("Shop — Fix it", "DIY Garage — Your cars and parts"):
             self.assertIn(label, home)
 
-    def test_backdrop_is_illustration_not_inventory(self):
+    def test_backdrop_is_scene_not_inventory(self):
         home = self.home()
         scene = home[home.index('<div class="scene"'):
-                     home.index('id="btnHomePhoto"')]
+                     home.index('class="tilegrid entrances"')]
         self.assertIn("<img", scene)
-        self.assertIn('src="assets/landing-2door.png"', scene)
+        self.assertIn('src="assets/landing-2door.jpg"', scene)
+        self.assertIn("auto repair shop", scene)
+        self.assertIn("home garage", scene)
         self.assertNotIn("demo/frame", scene)
 
 

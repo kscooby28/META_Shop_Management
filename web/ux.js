@@ -163,6 +163,11 @@ const UX = (() => {
       message: "Finish first-run setup to unlock settings.",
       action: "Open setup",
     },
+    network: {
+      title: "No listings yet",
+      message: "Attach a part to a car and it shows up here as a network listing.",
+      action: "Add a part",
+    },
   };
 
   function emptyState(key) {

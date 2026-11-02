@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Shop AI Copilot</title>
 <link rel="stylesheet" href="styles.css">
-<link rel="preload" href="assets/landing-2door.png" as="image">
+<link rel="preload" href="assets/landing-2door.jpg" as="image">
 </head>
 <body>
 <header class="top">
@@ -28,30 +28,24 @@
     <div id="settingsBody"></div>
   </details>
   <div id="view-home">
-  <p class="screen-line">Two doors: run the repair bench, or look after your own cars and parts. Pick one to start.</p>
   <div class="scene" id="homeScene">
-    <img class="backdrop" src="assets/landing-2door.png" alt="Illustrated street in daylight: repair shop with a Shop sign, house with home garage, and three parked enthusiast cars">
+    <img class="backdrop" src="assets/landing-2door.jpg" alt="American street: auto repair shop with customer cars on the left, home garage with enthusiast cars on the right">
     <div class="tilegrid entrances">
       <button id="door-bay" type="button" class="door entrance">
-        <img class="doorart" src="assets/door-shop.png" alt="Shop entrance">
+        <span class="ticon" aria-hidden="true">⚒</span>
         <span class="tbody"><span class="door-name">Shop — Fix it</span>
         <span class="door-why">Turn a symptom into a ranked test plan, then record pass or fail.</span></span>
       </button>
       <button id="door-garage" type="button" class="door entrance">
-        <img class="doorart" src="assets/door-garage.png" alt="Home garage door">
+        <span class="ticon" aria-hidden="true">⌂</span>
         <span class="tbody"><span class="door-name">DIY Garage — Your cars and parts</span>
         <span class="door-why">Register your cars, attach parts, value photo finds, and draft listings.</span></span>
       </button>
     </div>
   </div>
-  <div class="row">
-    <input id="homeHeroCamera" type="file" accept="image/*" capture="environment" hidden>
-    <button id="btnHomePhoto" type="button" class="photo herophoto">Take a photo</button>
-  </div>
-  <p class="camguide">Get the whole car in the frame.<span class="mode-tag">Whole car</span></p>
   </div>
 
-  <div id="view-bay" hidden>
+<div id="view-bay" hidden>
   <div class="backbar"><button id="backBay" type="button" class="small">Back · <span aria-hidden="true">⚒</span> Shop · ← Home</button></div>
   <p class="screen-line">Answer the tests and the plan ranks the cause and prices the job.</p>
   <div id="bayHome" class="homehead"></div>
@@ -410,6 +404,17 @@
         <button id="btnDiscardDraft" type="button" class="small"><span aria-hidden="true">×</span> Discard draft</button>
       </div>
       <div id="receipt"></div>
+    </div>
+    <div id="networkFeed">
+      <h3>Parts network</h3>
+      <p class="hint">Concept preview: your for-sale listings as the network sees them. Demo data — nothing is posted anywhere.</p>
+      <div class="row" role="group" aria-label="Marketplace filter">
+        <button type="button" data-market="all" class="small"><span aria-hidden="true">✦</span> All markets</button>
+        <button type="button" data-market="eBay" class="small"><span aria-hidden="true">◉</span> eBay</button>
+        <button type="button" data-market="Craigslist" class="small"><span aria-hidden="true">▤</span> Craigslist</button>
+        <button type="button" data-market="Facebook" class="small"><span aria-hidden="true">●</span> Facebook</button>
+      </div>
+      <div id="networkCards" class="tilegrid"></div>
     </div>
   </section>
 

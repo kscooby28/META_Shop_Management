@@ -1,0 +1,19 @@
+{
+  "order": "Home street hero: two-choice landing image",
+  "model": "muse-image-1.0",
+  "path": "/responses",
+  "images": {
+    "landing-2door": {
+      "prompt": "Photorealistic eye-level view looking down a normal American suburban street on a clear afternoon, rich detail, cinematic light, sharp focus. On the LEFT side of the street: an obvious car repair shop business, a commercial building with big service doors and a paved customer parking lot holding several parked customer cars. On the RIGHT side: a suburban home with an open two-car garage, enthusiast project cars in the driveway, tools visible inside the garage. Lush and graphically rich. No text, no words, no letters, no signs with writing, no logos, no readable license plates, no people, no watermark.",
+      "file": "web/assets/landing-2door.jpg",
+      "format": "jpg",
+      "bytes": 875000,
+      "dims": "1920x1280",
+      "latency_ms": 25193
+    }
+  },
+  "image_count": 1,
+  "total_bytes": 875000,
+  "live_calls_sent": 1,
+  "cost_estimate_usd": 0.01
+}

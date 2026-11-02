@@ -70,6 +70,10 @@ class DoorsTest(unittest.TestCase):
         html = read("web/index.html")
         for view in VIEWS:
             block = view_block(html, view)
+            if view == "view-home":
+                # Image plus two tabs: the landing carries no line.
+                self.assertNotIn("screen-line", block, view)
+                continue
             self.assertIn("screen-line", block, view)
             line = block.split("screen-line", 1)[1].split("</p>", 1)[0]
             self.assertGreater(len(re.sub(r"<[^>]+>", "", line).strip()), 20, view)

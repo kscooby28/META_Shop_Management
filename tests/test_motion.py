@@ -202,7 +202,7 @@ class ConfirmFlowTest(unittest.TestCase):
         self.assertIn('p.className = "camguide";', wo18_section())
         html = read("web/index.html")
         hero = html[html.index('id="view-home"'):html.index('id="view-bay"')]
-        self.assertIn("camguide", hero)
+        self.assertNotIn("camguide", hero)
 
     def test_preview_after_capture(self):
         app = read("web/app.js")
@@ -294,7 +294,9 @@ class CaptureModesTest(unittest.TestCase):
         section = wo18_section()
         self.assertEqual(section.count('tag.className = "mode-tag";'), 2)  # guides + preview
         html = read("web/index.html")
-        self.assertIn('<span class="mode-tag">Whole car</span>', html)
+        home = html[html.index('id="view-home"'):html.index('id="view-bay"')]
+        for gone in ('mode-tag', 'btnHomePhoto', 'homeHeroCamera'):
+            self.assertNotIn(gone, home, gone)
 
 
 class SunRemovedTest(unittest.TestCase):
@@ -316,19 +318,21 @@ class SunRemovedTest(unittest.TestCase):
 
 
 class HeroTest(unittest.TestCase):
-    def test_hero_take_photo_on_home(self):
+    def test_home_has_no_camera_capture(self):
         html = read("web/index.html")
         home = html[html.index('id="view-home"'):html.index('id="view-bay"')]
-        self.assertIn('id="homeHeroCamera"', home)
-        tag = re.search(r'<button[^>]*id="btnHomePhoto"[^>]*>([^<]*)</button>', home)
-        self.assertIsNotNone(tag)
-        self.assertIn("Take a photo", tag.group(1))
-        self.assertIn('class="photo herophoto"', home)
-        self.assertLess(home.index("screen-line"), home.index("btnHomePhoto"))
+        for gone in ('homeHeroCamera', 'btnHomePhoto', 'camguide',
+                     'screen-line', 'type="file"'):
+            self.assertNotIn(gone, home, gone)
+        for cam in ('fileCamera', 'bayVinCamera',
+                    'invCarPhotoCamera', 'invCarVinCamera',
+                    'invPartPhotoCamera'):
+            self.assertIn('id="%s"' % cam, html, cam)
 
     def test_hero_hands_into_garage_intake(self):
         app = read("web/app.js")
-        self.assertIn('twinCamera("homeHeroCamera", "fileInput", "btnHomePhoto")', app)
+        self.assertIn('if (!$(camId) || !$(btnId)) return;', app)
+        self.assertNotIn('twinCamera("homeHeroCamera"', app)
         section = wo18_section()
         hero = section[section.index('if (st.shot === "hero")'):section.index("if (AUTO_SHOT")]
         self.assertIn('showView("inventory");', hero)

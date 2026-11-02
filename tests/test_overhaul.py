@@ -65,7 +65,7 @@ class OverhaulArtTest(unittest.TestCase):
         html = read_web("index.html")
         home = html[html.index('id="view-home"'):html.index('id="view-bay"')]
         scene = home[home.index('<div class="scene"'):
-                     home.index('id="btnHomePhoto"')]
+                     home.index('class="tilegrid entrances"')]
         self.assertNotIn("<svg", scene)
         self.assertNotIn("sceneart", html)
         app = read_web("app.js")
@@ -85,15 +85,12 @@ class OverhaulArtTest(unittest.TestCase):
     def test_doors_use_committed_art(self):
         html = read_web("index.html")
         home = html[html.index('id="view-home"'):html.index('id="view-bay"')]
-        for door, asset, alt in (
-                ("door-bay", "assets/door-shop.png", "Shop entrance"),
-                ("door-garage", "assets/door-garage.png",
-                 "Home garage door")):
+        for door in ("door-bay", "door-garage"):
             self.assertIn('id="%s"' % door, home)
-            self.assertIn('src="%s"' % asset, home)
-            self.assertIn('alt="%s"' % alt, home)
-            self.assertTrue(os.path.isfile(
-                os.path.join(ROOT, "web", asset)), asset)
+        asset = "assets/landing-2door.jpg"
+        self.assertIn('src="%s"' % asset, home)
+        self.assertTrue(os.path.isfile(
+            os.path.join(ROOT, "web", asset)), asset)
 
     def test_bands_use_committed_art(self):
         app = read_web("app.js")
@@ -106,7 +103,7 @@ class OverhaulArtTest(unittest.TestCase):
 
     def test_art_labels_stay_honest(self):
         html = read_web("index.html")
-        self.assertIn("Illustrated street in daylight", html)
+        self.assertIn("American street", html)
         app = read_web("app.js")
         for label in ("Illustrated shop interior",
                       "Illustrated home garage"):
@@ -305,8 +302,8 @@ class OverhaulNavTest(unittest.TestCase):
 
     def test_purpose_line_on_every_screen(self):
         html = read_web("index.html")
+        # Home is image plus two tabs and carries no purpose line.
         for purpose in (
-                "Two doors: run the repair bench, or look after your own cars and parts.",
                 "Answer the tests and the plan ranks the cause and prices the job.",
                 "Your cars and parts, organized and searchable.",
                 "Two engines grade the same case side by side."):
@@ -444,9 +441,9 @@ class OverhaulCopyTest(unittest.TestCase):
 
     def test_camera_plumbing_untouched(self):
         html = read_web("index.html")
-        self.assertEqual(html.count('capture="environment"'), 6)
+        self.assertEqual(html.count('capture="environment"'), 5)
         app = read_web("app.js")
-        for cam in ("fileCamera", "homeHeroCamera", "bayVinCamera",
+        for cam in ("fileCamera", "bayVinCamera",
                     "invCarPhotoCamera", "invCarVinCamera",
                     "invPartPhotoCamera"):
             self.assertIn('twinCamera("%s"' % cam, app)
@@ -687,7 +684,7 @@ class OverhaulGraphicalFixesTest(unittest.TestCase):
 
     def test_landing_art_preloads(self):
         html = read_web("index.html")
-        self.assertIn('<link rel="preload" href="assets/landing-2door.png"'
+        self.assertIn('<link rel="preload" href="assets/landing-2door.jpg"'
                       ' as="image">', html)
 
     def test_no_new_art_beyond_manifest(self):
@@ -712,7 +709,7 @@ class OverhaulGraphicalFixesTest(unittest.TestCase):
                                  "head-grade.png", "head-notes.png",
                                  "head-parts.png", "head-plan.png",
                                  "head-trail.png", "head-wrench.png",
-                                 "landing-2door.png", "landing.png",
+                                 "landing-2door.jpg", "landing.png",
                                  "part-bumper.png", "part-coil.png",
                                  "part-diff.png", "part-ecu.png",
                                  "part-handle.png", "part-headlight.png",
@@ -904,7 +901,7 @@ class PageTest(unittest.TestCase):
 class GraphicalButtonsTest(unittest.TestCase):
     """Every button is graphical: icon or image plus word, never bare text."""
 
-    PLAIN_OK = {"btnHomePhoto"}  # pinned pure-text hero photo button
+    PLAIN_OK = set()  # every static button is graphical; no exceptions
 
     def test_every_static_button_is_graphical(self):
         html = read_web("index.html")
@@ -1109,6 +1106,58 @@ class DiyGarageLabelTest(unittest.TestCase):
         self.assertIn('p.mode === "shop" ? "enthusiast" : "shop"', app)
         self.assertIn('Profile.saveProfile(localStorage, $("setupEmail").value, mode)',
                       app)
+
+
+class StreetAndNetworkTest(unittest.TestCase):
+    """Two-tab landing plus the parts-network concept preview."""
+
+    def test_street_manifest_matches_file(self):
+        with open(os.path.join(ROOT, "eval_street_results.json"),
+                  encoding="utf-8") as fh:
+            man = json.load(fh)
+        info = man["images"]["landing-2door"]
+        path = os.path.join(ROOT, info["file"])
+        self.assertTrue(os.path.isfile(path), info["file"])
+        self.assertEqual(os.path.getsize(path), info["bytes"])
+        self.assertEqual(info["dims"], "1920x1280")
+        self.assertEqual(man["live_calls_sent"], 1)
+        self.assertEqual(man["cost_estimate_usd"], 0.01)
+
+    def test_home_is_image_plus_two_tabs(self):
+        html = read_web("index.html")
+        home = html[html.index('id="view-home"'):html.index('id="view-bay"')]
+        self.assertEqual(len(re.findall(r"<button", home)), 2)
+        self.assertIn('id="door-bay"', home)
+        self.assertIn('id="door-garage"', home)
+        self.assertEqual(home.count("<img"), 1)
+
+    def test_network_feed_markup(self):
+        html = read_web("index.html")
+        feed = html[html.index('id="networkFeed"'):
+                    html.index('id="sec-rules"')]
+        self.assertIn("Concept preview", feed)
+        self.assertIn("nothing is posted anywhere", feed)
+        for market in ("all", "eBay", "Craigslist", "Facebook"):
+            self.assertIn('data-market="%s"' % market, feed)
+
+    def test_network_feed_render(self):
+        app = read_web("app.js")
+        self.assertIn('NETWORK_MARKETS = ["eBay", "Craigslist", "Facebook"]',
+                      app)
+        self.assertIn("function renderNetworkFeed()", app)
+        fn = app[app.index("function renderNetworkFeed"):
+                 app.index("function renderInventory")]
+        self.assertIn('emptyInto(box, "network"', fn)
+        self.assertIn("demoBadge()", fn)
+        self.assertIn("money(part.value)", fn)
+        self.assertIn('"price unknown"', fn)
+
+    def test_network_empty_registered(self):
+        app = read_web("app.js")
+        art = app[app.index("const EMPTY_ART"):
+                  app.index("function emptyInto")]
+        self.assertIn('network: "assets/case-bench.png"', art)
+        self.assertIn("network:", read_web("ux.js"))
 
 
 if __name__ == "__main__":

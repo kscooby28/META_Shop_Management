@@ -124,6 +124,7 @@ const EMPTY_ART = {
   invnotes: "assets/head-notes.png",
   compare: "assets/head-compare.png",
   setup: "assets/case-front.png",
+  network: "assets/case-bench.png",
 };
 
 // Demo display art: generated case-art photos (see
@@ -2545,6 +2546,7 @@ function paintSideBadges() {
  * capture, a full-screen preview after, and only the Use photo tap
  * moves the flow forward into the same upload path, unchanged. */
 function twinCamera(camId, targetId, btnId) {
+  if (!$(camId) || !$(btnId)) return;
   paintShotGuide(btnId, SHOT_FOR_CAM[camId] || "yard");
   $(btnId).addEventListener("click", () => $(camId).click());
   $(camId).addEventListener("change", guard(async (e) => {
@@ -2561,7 +2563,7 @@ function wireCameras() {
   twinCamera("invCarPhotoCamera", "invCarPhoto", "btnInvCarPhotoCam");
   twinCamera("invCarVinCamera", "invCarVin", "btnInvCarVinCam");
   twinCamera("invPartPhotoCamera", "invPartPhoto", "btnInvPartPhotoCam");
-  twinCamera("homeHeroCamera", "fileInput", "btnHomePhoto");
+  /* No home camera: the landing is image plus two tabs; capture lives inside the modes. */
 }
 
 /* ---------- motion + confirm + sunlight (WO18) ----------
@@ -3889,11 +3891,83 @@ function renderInvTotals() {
   }
 }
 
+let networkMarket = "all";
+const NETWORK_MARKETS = ["eBay", "Craigslist", "Facebook"];
+/* Parts network (concept preview): the owner's for-sale listings as the
+ * network sees them, one deterministic home market per listing. Demo
+ * data only — nothing here posts anywhere. Prices come from the part
+ * record (comps-backed) or stay unknown, never invented. */
+function renderNetworkFeed() {
+  const box = $("networkCards");
+  if (!box) return;
+  const feed = $("networkFeed");
+  if (feed && !feed.dataset.wired) {
+    feed.dataset.wired = "1";
+    feed.addEventListener("click", (e) => {
+      const btn = e.target && e.target.closest ? e.target.closest("[data-market]") : null;
+      if (!btn) return;
+      networkMarket = btn.dataset.market;
+      renderNetworkFeed();
+    });
+  }
+  if (feed) feed.querySelectorAll("[data-market]").forEach((b) => {
+    b.setAttribute("aria-pressed", b.dataset.market === networkMarket ? "true" : "false");
+  });
+  if (!invState.parts.length) {
+    emptyInto(box, "network", () => goSection("sec-iparts"));
+    return;
+  }
+  const cards = invState.parts.map((part, i) => ({ part, market: NETWORK_MARKETS[i % NETWORK_MARKETS.length] }))
+    .filter((x) => networkMarket === "all" || x.market === networkMarket);
+  box.innerHTML = "";
+  if (!cards.length) {
+    const nom = document.createElement("p");
+    nom.className = "hint";
+    nom.textContent = "No listings on " + networkMarket + " in this demo.";
+    box.appendChild(nom);
+    return;
+  }
+  for (const { part, market } of cards) {
+    const card = document.createElement("div");
+    card.className = "gcard";
+    if (part.photo) {
+      const im = document.createElement("img");
+      im.className = "timg";
+      im.src = part.photo;
+      im.alt = "";
+      card.appendChild(im);
+    } else {
+      const art = partPhotoImg(part.id, part.label, "timg");
+      if (art) card.appendChild(art);
+    }
+    const title = document.createElement("div");
+    title.className = "ctitle";
+    title.textContent = part.label;
+    card.appendChild(title);
+    const car = invState.cars.find((c) => c.id === part.carId) || {};
+    const sub = document.createElement("p");
+    sub.className = "hint";
+    sub.textContent = (car.label || "Unknown car") + " · " + market;
+    card.appendChild(sub);
+    const price = document.createElement("div");
+    if (part.value !== null && part.value !== undefined && part.valueSource) {
+      price.className = "money";
+      price.textContent = money(part.value);
+    } else {
+      price.className = "missing";
+      price.textContent = "price unknown";
+    }
+    card.appendChild(price);
+    card.appendChild(demoBadge());
+    box.appendChild(card);
+  }
+}
 function renderInventory() {
   renderInvCars();
   renderInvKnow();
   renderInvParts();
   renderInvTotals();
+  renderNetworkFeed();
   renderInvHome();
   renderGuides();
 }

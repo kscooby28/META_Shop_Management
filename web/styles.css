@@ -140,19 +140,23 @@ body {
 
 /* Landing scene (WO21): two-door street plus two
  * graphical entrances. Entrances are scene elements, never primary. */
-.scene { margin: 0 0 1rem; }
+.scene { position: relative; margin: 0 0 1rem; }
 .backdrop {
-  width: 100%; height: auto; display: block;
+  width: 100%; height: min(68vh, 34rem); object-fit: cover; display: block;
   border: 1px solid var(--line); border-radius: var(--radius-card);
-  background: var(--paper); margin-bottom: 0.7rem;
+  background: var(--paper);
 }
-.entrances { margin-top: 0.7rem; }
+.entrances {
+  position: absolute; left: 1rem; right: 1rem; bottom: 1rem;
+  margin-top: 0;
+}
 .door {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.8rem;
   text-align: left;
-  padding: 0;
-  min-height: 12rem;
+  padding: 0.8rem 1rem;
   background: var(--surface);
   border: 2px solid var(--line);
   border-radius: var(--radius-card);
@@ -160,8 +164,7 @@ body {
   overflow: hidden;
 }
 .door:hover { border-color: var(--ink); background: var(--surface); }
-.doorart { width: 100%; height: 6.5rem; display: block; flex: none; object-fit: cover; }
-.door .tbody { padding: 0.7rem 0.9rem 0.9rem; display: flex; flex-direction: column; gap: 0.25rem; }
+.door .tbody { padding: 0; display: flex; flex-direction: column; gap: 0.25rem; flex: 1; }
 .door-name { font-size: var(--text-title); font-weight: 800; }
 .door-why { font-size: var(--text-body); font-weight: 400; color: var(--muted); }
 .entrance { cursor: pointer; }
@@ -721,7 +724,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
   margin: 0;
   transition: transform var(--t-page) var(--ease), opacity var(--t-door) var(--ease);
 }
-.herophoto { width: 100%; min-height: 64px; font-size: var(--text-title); }
+/* herophoto retired with the home camera: the landing is image plus two tabs. */
 
 /* ---- Graphical-choice system (WO20 item 1): one tile language, one card
  * language, segmented choices, option sheets. Tokens only; motion reuses
