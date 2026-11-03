@@ -55,7 +55,13 @@ ok(Profile.routeFor("enthusiast") === "inventory", "enthusiast identity routes t
 Profile.setMode(memStore(backing), "enthusiast");
 ok(Profile.loadProfile(memStore(backing)).mode === "enthusiast",
   "deliberate settings change switches the mode");
-throws(() => Profile.saveProfile(memStore(), "not-an-email", "enthusiast"), "email is required");
+const oneTap = memStore();
+const tapped = Profile.saveProfile(oneTap, "", "shop");
+ok(tapped.mode === "shop" && tapped.email === "" && !!tapped.created,
+  "one tap with no email finishes setup");
+ok(Profile.needsSetup(oneTap) === false, "email-less profile skips the chooser");
+ok(Profile.loadProfile(oneTap).mode === "shop", "email-less profile keeps its mode");
+throws(() => Profile.saveProfile(memStore(), "not-an-email", "enthusiast"), "a typed email must look like one");
 throws(() => Profile.saveProfile(memStore(), "a@b.c", "wizard"), "mode must be shop or enthusiast");
 const corrupt = memStore();
 corrupt.setItem(Profile.KEY, "{broken json");

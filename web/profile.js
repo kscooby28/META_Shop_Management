@@ -12,7 +12,7 @@ const Profile = (() => {
       const raw = storage.getItem(KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      if (!parsed || MODES.indexOf(parsed.mode) < 0 || !parsed.email) return null;
+      if (!parsed || MODES.indexOf(parsed.mode) < 0) return null;
       return parsed;
     } catch (err) {
       return null;
@@ -20,9 +20,11 @@ const Profile = (() => {
   }
 
   function saveProfile(storage, email, mode) {
+    // Email is optional: one tap on a side finishes setup. A typed
+    // address must still look like one; blank stays blank.
     const cleanEmail = (email || "").trim();
-    if (!cleanEmail || cleanEmail.indexOf("@") < 0) {
-      throw new Error("add an email address so the profile knows it is yours");
+    if (cleanEmail && cleanEmail.indexOf("@") < 0) {
+      throw new Error("that email does not look right — fix it or leave it blank");
     }
     if (MODES.indexOf(mode) < 0) {
       throw new Error("pick shop or enthusiast");

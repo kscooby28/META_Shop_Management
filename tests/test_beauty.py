@@ -219,7 +219,9 @@ class MoneyTest(unittest.TestCase):
 
     def test_no_new_literal_money_amounts_in_js(self):
         # Audited baseline, all honest: "$0" is a computed zero-total
-        # display, "$180" the real shop rate in a log line. The tour's
+        # display, "$180" the real shop rate in a log line, "$25" the
+        # verbatim recorded-live Spark Open reason quoted on the Compare
+        # tour beat (eval_scale_results.json, inventory-demo). The tour's
         # "$200" narrative left with the script-words swap (the owner's
         # verbatim voiceover spells it "two hundred bucks"). Any new
         # literal would be an invented number.
@@ -230,7 +232,7 @@ class MoneyTest(unittest.TestCase):
         self.assertEqual(
             sorted(set(re.findall(r"\$[0-9][\d,]*(?:\.\d+)?",
                                   read("app.js")))),
-            ["$0", "$180"])
+            ["$0", "$180", "$25"])
 
     def test_unknown_stays_styled_unknown(self):
         self.assertIn("var(--grade-c)", rule_body(".missing"))
@@ -341,8 +343,7 @@ class NoNewMotionTest(unittest.TestCase):
     def test_keyframes_set_unchanged(self):
         self.assertEqual(keyframe_names(),
                          {"slidein-right", "slidein-left", "doorfade",
-                          "sheetup", "movedflash", "skelpulse", "fadein",
-                          "halfpushshop", "halfpushgarage"})
+                          "sheetup", "movedflash", "skelpulse", "fadein"})
 
     def test_no_new_easings(self):
         plain = css_no_comments()
@@ -359,8 +360,8 @@ class LeftAloneTest(unittest.TestCase):
     """Audit findings marked already-modern: prove zero regression."""
 
     def test_doors_structure_kept(self):
-        # Click zones: invisible halves over the street photo.
-        # Hover brings scene life (never amber, never labeled);
+        # Labeled door buttons over the street photo: the photo stays
+        # fully visible (never amber), hover paints nothing, and
         # keyboard focus keeps the ink outline.
         door = rule_body(".door")
         for_keep = ("background: transparent;", "border: none;",

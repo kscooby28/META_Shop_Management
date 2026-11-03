@@ -30,11 +30,9 @@
   <div id="view-home">
   <div class="scene" id="homeScene">
     <img class="backdrop" src="assets/landing-2door.jpg" alt="American street: auto repair shop with customer cars on the left, home garage with enthusiast cars on the right">
-    <img class="bclone bclone-shop" src="assets/landing-2door.jpg" alt="" aria-hidden="true">
-    <img class="bclone bclone-garage" src="assets/landing-2door.jpg" alt="" aria-hidden="true">
     <div class="tilegrid entrances">
-      <button id="door-bay" type="button" class="door entrance zone" aria-label="Shop — Fix it"></button>
-      <button id="door-garage" type="button" class="door entrance zone" aria-label="DIY Garage — Your cars and parts"></button>
+      <button id="door-bay" type="button" class="door entrance zone" aria-label="Shop — Fix it"><span class="doorlabel"><span class="doortitle">Shop — fix it</span><span class="doorsub">The repair bench</span></span></button>
+      <button id="door-garage" type="button" class="door entrance zone" aria-label="DIY Garage — Your cars and parts"><span class="doorlabel"><span class="doortitle">DIY Garage — your cars &amp; parts</span><span class="doorsub">Parts cars &amp; inventory</span></span></button>
     </div>
   </div>
   </div>
@@ -448,7 +446,7 @@
   <div class="setup-card">
     <h2>First run: who are you?</h2>
     <p>This is asked once and never again. Your answer stays on this machine with your profile. Shops get the repair bench; the DIY Garage gets parts cars and inventory. You can switch later in Settings.</p>
-    <label>Your email<br><input id="setupEmail" type="text" placeholder="you@example.com" style="width:100%"></label>
+    <label>Your email (optional — one tap below finishes setup)<br><input id="setupEmail" type="text" placeholder="you@example.com" style="width:100%"></label>
     <p id="setupHint" class="hint" hidden></p>
     <div class="tilegrid" style="margin-top:0.8rem">
       <button id="btnSetupShop" type="button" class="gtile">

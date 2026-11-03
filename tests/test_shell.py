@@ -141,6 +141,7 @@ class ThemeTest(unittest.TestCase):
         without_root = css.partition("}")[2]
         without_comments = re.sub(r"/\*.*?\*/", "", without_root, flags=re.S)
         ids = set(re.findall(r'id="([\w-]+)"', read("web/index.html")))
+        ids |= set(re.findall(r'\.id = "([\w-]+)"', read("web/app.js")))
         hashes = re.findall(r"#([\w-]+)", without_comments)
         self.assertEqual(sorted(set(hashes) - ids), [])
         self.assertEqual(re.findall(r"rgba?\s*\(", without_comments), [])

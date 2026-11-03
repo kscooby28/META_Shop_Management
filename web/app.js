@@ -196,9 +196,23 @@ function isDemoMode(mode) {
   return mode === "demo-cache";
 }
 
+/* The mode pill answers "which engine ran this screen": modes attach
+ * per leg, and each view shows only its own legs, so a Bay hand-entry
+ * case never leaks its pill onto the Compare screen. */
+const VIEW_MODES = {
+  home: [],
+  bay: ["bayIntake", "bayPlan"],
+  inventory: ["intake", "harvest", "comps", "listing"],
+  compare: ["compare"],
+};
+
 function setPill() {
   const pill = $("modePill");
-  const modes = Object.values(state.modes);
+  let view = null;
+  try { view = (typeof currentView === "undefined") ? null : currentView; }
+  catch (e) { view = null; }
+  const keys = (view && VIEW_MODES[view]) || Object.keys(state.modes);
+  const modes = keys.map((k) => state.modes[k]).filter(Boolean);
   if (!modes.length) { pill.hidden = true; return; }
   pill.hidden = false;
   if (modes.every((m) => m === "live" || m === "live-adapter")) {
@@ -923,6 +937,8 @@ async function runCompare(opts) {
   }
   const res = await api("/api/compare", { sessionId: state.sessionId, demo: demoOnly });
   state.sessionId = res.sessionId;
+  state.modes.compare = res.modeOpen || "demo-cache";
+  setPill();
   renderCompare(res);
   feed("Compared both engines on " + res.rows.length + " parts",
     "tool compare.run — rules engine (" + res.mode13 + ") vs spark open (" + res.modeOpen + ")");
@@ -1400,7 +1416,7 @@ function tourBar(beat, index) {
   strong.textContent = "Tour — beat " + (index + 1) + " of " + TOUR_BEATS.length + ": " + beat.title;
   bar.appendChild(strong);
   const span = document.createElement("span");
-  span.className = "hint";
+  span.className = "hint tourline";
   span.textContent = beat.line;
   bar.appendChild(span);
   const journey = document.createElement("div");
@@ -1420,6 +1436,18 @@ function tourBar(beat, index) {
   dest.textContent = index + 1 < TOUR_BEATS.length ? "Next: " + TOUR_BEATS[index + 1].title : "Last beat";
   journey.appendChild(dest);
   bar.appendChild(journey);
+  const pause = document.createElement("button");
+  pause.type = "button";
+  pause.className = "small";
+  pause.id = "btnTourPause";
+  pause.addEventListener("click", () => tourTogglePlay());
+  bar.appendChild(pause);
+  const mute = document.createElement("button");
+  mute.type = "button";
+  mute.className = "small";
+  mute.id = "btnTourMute";
+  mute.addEventListener("click", () => tourToggleMute());
+  bar.appendChild(mute);
   const next = document.createElement("button");
   next.type = "button";
   next.className = "small";
@@ -1436,15 +1464,13 @@ function tourBar(beat, index) {
 }
 
 function placeTourBar(beat, index) {
+  // Fixed caption strip on every beat: the bar docks to the viewport
+  // bottom (see #tourBar), never into the page flow, so page scrolls
+  // cannot push the caption off screen.
   const old = $("tourBar");
   if (old) old.remove();
   const bar = tourBar(beat, index);
-  if (beat.id === "chooser") {
-    document.querySelector("#setupOverlay .setup-card").appendChild(bar);
-  } else {
-    const section = document.getElementById(beat.section);
-    section.parentNode.insertBefore(bar, section);
-  }
+  document.body.appendChild(bar);
   flash(bar);
   tourAutoplayBeat(index);
 }
@@ -1456,6 +1482,8 @@ function endTourPreview() {
   $("setupEmail").disabled = false;
   $("btnSetupShop").disabled = false;
   $("btnSetupFan").disabled = false;
+  const card = document.querySelector("#setupOverlay .setup-card");
+  if (card) card.style.marginBottom = "";
 }
 
 /* The tour starts past the doors: entries sit on the Bay and inventory
@@ -1505,60 +1533,156 @@ async function tourEnsureSeed() {
 async function showTourBeat() {
   const beat = TOUR_BEATS[tourState.beat];
   endTourPreview();
-  if (beat.id === "chooser") {
-    $("setupEmail").disabled = true;
-    $("btnSetupShop").disabled = true;
-    $("btnSetupFan").disabled = true;
-    $("setupOverlay").hidden = false;
-    paintSetupChoice((Profile.loadProfile(localStorage) || {}).mode);
-    tourPreview = true;
-  } else if (beat.id === "register" || beat.id === "knowledge") {
-    showView("inventory");
-    await tourEnsureSeed();
-    if (beat.id === "register") {
-      const d = document.querySelector("#sec-icars details");
-      if (d) d.open = true;
+  try {
+    if (beat.id === "chooser") {
+      $("setupEmail").disabled = true;
+      $("btnSetupShop").disabled = true;
+      $("btnSetupFan").disabled = true;
+      $("setupOverlay").hidden = false;
+      // Lift the card so the fixed caption strip never covers the choices.
+      const card = document.querySelector("#setupOverlay .setup-card");
+      if (card) card.style.marginBottom = "16rem";
+      paintSetupChoice((Profile.loadProfile(localStorage) || {}).mode);
+      tourPreview = true;
+    } else if (beat.id === "register" || beat.id === "knowledge") {
+      showView("inventory");
+      await tourEnsureSeed();
+      if (beat.id === "register") {
+        const d = document.querySelector("#sec-icars details");
+        if (d) d.open = true;
+      } else {
+        // Beat 3 narrates the M3 engine-computer note: put that car on
+        // screen, not the seed-first driver, which has no notes.
+        const sel = $("invKnowCar");
+        if (sel && invState.cars.some((c) => c.id === "car-m3")) {
+          sel.value = "car-m3";
+          renderInvKnow();
+          syncPickers();
+        }
+      }
+    } else if (beat.id === "money" || beat.id === "trust") {
+      showView("inventory");
+      if (!state.images.length) {
+        // Fresh profile: the beat needs photos, loaded exactly as the
+        // demo-car button loads them, so the tour never stalls here.
+        state.demo = true;
+        state.images = DEMO_FRAMES.map((d) => ({ name: d.name, src: d.src }));
+        renderThumbs();
+      }
+      if (!state.report || !(state.report.verdicts || []).length) await runAll();
+    } else if (beat.id === "rerank") {
+      showView("bay");
+      if (!bay.case || bay.case.declined || bay.demoCase !== "case1") await bayCreateCase("case1");
+      if (!bay.plan) await bayDraftPlan();
+      // One pass and one fail, so the re-rank and the evidence trail show live.
+      if (!bay.plan.results["t1"]) await bayRecord("t1", "pass", "tour recording");
+      if (!bay.plan.results["t4"]) await bayRecord("t4", "fail", "tour recording");
+    } else if (beat.id === "decline") {
+      // Oil-change decline on purpose: same decline mechanics, and no engine
+      // code ever appears on screen, on camera or off.
+      showView("bay");
+      $("bayYear").value = "2015"; $("bayMake").value = "BMW"; $("bayModel").value = "328i";
+      $("bayTrim").value = ""; $("bayEngine").value = "";
+      $("bayService").value = "oil change";
+      $("baySymptom").value = "due for an oil change";
+      $("bayCodes").value = "";
+      await bayCreateCase(null);
+    } else if (beat.id === "compare") {
+      showView("compare");
+      await runCompare({ demo: true });
     }
-  } else if (beat.id === "money" || beat.id === "trust") {
-    showView("inventory");
-    if (!state.report || !(state.report.verdicts || []).length) await runAll();
-  } else if (beat.id === "rerank") {
-    showView("bay");
-    if (!bay.case || bay.case.declined || bay.demoCase !== "case1") await bayCreateCase("case1");
-    if (!bay.plan) await bayDraftPlan();
-    // One pass and one fail, so the re-rank and the evidence trail show live.
-    if (!bay.plan.results["t1"]) await bayRecord("t1", "pass", "tour recording");
-    if (!bay.plan.results["t4"]) await bayRecord("t4", "fail", "tour recording");
-  } else if (beat.id === "decline") {
-    // Oil-change decline on purpose: same decline mechanics, and no engine
-    // code ever appears on screen, on camera or off.
-    showView("bay");
-    $("bayYear").value = "2015"; $("bayMake").value = "BMW"; $("bayModel").value = "328i";
-    $("bayTrim").value = ""; $("bayEngine").value = "";
-    $("bayService").value = "oil change";
-    $("baySymptom").value = "due for an oil change";
-    $("bayCodes").value = "";
-    await bayCreateCase(null);
-  } else if (beat.id === "compare") {
-    showView("compare");
-    await runCompare({ demo: true });
+  } catch (err) {
+    // A beat never stalls silently: say so, still place the caption,
+    // and let the autoplay timer carry the tour onward.
+    notice(esc(err.message));
+    feed("Tour beat hit a snag: " + err.message, null);
   }
+  // The narration's catch is static record, not network: it renders even
+  // when the yard compare above fails.
+  if (beat.id === "compare") tourShowRecordedSpare();
   placeTourBar(beat, tourState.beat);
-  const target = beat.id === "trust" ? $("listingCard")
+  const target = beat.id === "trust" ? (document.querySelector("#listingCard .approve-row") || $("listingCard"))
+    : beat.id === "money" ? (document.querySelector("#verdicts .verdict") || document.getElementById(beat.section))
+    : beat.id === "knowledge" ? (document.querySelector("#invKnow li") || document.getElementById(beat.section))
+    : beat.id === "decline" ? ($("bayCaseCard") || document.getElementById(beat.section))
     : beat.id === "rerank" ? $("bayTrail")
+    : beat.id === "compare" ? (document.getElementById("tourRecordedLive") || $("compareOut"))
     : beat.section ? document.getElementById(beat.section) : null;
   if (target) {
-    flash(target);
-    if (beat.id !== "compare") scrollSoon(target);
+    try { tourReveal(target); }
+    catch (err) {
+      notice(esc(err.message));
+      feed("Tour scroll hit a snag: " + err.message, null);
+    }
   }
 }
+/* The Compare beat's catch is a real recorded live run: WO13 graded the
+ * DIY Garage seed on Baseten (eval_scale_results.json, inventory-demo,
+ * 19603 ms), and Spark Open read the owner's roadside-spare note and
+ * said don't list where the rules said B. Quoted verbatim below. */
+const TOUR_RECORDED_SPARE = {
+  part: "spare ignition coil",
+  ruleGrade: "B",
+  openGrade: "C",
+  reason: "Keep as spare, not list: intact yes and used working when pulled but only $25 price_low/high from demo-sample: inventory seed, demand unknown with no demand_source, frames_seen 0 with no coverage, money_grade C with no sample comp, reliable false sold_count 0, pull_minutes null, evidence thin; plus owner_note says Kept as roadside spare for My driver car_label.",
+  ms: 19603,
+  when: "2026-10-28",
+};
+
+function tourShowRecordedSpare() {
+  const box = $("compareOut");
+  if (!box || document.getElementById("tourRecordedLive")) return;
+  const card = document.createElement("div");
+  card.className = "gcard";
+  card.id = "tourRecordedLive";
+  const head = document.createElement("div");
+  head.className = "ctitle";
+  head.textContent = "Recorded live run — Muse Spark Open on Baseten — " + TOUR_RECORDED_SPARE.when;
+  card.appendChild(head);
+  const sub = document.createElement("p");
+  sub.textContent = "DIY Garage inventory, " + TOUR_RECORDED_SPARE.part + ": the rules graded " +
+    TOUR_RECORDED_SPARE.ruleGrade + ", the open model graded " + TOUR_RECORDED_SPARE.openGrade +
+    " live in " + TOUR_RECORDED_SPARE.ms + " ms. It read the owner's own note and said don't list.";
+  card.appendChild(sub);
+  const quote = document.createElement("p");
+  quote.className = "hint";
+  quote.textContent = "Verbatim reason: " + TOUR_RECORDED_SPARE.reason;
+  card.appendChild(quote);
+  const src = document.createElement("p");
+  src.className = "hint";
+  src.textContent = "Source: eval_scale_results.json, inventory-demo. A recorded live output — not a demo sample.";
+  card.appendChild(src);
+  box.appendChild(card);
+}
 /* ===== end guided tour ===== */
+/* Tour scroll: land the beat target in the visible band between the
+ * sticky header and the fixed caption strip, so the strip never
+ * covers what the narration describes. Short targets bottom-align
+ * above the strip; tall ones top-anchor under the header. */
+function tourReveal(target) {
+  if (!target) return;
+  flash(target);
+  if (target.closest) {
+    const ps = target.closest("section[id]");
+    if (ps) revealSection(ps.id);
+  }
+  const bar = document.getElementById("tourBar");
+  const strip = (bar ? bar.getBoundingClientRect().height : 120) + 96;
+  const rect = target.getBoundingClientRect();
+  const avail = window.innerHeight - strip - 64;
+  const h = Math.min(rect.height, Math.max(avail, 120));
+  const wantTop = 64 + Math.max(0, avail - h);
+  const y = Math.max(0, rect.top + window.scrollY - wantTop);
+  const calm = calmMotion();
+  try { window.scrollTo({ top: y, behavior: calm ? "auto" : "smooth" }); }
+  catch (e) { window.scrollTo(0, y); }
+}
 /* ===== tour autoplay: the demo plays itself, with voice =====
  * Taking the tour runs the movie: beats advance on their own while
  * a pre-rendered mp3 per beat plays the narration and the tour
  * bar shows the same words as captions. Beats, order, gates, and
  * guards are untouched — this only presses Next on a timer and
- * plays the file. Pause/Mute live in a sibling bar so tourBar stays exact. */
+ * plays the file. Pause/Mute live in the caption strip itself. */
 const TOUR_SCRIPT = {
   chooser: { hold: 9000, say: "Point your phone at any car — and know what it is, what it's worth, and what to do next." },
   register: { hold: 11000, say: "Meet the garage. One photo names the car. A VIN photo fills in the blanks. One tap registers it — and the app never guesses a field it cannot see." },
@@ -1621,63 +1745,38 @@ function tourPlayAudio(beatId, token, hold) {
   } catch (e) { return false; }
 }
 
-function renderMovieBar() {
-  let bar = document.getElementById("movieBar");
-  if (!bar) {
-    bar = document.createElement("div");
-    bar.id = "movieBar";
-    bar.className = "pagestep";
-    const play = document.createElement("button");
-    play.type = "button";
-    play.id = "btnMoviePlay";
-    play.className = "small";
-    play.addEventListener("click", () => {
-      if (!tourState) return;
-      tourPlaying = !tourPlaying;
-      if (!tourPlaying) { tourStopTimer(); }
-      else {
-        const beat = TOUR_BEATS[tourState.beat];
-        tourAutoplayBeat(tourState.beat, beat);
-      }
-      renderMovieBar();
-    });
-    bar.appendChild(play);
-    const mute = document.createElement("button");
-    mute.type = "button";
-    mute.id = "btnMovieMute";
-    mute.className = "small";
-    mute.addEventListener("click", () => {
-      tourMuted = !tourMuted;
-      try { localStorage.setItem("tour.muted", tourMuted ? "1" : "0"); } catch (e) {}
-      if (tourMuted) { try { if (tourAudio) tourAudio.pause(); } catch (e) {} }
-      else if (tourState && tourPlaying) {
-        tourAutoplayBeat(tourState.beat, TOUR_BEATS[tourState.beat]);
-      }
-      renderMovieBar();
-    });
-    bar.appendChild(mute);
-    const cap = document.createElement("span");
-    cap.id = "movieCap";
-    bar.appendChild(cap);
-    const anchor = document.getElementById("tourBar");
-    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(bar, anchor.nextSibling);
-    else document.body.appendChild(bar);
-  }
-  const play = document.getElementById("btnMoviePlay");
-  if (play) play.textContent = tourPlaying ? "Pause movie" : "Play movie";
-  const mute = document.getElementById("btnMovieMute");
+function paintTourControls() {
+  const pause = document.getElementById("btnTourPause");
+  if (pause) pause.textContent = tourPlaying ? "Pause movie" : "Play movie";
+  const mute = document.getElementById("btnTourMute");
   if (mute) mute.textContent = tourMuted ? "Unmute voice" : "Mute voice";
-  const cap = document.getElementById("movieCap");
-  if (cap) cap.textContent = tourState ? ("Beat " + (tourState.beat + 1) + " of " + TOUR_BEATS.length) : "";
+}
+
+function tourTogglePlay() {
+  if (!tourState) return;
+  tourPlaying = !tourPlaying;
+  if (!tourPlaying) { tourStopTimer(); }
+  else { tourAutoplayBeat(tourState.beat, TOUR_BEATS[tourState.beat]); }
+  paintTourControls();
+}
+
+function tourToggleMute() {
+  tourMuted = !tourMuted;
+  try { localStorage.setItem("tour.muted", tourMuted ? "1" : "0"); } catch (e) {}
+  if (tourMuted) { try { if (tourAudio) tourAudio.pause(); } catch (e) {} }
+  else if (tourState && tourPlaying) {
+    tourAutoplayBeat(tourState.beat, TOUR_BEATS[tourState.beat]);
+  }
+  paintTourControls();
 }
 
 function tourAutoplayStart() {
   tourPlaying = true;
-  renderMovieBar();
+  paintTourControls();
 }
 
 function tourAutoplayBeat(index, beat) {
-  renderMovieBar();
+  paintTourControls();
   if (!tourPlaying || !tourState) return;
   beat = beat || TOUR_BEATS[tourState.beat];
   if (!beat) return;
@@ -1692,8 +1791,6 @@ function tourAutoplayBeat(index, beat) {
 function tourAutoplayStop() {
   tourStopTimer();
   tourPlaying = true;
-  const bar = document.getElementById("movieBar");
-  if (bar) bar.remove();
 }
 /* ===== end tour autoplay ===== */
 async function init() {
@@ -2331,6 +2428,7 @@ function showView(which) {
   flash(document.querySelector(".work"));
   playViewTransition(document.querySelector(".work"), UX.transitionFor(from, which));
   currentView = which;
+  setPill();
 }
 
 /* ---------- paged views: graphical index + one page at a time ----------
@@ -3505,7 +3603,7 @@ function renderSettings() {
   ctitle.textContent = "Profile";
   card.appendChild(ctitle);
   const span = document.createElement("span");
-  span.textContent = p.email + " · " + (p.mode === "shop" ? "Shop" : "DIY Garage");
+  span.textContent = (p.email ? p.email + " · " : "") + (p.mode === "shop" ? "Shop" : "DIY Garage");
   card.appendChild(span);
   const other = p.mode === "shop" ? "enthusiast" : "shop";
   const btn = document.createElement("button");

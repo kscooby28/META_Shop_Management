@@ -248,7 +248,9 @@ def bay_run(n):
 def inv_run(n):
     _, seed = get("/api/inv/seed")
     check(len(seed["seed"]["cars"]) == 4, "inv %d: seed must carry 4 cars" % n)
-    check(len(seed["seed"]["parts"]) == 6, "inv %d: seed must carry 6 parts" % n)
+    part_ids = [p["id"] for p in seed["seed"]["parts"]]
+    check(len(part_ids) >= 6, "inv %d: seed must carry 6+ parts" % n)
+    check("ip-ecu" in part_ids, "inv %d: seed must carry ip-ecu" % n)
 
     _, hit = post("/api/inv/comps", {"label": "engine computer", "demo": True})
     check(hit["comp"]["value"] == 200, "inv %d: demo comp must hit" % n)

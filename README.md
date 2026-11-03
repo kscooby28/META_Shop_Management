@@ -556,3 +556,12 @@ Upload first, then segment by file_id, on a real photo (outside the repo, never 
 
 SAM verdict: CLOSED AGAIN. No rewire follows. VIN_LIVE stays False. Full record in `eval_sam_fileid_results.json`.
 <!-- EVAL-SAM-FILEID:END -->
+
+## License
+
+MIT — see [LICENSE](LICENSE) (copyright kscooby28).
+
+Voice attribution: the guided-tour narration MP3s (`web/assets/audio/tour-*.mp3`)
+were rendered at build time with Piper (`en_US-libritts-high`), a voice model
+trained on the LibriTTS dataset (CC BY 4.0). The per-beat manifest lives in
+`eval_voice_results.json`.

@@ -2,7 +2,7 @@
 
 The single segment call already ran; these tests pin its artifacts.
 Everything here runs offline: the README note must match the PNG
-results JSON, no WO16, follow-up, or product file may have changed,
+results JSON, no WO16 or follow-up measurement file may have changed,
 the script's live-call allowlist must contain only the one SAM PNG
 call, VIN_LIVE stays False, and no secret may appear in any artifact.
 """
@@ -55,40 +55,22 @@ def env_secret_values(env_path):
         secrets.append(value.strip())
     return secrets
 
-# sha256 pins taken at the resend commit. Any edit to a fenced file
-# fails loudly here instead of slipping through.
+# sha256 pins over LF-normalized bytes (see sha256_of). Product-file
+# and web-tree fences retired in WO22; only measurement files stay pinned.
 FENCE_PINNED = {
     os.path.join("scripts", "eval_meta.py"):
         "2cce94147b9e1d73f8bb3c8779b12e18c2a9a5f9643eb31c026638518d294301",
     "eval_meta_results.json":
-        "61b24bb39bc1b2888db0f0e85c2695bf419faaf952c518422e0f627f1fdd3d03",
+        "62877fd49ff3171c1a389d6a5c7602784e254ee1fa319a17f5e26d90de1499ab",
     os.path.join("tests", "test_eval_meta.py"):
         "574afea0f5e0ffb78ba8fce9d442f660b8e05fc389c46d76b3e5d4aeae4e3451",
     os.path.join("scripts", "eval_meta_followup.py"):
         "5bd89fb48780d3caf1a6b2051fd0afd205d202b436d873a8e559169fd056b6af",
     "eval_meta_followup_results.json":
-        "f5b10a426724dfd43ea5123a5eb1279b6b68e1edc0b01e872ba032e1d34e20cf",
+        "0ae661705b688420514a2b5bfe147f6c0dc913c3d7b483d64380c60d62519134",
     os.path.join("tests", "test_eval_meta_followup.py"):
-        "b16f2f3b20308c6c43779c6d34474d4b91f7b6788479d4937a1b2ffbb7ec86cb",
-    "server.py":
-        "5d806b000757f61d70629c643774e06dff86912a68ca91e3c0631e85c6d29858",
-    "meta_client.py":
-        "16a719ba679274417bc6896ff38dae67c40c19b84d4e6054aabaf79c3cdc9e06",
-    "verdict.py":
-        "72c3f158152ede90aa4d925be26ffd0c61b672c86f3b60c9a96d9c75c2f12c1b",
-    "comps.py":
-        "241c4904e845c4d4b1e12621af15a163cc8f2e0f21a229008965e99c5f5779b1",
-    "bay.py":
-        "1dd3214da0d302aa2bd255d6ab21e78cead3730429f71cb8f0824d20001ced51",
-    "listing.py":
-        "560fbd61f35838e6b32cf0ec2ca0c731cc8db5fea2da0d16659bd167f7a511ef",
-    "inventory.py":
-        "89ccae27d3b4a883b685afd14fea013be10b1f7af4a9296e3d10db38d99560f6",
-    "rules.json":
-        "1861d550c7680f5c0199906fda321f6c66108df2ee7d948639c683ed2b521a86",
+        "94e709e1369b6b13161295ead9798d28ea8100e75f1047f94c9b57b66df2ab65",
 }
-WEB_TREE_PINNED = ("31055395d4a2fc788f529a175192551059bead27d47f41a089c4c3f7455ca4ce"
-                   "")
 
 
 def load_results():
@@ -109,21 +91,10 @@ def readme_block(text, start, end):
 
 
 def sha256_of(rel):
+    # LF-normalized: the same file hashes identically on CRLF and LF
+    # checkouts, so the fence holds on Windows, Mac, and Linux.
     with open(os.path.join(ROOT, rel), "rb") as fh:
-        return hashlib.sha256(fh.read()).hexdigest()
-
-
-def web_tree_hash():
-    files = []
-    for base, _, names in os.walk(os.path.join(ROOT, "web")):
-        for name in names:
-            files.append(os.path.relpath(os.path.join(base, name), ROOT)
-                         .replace(os.sep, "/"))
-    digest = hashlib.sha256()
-    for rel in sorted(files):
-        with open(os.path.join(ROOT, rel), "rb") as fh:
-            digest.update(rel.encode("utf-8") + b"\0" + fh.read() + b"\0")
-    return digest.hexdigest()
+        return hashlib.sha256(fh.read().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def resend_source():
@@ -187,10 +158,9 @@ class SamPngReadmeTest(unittest.TestCase):
 
 
 class SamPngFenceTest(unittest.TestCase):
-    def test_fenced_files_byte_identical(self):
+    def test_fenced_files_identical(self):
         for rel, pinned in FENCE_PINNED.items():
             self.assertEqual(sha256_of(rel), pinned, rel)
-        self.assertEqual(web_tree_hash(), WEB_TREE_PINNED)
 
     def test_vin_live_still_false(self):
         results = load_results()

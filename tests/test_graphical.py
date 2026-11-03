@@ -42,8 +42,7 @@ def reduced_block():
 
 
 KEYFRAMES = {"slidein-right", "slidein-left", "doorfade", "sheetup",
-             "movedflash", "skelpulse", "fadein", "halfpushshop",
-             "halfpushgarage"}
+             "movedflash", "skelpulse", "fadein"}
 # Literal durations already in the tree at WO19 (panel slide, button ease,
 # strip ease, flash, skeleton pulse). Anything new must be a token.
 LEGACY_DURATIONS = {"0.15s", "0.12s", "0.2s", "0.25s", "900ms"}
@@ -177,7 +176,7 @@ class LandingTest(unittest.TestCase):
         self.assertNotIn("Pixar", read("index.html"))
         self.assertIn('src="assets/landing-2door.jpg"', home)
         # The street photo is the navigation: names live in
-        # aria-labels on the invisible zones, nowhere visible.
+        # aria-labels AND on the visible door buttons.
         for door, label in (("door-bay", "Shop — Fix it"),
                             ("door-garage",
                              "DIY Garage — Your cars and parts")):
@@ -185,6 +184,10 @@ class LandingTest(unittest.TestCase):
                             home).group(0)
             self.assertIn('aria-label="%s"' % label, tag, door)
             self.assertIn("zone", tag, door)
+            body = re.search(r'<button[^>]*id="%s"[^>]*>(.*?)</button>' % door,
+                             home, re.S).group(1)
+            self.assertIn(label.split(" — ")[0], body, door)
+            self.assertIn("doorlabel", body, door)
         zones = home[home.index('class="tilegrid entrances'):];
         self.assertNotIn("door-name", zones)
         self.assertNotIn("door-why", zones)

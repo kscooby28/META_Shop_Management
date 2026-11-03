@@ -906,8 +906,8 @@ class GraphicalButtonsTest(unittest.TestCase):
     """Every button is graphical: icon or image plus word, never bare text."""
 
     PLAIN_OK = set()  # every static button is graphical; no exceptions
-    # Landing click zones are invisible by design: no visible body,
-    # named by aria-label, alive on hover, outlined on keyboard focus.
+    # Landing doors are labeled buttons by design: visible label spans
+    # plus the aria-label, outlined on keyboard focus.
     ZONE_OK = {"door-bay": "Shop \u2014 Fix it",
                "door-garage": "DIY Garage \u2014 Your cars and parts"}
 
@@ -925,7 +925,9 @@ class GraphicalButtonsTest(unittest.TestCase):
                 self.assertIn("zone", tag, bid)
                 self.assertIn('aria-label="%s"' % self.ZONE_OK[bid],
                               tag, bid)
-                self.assertEqual(body.strip(), "", bid)
+                self.assertIn("doorlabel", body, bid)
+                self.assertIn(self.ZONE_OK[bid].split(" \u2014 ")[0],
+                              body, bid)
                 found += 1
                 continue
             found += 1
@@ -1020,25 +1022,33 @@ class MovieTest(unittest.TestCase):
         stop = chunk[chunk.index("function tourStopTimer"):
                      chunk.index("function tourAdvance")]
         self.assertIn("tourAudio.pause()", stop)
-        bar = chunk[chunk.index("function renderMovieBar"):
-                    chunk.index("function tourAutoplayStart")]
-        self.assertIn("tourPlaying = !tourPlaying", bar)
-        self.assertIn("tourStopTimer();", bar)
+        play = chunk[chunk.index("function tourTogglePlay"):
+                     chunk.index("function tourToggleMute")]
+        self.assertIn("tourPlaying = !tourPlaying", play)
+        self.assertIn("tourStopTimer();", play)
 
     def test_advance_on_audio_ended(self):
         chunk = self.movie_chunk()
         play = chunk[chunk.index("function tourPlayAudio"):
-                     chunk.index("function renderMovieBar")]
+                     chunk.index("function paintTourControls")]
         self.assertIn("tourAudio.onended", play)
         self.assertIn("setTimeout(() => tourAdvance(token), 1200)", play)
 
-    def test_movie_bar_is_separate(self):
+    def test_caption_strip_holds_all_four_controls(self):
+        app = read_web("app.js")
+        self.assertNotIn("movieBar", app)
+        self.assertNotIn("renderMovieBar", app)
+        bar = app[app.index("function tourBar"):
+                  app.index("function placeTourBar")]
+        for marker in ('pause.id = "btnTourPause";',
+                       'mute.id = "btnTourMute";',
+                       "tourTogglePlay()", "tourToggleMute()",
+                       '"Next"', '"Finish"', '"Exit tour"'):
+            self.assertIn(marker, bar, marker)
         chunk = self.movie_chunk()
-        self.assertIn('id = "movieBar";', chunk)
-        self.assertIn("btnMoviePlay", chunk)
-        self.assertIn("btnMovieMute", chunk)
-        self.assertIn("Pause movie", chunk)
-        self.assertIn("Play movie", chunk)
+        for marker in ("Pause movie", "Play movie",
+                       "Mute voice", "Unmute voice"):
+            self.assertIn(marker, chunk, marker)
 
     def test_tour_section_pins_intact(self):
         app = read_web("app.js")
@@ -1156,8 +1166,8 @@ class StreetAndNetworkTest(unittest.TestCase):
         self.assertEqual(len(re.findall(r"<button", home)), 2)
         self.assertIn('id="door-bay"', home)
         self.assertIn('id="door-garage"', home)
-        # Backdrop plus one clipped in-photo clone per half.
-        self.assertEqual(home.count("<img"), 3)
+        # Backdrop only: the in-photo hover clones are gone.
+        self.assertEqual(home.count("<img"), 1)
 
     def test_network_feed_markup(self):
         html = read_web("index.html")

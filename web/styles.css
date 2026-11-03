@@ -139,17 +139,16 @@ body {
 }
 .row { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
 
-/* Landing scene: the street photo IS the navigation. Two invisible
- * click zones (shop half, garage half) sit over the image; names live
- * in aria-labels and on the next screen. The photo rests dead still
- * until hover: the hovered half then pushes in slowly while the other
- * half stays frozen, and stillness returns on leave. Keyboard focus
- * keeps the ink outline. Zones are scene elements, never amber. */
+/* Landing scene: the street photo IS the navigation. Two always-visible
+ * labeled door buttons (shop half, garage half) sit over the image; the
+ * same names live in aria-labels for screen readers. The photo rests
+ * dead still: no hover zoom, no scale distortion, on pointer or touch.
+ * Keyboard focus keeps the ink outline. Zones are scene elements,
+ * never amber. */
 .backdrop {
   width: 100%; height: min(68vh, 34rem); object-fit: cover; display: block;
   border: 1px solid var(--line); border-radius: var(--radius-card);
   background: var(--paper);
-  transition: transform var(--t-page) var(--ease);
 }
 .entrances {
   position: absolute; inset: 0;
@@ -162,28 +161,26 @@ body {
   padding: 0;
   min-height: 100%;
   cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
 }
 .door.zone:hover {
   background: transparent;
 }
-.scene { overflow: hidden; border-radius: var(--radius-card); }
-.bclone {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; opacity: 0; pointer-events: none;
-  transition: opacity var(--t-page) var(--ease);
+.scene { position: relative; overflow: hidden; border-radius: var(--radius-card); }
+.doorlabel {
+  display: block;
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: inset 0 1px 0 var(--line);
+  padding: 0.6rem 0.9rem;
+  margin: 0 0.6rem 1rem;
+  text-align: center;
 }
-.bclone-shop { clip-path: inset(0 50% 0 0); }
-.bclone-garage { clip-path: inset(0 0 0 50%); }
-.scene:has(#door-bay:hover) .bclone-shop { opacity: 1; animation: halfpushshop var(--t-push) var(--ease) infinite alternate; }
-@keyframes halfpushshop {
-  from { transform: scale(1); }
-  to { transform: scale(1.06) translateX(-1%); }
-}
-.scene:has(#door-garage:hover) .bclone-garage { opacity: 1; animation: halfpushgarage var(--t-push) var(--ease) infinite alternate; }
-@keyframes halfpushgarage {
-  from { transform: scale(1); }
-  to { transform: scale(1.06) translateX(1%); }
-}
+.doortitle { display: block; font-size: var(--text-title); font-weight: 800; color: var(--ink); }
+.doorsub { display: block; font-size: var(--text-body); color: var(--muted); }
 .door.zone:focus-visible {
   background: transparent;
   outline: 3px solid var(--ink);
@@ -236,6 +233,28 @@ button.approve { min-height: 56px; font-size: var(--text-title); padding-left: 1
   display: flex; gap: 0.7rem; align-items: center; flex-wrap: wrap;
 }
 .homehead strong { font-size: var(--text-title); }
+
+/* Tour caption strip: fixed above the bottom bar, safe-area aware, so the
+ * caption stays on screen on every beat. The beat line clamps to two
+ * lines; tourReveal scrolls each beat target into the band above. */
+#tourBar {
+  position: fixed;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  z-index: 120;
+  margin-bottom: 0;
+  max-height: 38vh;
+  overflow-y: auto;
+}
+#tourBar .tourline {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-height: 3.4em;
+  flex-basis: 100%;
+}
 
 .guide {
   border: 2px solid var(--ink);
@@ -332,6 +351,18 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
 .part-list .tag { font-family: monospace; font-size: var(--text-meta); color: var(--muted); }
 
 .verdict { border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: inset 0 1px 0 var(--line); padding: 0.8rem 0.9rem; margin-bottom: 0.7rem; }
+/* Verdict card art is a banner, never a full screen: the rule grade and
+ * the money grade stay in view beside it. */
+.verdict > img.timg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 18rem;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  margin-bottom: 0.6rem;
+}
 .verdict .head { display: flex; gap: 0.7rem; align-items: baseline; flex-wrap: wrap; }
 .grade {
   display: inline-block;
@@ -373,6 +404,23 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
 
 .cutout { display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap; margin: 0.6rem 0; }
 .cutout svg { width: 220px; height: 220px; border: 1px solid var(--line); border-radius: var(--radius-small); background: var(--paper); }
+
+/* Listing gate: nothing may push the page wider than the phone, and the
+ * draft text plus the Approve button fit on screen together. */
+#sec-listing, #listingCard, .gatecard { min-width: 0; }
+#listingCard > * { min-width: 0; max-width: 100%; }
+#listingCard input, #listingCard textarea { max-width: 100%; overflow-wrap: anywhere; }
+#sec-listing img { max-width: 100%; height: auto; }
+#studioBox img {
+  width: 100%;
+  max-height: 40vh;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+}
+.cutout svg { max-width: 100%; height: auto; }
+#listingCard, #receipt, #networkCards { overflow-wrap: anywhere; }
+.tilegrid > * { min-width: 0; }
 .dest { display: flex; gap: 1rem; margin: 0.6rem 0; font-size: var(--text-body); flex-wrap: wrap; }
 .dest .roadmap { color: var(--muted); font-size: var(--text-meta); }
 
@@ -858,8 +906,6 @@ body[data-setting="shop"] .staged { border-top-color: var(--ink); }
   .skel { animation: none; }
   .hero-clone { transition: none; }
   button:active { transform: none; }
-  .bclone { transition: none; }
-  .scene:has(#door-bay:hover) .bclone-shop, .scene:has(#door-garage:hover) .bclone-garage { animation: none; opacity: 0; }
   .gtile:hover img.timg, .strip figure:hover img, .thumbs figure:hover img { transform: none; }
   .gtile img.timg, .strip img, .thumbs img { transition: none; }
 }

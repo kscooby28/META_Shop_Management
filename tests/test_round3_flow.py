@@ -1,5 +1,5 @@
 """Round-3 pins: garage flow rebuilt photo-first, demo-frame ghosts gone,
-landing hover life. Offline; look and feel stay a smoke proof."""
+landing still under labeled doors. Offline; look and feel stay a smoke proof."""
 
 import os
 import re
@@ -109,45 +109,34 @@ class PagesTest(unittest.TestCase):
 
 
 class HalfMotionTest(unittest.TestCase):
-    """Landing rests still; the hovered half pushes in-photo; calm freezes."""
+    """Landing rests still under labeled doors; no hover zoom anywhere."""
 
-    def test_half_keyframes_exist(self):
+    def test_no_landing_hover_motion(self):
         css = read_web("styles.css")
-        self.assertIn("@keyframes halfpushshop", css)
-        self.assertIn("@keyframes halfpushgarage", css)
-        for dead in ("scenedrift", "scenepush", "scenecar", "scenewalk",
+        for dead in ("halfpushshop", "halfpushgarage", "bclone",
+                     "scenedrift", "scenepush", "scenecar", "scenewalk",
                      "sceneFx", "SceneFx", "--t-drive", "--t-walk",
                      "--t-drift", "move-car"):
             self.assertNotIn(dead, css, dead)
+        html = read_web("index.html")
+        self.assertNotIn("bclone", html)
 
-    def test_clones_cover_their_halves(self):
+    def test_backdrop_is_the_only_landing_image(self):
         html = read_web("index.html")
         scene = html[html.index('id="homeScene"'):
                      html.index('id="view-bay"')]
-        for clone in ("bclone-shop", "bclone-garage"):
-            tag = re.search(r'<img[^>]*class="[^"]*%s"[^>]*>' % clone,
-                            scene).group(0)
-            self.assertIn('src="assets/landing-2door.jpg"', tag)
-            self.assertIn('aria-hidden="true"', tag)
-        self.assertLess(scene.index("bclone-shop"),
-                        scene.index('class="tilegrid entrances"'))
-        css = read_web("styles.css")
-        self.assertIn(".bclone-shop { clip-path: inset(0 50% 0 0); }", css)
-        self.assertIn(".bclone-garage { clip-path: inset(0 0 0 50%); }", css)
+        self.assertEqual(scene.count("<img"), 1)
+        self.assertIn('src="assets/landing-2door.jpg"', scene)
 
-    def test_hover_pushes_only_its_half(self):
-        css = read_web("styles.css")
-        self.assertIn(".scene:has(#door-bay:hover) .bclone-shop", css)
-        self.assertIn("animation: halfpushshop var(--t-push)", css)
-        self.assertIn(".scene:has(#door-garage:hover) .bclone-garage", css)
-        self.assertIn("animation: halfpushgarage var(--t-push)", css)
-
-    def test_zones_stay_empty(self):
+    def test_doors_are_labeled_buttons(self):
         html = read_web("index.html")
-        for zid in ("door-bay", "door-garage"):
+        for zid, words in (("door-bay", ("Shop", "fix it")),
+                           ("door-garage", ("DIY Garage", "your cars"))):
             body = re.search(r'<button[^>]*id="%s"[^>]*>(.*?)</button>' % zid,
                              html, re.S).group(1)
-            self.assertEqual(body.strip(), "", zid)
+            for word in words:
+                self.assertIn(word, body, zid)
+            self.assertIn("doorlabel", body, zid)
 
     def test_images_stir_on_hover(self):
         css = read_web("styles.css")
@@ -157,10 +146,9 @@ class HalfMotionTest(unittest.TestCase):
         self.assertIn(".thumbs figure:hover img { transform: scale(1.07); }",
                       css)
 
-    def test_calm_cuts_half_motion(self):
+    def test_calm_still_cuts_tile_motion(self):
         calm = calm_block(read_web("styles.css"))
-        self.assertIn(".scene:has(#door-bay:hover) .bclone-shop", calm)
-        self.assertIn(".scene:has(#door-garage:hover) .bclone-garage", calm)
+        self.assertNotIn("bclone", calm)
         self.assertIn(".gtile:hover img.timg", calm)
 
 
