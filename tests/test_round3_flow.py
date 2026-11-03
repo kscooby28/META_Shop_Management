@@ -108,16 +108,39 @@ class PagesTest(unittest.TestCase):
         self.assertIn('"To do"', fn)
 
 
-class HoverLifeTest(unittest.TestCase):
-    """Landing breathes (drift + push); images stir; calm cuts everything."""
+class HalfMotionTest(unittest.TestCase):
+    """Landing rests still; the hovered half pushes in-photo; calm freezes."""
 
-    def test_scene_keyframes_exist(self):
+    def test_half_keyframes_exist(self):
         css = read_web("styles.css")
-        self.assertIn("@keyframes scenedrift", css)
-        self.assertIn("@keyframes scenepushbay", css)
-        self.assertIn("@keyframes scenepushgarage", css)
-        self.assertNotIn("scenecar", css)
-        self.assertNotIn("scenewalk", css)
+        self.assertIn("@keyframes halfpushshop", css)
+        self.assertIn("@keyframes halfpushgarage", css)
+        for dead in ("scenedrift", "scenepush", "scenecar", "scenewalk",
+                     "sceneFx", "SceneFx", "--t-drive", "--t-walk",
+                     "--t-drift", "move-car"):
+            self.assertNotIn(dead, css, dead)
+
+    def test_clones_cover_their_halves(self):
+        html = read_web("index.html")
+        scene = html[html.index('id="homeScene"'):
+                     html.index('id="view-bay"')]
+        for clone in ("bclone-shop", "bclone-garage"):
+            tag = re.search(r'<img[^>]*class="[^"]*%s"[^>]*>' % clone,
+                            scene).group(0)
+            self.assertIn('src="assets/landing-2door.jpg"', tag)
+            self.assertIn('aria-hidden="true"', tag)
+        self.assertLess(scene.index("bclone-shop"),
+                        scene.index('class="tilegrid entrances"'))
+        css = read_web("styles.css")
+        self.assertIn(".bclone-shop { clip-path: inset(0 50% 0 0); }", css)
+        self.assertIn(".bclone-garage { clip-path: inset(0 0 0 50%); }", css)
+
+    def test_hover_pushes_only_its_half(self):
+        css = read_web("styles.css")
+        self.assertIn(".scene:has(#door-bay:hover) .bclone-shop", css)
+        self.assertIn("animation: halfpushshop var(--t-push)", css)
+        self.assertIn(".scene:has(#door-garage:hover) .bclone-garage", css)
+        self.assertIn("animation: halfpushgarage var(--t-push)", css)
 
     def test_zones_stay_empty(self):
         html = read_web("index.html")
@@ -125,13 +148,6 @@ class HoverLifeTest(unittest.TestCase):
             body = re.search(r'<button[^>]*id="%s"[^>]*>(.*?)</button>' % zid,
                              html, re.S).group(1)
             self.assertEqual(body.strip(), "", zid)
-
-    def test_layers_share_drift_registration(self):
-        css = read_web("styles.css")
-        self.assertIn(".backdrop, .entrances, #sceneFx { animation: scenedrift",
-                      css)
-        self.assertIn(".scene:has(#door-bay:hover) .backdrop", css)
-        self.assertIn(".scene:has(#door-garage:hover) .backdrop", css)
 
     def test_images_stir_on_hover(self):
         css = read_web("styles.css")
@@ -141,60 +157,45 @@ class HoverLifeTest(unittest.TestCase):
         self.assertIn(".thumbs figure:hover img { transform: scale(1.07); }",
                       css)
 
-    def test_calm_cuts_hover_life(self):
+    def test_calm_cuts_half_motion(self):
         calm = calm_block(read_web("styles.css"))
-        self.assertIn(".backdrop, .entrances, #sceneFx { animation: none;",
-                      calm)
+        self.assertIn(".scene:has(#door-bay:hover) .bclone-shop", calm)
+        self.assertIn(".scene:has(#door-garage:hover) .bclone-garage", calm)
         self.assertIn(".gtile:hover img.timg", calm)
-        self.assertIn(".scene:has(#door-bay:hover) .backdrop", calm)
 
 
-class SceneMotionTest(unittest.TestCase):
-    """Canvas pull-in: keyed photo cutout, event-driven, calm-gated."""
+class ShopRateTest(unittest.TestCase):
+    """Shop rate lives on the shop side; DIY rules hold grades only."""
 
-    def test_canvas_layered_between_photo_and_zones(self):
+    def test_diy_page_names_grades_only(self):
+        app = read_web("app.js")
+        chunk = app[app.index("const VIEW_PAGES"):
+                    app.index("function pageForSection")]
+        self.assertIn('title: "Verdict rules"', chunk)
+        self.assertNotIn("Rules & rate", chunk)
+        self.assertNotIn("shop rate", chunk)
+
+    def test_rules_form_has_no_rate(self):
+        app = read_web("app.js")
+        fn = app[app.index("function renderRules"):
+                 app.index("async function saveRules")]
+        self.assertNotIn("Shop rate", fn)
+        self.assertNotIn("__rate", fn)
+        save = app[app.index("async function saveRules"):
+                   app.index("function fillBayRate")]
+        self.assertIn("const rate = state.rules.labor_rate_per_hour;", save)
+
+    def test_bay_labor_owns_the_rate(self):
         html = read_web("index.html")
-        scene = html[html.index('id="homeScene"'):
-                     html.index('id="view-bay"')]
-        self.assertLess(scene.index('class="backdrop"'),
-                        scene.index('id="sceneFx"'))
-        self.assertLess(scene.index('id="sceneFx"'),
-                        scene.index('class="tilegrid entrances"'))
-        self.assertIn("pointer-events: none;", read_web("styles.css"))
-
-    def test_key_and_drive_engine(self):
+        labor = html[html.index('id="sec-blabor"'):
+                     html.index('id="sec-best"')]
+        self.assertIn('id="bayRate"', labor)
+        self.assertIn('id="btnBayRate"', labor)
+        self.assertIn('id="bayRateHead"', html)
         app = read_web("app.js")
-        mod = app[app.index("const SceneFx"):app.index("/* Camera-first")]
-        for marker in ("move-car-shop.png", "move-car-alt.png",
-                       "getImageData", "Uint8Array", "requestAnimationFrame",
-                       "UX.Motion.driveMs", "calmMotion()",
-                       "document.hidden", "visit", "replay"):
-            self.assertIn(marker, mod, marker)
-
-    def test_wiring_is_event_driven(self):
-        app = read_web("app.js")
-        self.assertIn("SceneFx.visit(which)", app)
-        self.assertIn("(pointer: fine)", app)
-        self.assertIn("SceneFx.replay()", app)
-        self.assertIn("visibilitychange", app)
-        self.assertIn("SceneFx.onCalmChange()", app)
-
-    def test_drive_timing_is_ambient(self):
-        ux = read_web("ux.js")
-        self.assertIn("driveMs: 2800", ux)
-
-    def test_motion_manifest_matches_assets(self):
-        import json
-        with open(os.path.join(ROOT, "eval_motion_results.json"),
-                  encoding="utf-8") as fh:
-            man = json.load(fh)
-        self.assertEqual(man["image_count"], 2)
-        self.assertEqual(man["failures"], {})
-        for name in ("move-car-shop", "move-car-alt"):
-            info = man["images"][name]
-            self.assertTrue(os.path.isfile(
-                os.path.join(ROOT, info["file"])), name)
-            self.assertGreater(info["bytes"], 100000)
+        for marker in ("function fillBayRate", "function saveShopRate",
+                       "btnBayRate", "labor_rate_per_hour: rate"):
+            self.assertIn(marker, app, marker)
 
 
 if __name__ == "__main__":

@@ -1099,6 +1099,7 @@ async function loadRules() {
   const data = await res.json();
   state.rules = data.rules;
   renderRules();
+  fillBayRate();
 }
 
 function renderRules() {
@@ -1111,8 +1112,7 @@ function renderRules() {
   wrap.className = "row";
   wrap.innerHTML =
     "<label>Pull-now needs frames ≥ <input data-t='min_frames_a' type='number' min='1' value='" + t.min_frames_a + "'></label>" +
-    "<label>Pull-now needs price ≥ $<input data-t='min_list_price_a' type='number' min='0' value='" + t.min_list_price_a + "'></label>" +
-    "<label>Shop rate $<input data-t='__rate' type='number' min='1' value='" + rules.labor_rate_per_hour + "'>/hr</label>";
+    "<label>Pull-now needs price ≥ $<input data-t='min_list_price_a' type='number' min='0' value='" + t.min_list_price_a + "'></label>";
   box.appendChild(wrap);
   for (const rule of rules.rules) {
     const div = document.createElement("div");
@@ -1129,11 +1129,9 @@ function renderRules() {
 async function saveRules() {
   const thresholds = Object.assign({}, state.rules.thresholds);
   document.querySelectorAll("#rulesForm [data-t]").forEach((el) => {
-    const key = el.getAttribute("data-t");
-    if (key === "__rate") return;
-    thresholds[key] = Number(el.value);
+    thresholds[el.getAttribute("data-t")] = Number(el.value);
   });
-  const rate = Number(document.querySelector("#rulesForm [data-t=__rate]").value);
+  const rate = state.rules.labor_rate_per_hour;
   const rules = state.rules.rules.map((r) => {
     const box = document.querySelector("#rulesForm [data-rule=" + r.id + "]");
     return { id: r.id, enabled: r.id === "r_default" ? true : !!(box && box.checked) };
@@ -2047,6 +2045,33 @@ function renderBayParts(note) {
   renderBayEstimate();
 }
 
+function fillBayRate() {
+  const el = $("bayRate");
+  if (el && state.rules) el.value = state.rules.labor_rate_per_hour;
+  const head = $("bayRateHead");
+  if (head && state.rules) head.textContent = "$" + state.rules.labor_rate_per_hour;
+}
+
+async function saveShopRate() {
+  const rate = Number(($("bayRate") || {}).value);
+  if (!rate || rate < 1) { notice("Shop rate needs a number above zero."); return; }
+  const res = await fetch("/api/rules", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rules: {
+      labor_rate_per_hour: rate,
+      thresholds: state.rules.thresholds,
+      rules: state.rules.rules.map((r) => ({ id: r.id, enabled: r.enabled })),
+    } }),
+  });
+  const data = await res.json();
+  if (!res.ok || data.ok === false) throw new Error((data && data.error) || "could not save shop rate");
+  state.rules = data.rules;
+  fillBayRate();
+  renderBayEstimate();
+  feed("Shop rate saved", "tool rules.save — shop rate only");
+}
+
 function renderBayLabor() {
   const box = $("bayLabor");
   const labor = bay.labor;
@@ -2306,7 +2331,6 @@ function showView(which) {
   flash(document.querySelector(".work"));
   playViewTransition(document.querySelector(".work"), UX.transitionFor(from, which));
   currentView = which;
-  SceneFx.visit(which);
 }
 
 /* ---------- paged views: graphical index + one page at a time ----------
@@ -2330,7 +2354,7 @@ const VIEW_PAGES = {
     { n: "G4", group: "Turn a find into cash", title: "Harvest map", line: "Found parts drawn on your photos.", secs: ["sec-harvest"], art: "assets/case-side.png" },
     { n: "G5", group: "Turn a find into cash", title: "Parts & values", line: "Every part with its grade and money, all in one place.", secs: ["sec-iparts", "sec-itotals", "sec-verdicts", "sec-totals"], art: "assets/case-bench.png" },
     { n: "G6", group: "Sell", title: "Listing", line: "Draft, approve, post — nothing posts itself.", secs: ["sec-listing"], art: "assets/part-wheel.png" },
-    { n: "G7", group: "Tune", title: "Rules & rate", line: "Thresholds and the shop rate, for careful hands.", secs: ["sec-rules"], art: "assets/head-wrench.png" },
+    { n: "G7", group: "Tune", title: "Verdict rules", line: "Grade thresholds and rule switches, for careful hands.", secs: ["sec-rules"], art: "assets/head-wrench.png" },
   ],
 };
 const pageState = { bay: 0, inventory: 0 }; // 0 = index page
@@ -2598,182 +2622,6 @@ function paintSideBadges() {
   badge.textContent = "\u2605 Your side";
   door.appendChild(badge);
 }
-/* ---------- living landing: photorealistic pull-in on canvas ----------
- * A keyed photo cutout drives across the shop half on a canvas layered
- * between the street photo and the click zones. Translation only: rigid
- * bodies need no articulation, so every frame is the same real pixels.
- * Event-driven (plays on landing visits plus shop hover), never
- * always-on; reduced motion, hidden tabs, and missing art all mean a
- * still photo. */
-const SceneFx = (() => {
-  const CARS = ["assets/move-car-shop.png", "assets/move-car-alt.png"];
-  let sprite = null;   // { cv, w, h } keyed cutout at natural size
-  let carIdx = 0;
-  let rafId = 0;
-  let startedAt = 0;
-  let driving = false;
-
-  function canvas() { return document.getElementById("sceneFx"); }
-
-  function fitCanvas() {
-    const c = canvas();
-    const scene = document.getElementById("homeScene");
-    if (!c || !scene) return null;
-    const r = scene.getBoundingClientRect();
-    const dpr = Math.min(typeof devicePixelRatio === "number" ? devicePixelRatio : 1, 2);
-    const w = Math.max(1, Math.floor(r.width * dpr));
-    const h = Math.max(1, Math.floor(r.height * dpr));
-    if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
-    const g = c.getContext("2d");
-    if (!g) return null;
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    return { g, w: r.width, h: r.height };
-  }
-
-  function isGreen(r, g, b) {
-    return g > 40 && g > r * 1.12 && g > b * 1.12;
-  }
-
-  // Flood-fill key from the borders: only green connected to the edge
-  // goes transparent, so green showing through the glass stays put.
-  function keyImage(img) {
-    const cv = document.createElement("canvas");
-    cv.width = img.naturalWidth; cv.height = img.naturalHeight;
-    if (!cv.width || !cv.height) return null;
-    const g = cv.getContext("2d");
-    if (!g) return null;
-    g.drawImage(img, 0, 0);
-    const W = cv.width, H = cv.height;
-    let data;
-    try { data = g.getImageData(0, 0, W, H); } catch (e) { return null; }
-    const px = data.data;
-    const seen = new Uint8Array(W * H);
-    const stack = [];
-    for (let x = 0; x < W; x++) { stack.push(x, (H - 1) * W + x); }
-    for (let y = 0; y < H; y++) { stack.push(y * W, y * W + W - 1); }
-    while (stack.length) {
-      const i = stack.pop();
-      if (seen[i]) continue;
-      seen[i] = 1;
-      if (!isGreen(px[i * 4], px[i * 4 + 1], px[i * 4 + 2])) continue;
-      px[i * 4 + 3] = 0;
-      const x = i % W, y = (i / W) | 0;
-      if (x > 0) stack.push(i - 1);
-      if (x < W - 1) stack.push(i + 1);
-      if (y > 0) stack.push(i - W);
-      if (y < H - 1) stack.push(i + W);
-    }
-    g.putImageData(data, 0, 0);
-    return { cv, w: W, h: H };
-  }
-
-  function loadCar(i, done) {
-    const img = new Image();
-    img.onload = () => { done(keyImage(img)); };
-    img.onerror = () => { done(null); };
-    img.src = CARS[((i % CARS.length) + CARS.length) % CARS.length];
-  }
-
-  function carRect(viewW, viewH, t) {
-    // The car crosses the shop (left) half and parks near the shop door.
-    const w = viewW * 0.46;
-    const h = w * (sprite.h / sprite.w);
-    const y = viewH * 0.97 - h;
-    const fromX = -w * 1.05;
-    const toX = viewW * 0.02;
-    const e = 1 - Math.pow(1 - t, 3); // ease-out pull-in
-    return { x: fromX + (toX - fromX) * e, y, w, h };
-  }
-
-  function drawAt(t) {
-    const fit = fitCanvas();
-    if (!fit || !sprite) return;
-    const g = fit.g;
-    g.clearRect(0, 0, fit.w, fit.h);
-    const r = carRect(fit.w, fit.h, t);
-    g.save();
-    g.globalAlpha = 0.35;
-    g.fillStyle = "#101418";
-    g.beginPath();
-    g.ellipse(r.x + r.w / 2, r.y + r.h * 0.94, r.w * 0.42, r.h * 0.07, 0, 0, Math.PI * 2);
-    g.fill();
-    g.restore();
-    g.drawImage(sprite.cv, r.x, r.y, r.w, r.h);
-  }
-
-  function clear() {
-    driving = false;
-    const fit = fitCanvas();
-    if (fit) fit.g.clearRect(0, 0, fit.w, fit.h);
-  }
-
-  function stop() {
-    driving = false;
-    if (rafId) {
-      if (typeof cancelAnimationFrame === "function") cancelAnimationFrame(rafId);
-      else clearTimeout(rafId);
-      rafId = 0;
-    }
-  }
-
-  function frame(fn) {
-    if (typeof requestAnimationFrame === "function") return requestAnimationFrame(fn);
-    return setTimeout(() => fn(0), 16);
-  }
-
-  function tick(now) {
-    rafId = 0;
-    if (typeof currentView !== "undefined" && currentView !== "home") { driving = false; return; }
-    if (document.hidden || calmMotion()) { clear(); return; }
-    const stamp = (typeof now === "number" && now > 0) ? now : ((typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now());
-    const t = Math.min(1, (stamp - startedAt) / UX.Motion.driveMs);
-    drawAt(t);
-    if (t < 1) {
-      rafId = frame(tick);
-    } else {
-      driving = false;
-    }
-  }
-
-  function play() {
-    if (typeof currentView !== "undefined" && currentView !== "home") return;
-    if (document.hidden || calmMotion() || !sprite) return;
-    stop();
-    driving = true;
-    startedAt = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
-    rafId = frame(tick);
-  }
-
-  function visit(which) {
-    if (which !== "home") { stop(); return; }
-    if (!sprite) {
-      loadCar(carIdx, (s) => {
-        sprite = s;
-        if (sprite && currentView === "home" && !calmMotion()) play();
-      });
-      return;
-    }
-    play();
-  }
-
-  function replay() {
-    if (rafId || !sprite || calmMotion()) return;
-    carIdx += 1;
-    loadCar(carIdx, (s) => {
-      if (s) sprite = s;
-      if (currentView === "home" && !calmMotion()) play();
-    });
-  }
-
-  function onCalmChange() { stop(); clear(); }
-
-  function onVisible() {
-    if (!document.hidden && driving && !calmMotion() &&
-        (typeof currentView === "undefined" || currentView === "home")) play();
-  }
-
-  return { visit, replay, onCalmChange, onVisible };
-})();
 /* Camera-first intake (WO17): each Take-a-photo button opens a hidden
  * capture input (device camera on phones, picker on desktop); the shot
  * is handed to the existing upload input untouched, so every flow below
@@ -3325,15 +3173,7 @@ function initBay() {
   });
   $("door-bay").addEventListener("click", (e) => { doorPress(e.currentTarget); applySetting("bay"); showView("bay"); bayKb(); });
   $("door-garage").addEventListener("click", (e) => { doorPress(e.currentTarget); applySetting("inventory"); showView("inventory"); });
-  if (typeof matchMedia === "function" && matchMedia("(pointer: fine)").matches) {
-    $("door-bay").addEventListener("mouseenter", () => SceneFx.replay());
-  }
-  if (typeof matchMedia === "function") {
-    const scenemq = matchMedia("(prefers-reduced-motion: reduce)");
-    if (scenemq.addEventListener) scenemq.addEventListener("change", () => SceneFx.onCalmChange());
-    else if (scenemq.addListener) scenemq.addListener(() => SceneFx.onCalmChange());
-  }
-  document.addEventListener("visibilitychange", () => SceneFx.onVisible());
+  $("btnBayRate").addEventListener("click", guard(saveShopRate));
   $("bottomHome").addEventListener("click", () => { applySetting("home"); showView("home"); });
   $("sideChip").addEventListener("click", () => {
     const p = Profile.loadProfile(localStorage);

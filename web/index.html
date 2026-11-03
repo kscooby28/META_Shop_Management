@@ -30,7 +30,8 @@
   <div id="view-home">
   <div class="scene" id="homeScene">
     <img class="backdrop" src="assets/landing-2door.jpg" alt="American street: auto repair shop with customer cars on the left, home garage with enthusiast cars on the right">
-    <canvas id="sceneFx" aria-hidden="true"></canvas>
+    <img class="bclone bclone-shop" src="assets/landing-2door.jpg" alt="" aria-hidden="true">
+    <img class="bclone bclone-garage" src="assets/landing-2door.jpg" alt="" aria-hidden="true">
     <div class="tilegrid entrances">
       <button id="door-bay" type="button" class="door entrance zone" aria-label="Shop — Fix it"></button>
       <button id="door-garage" type="button" class="door entrance zone" aria-label="DIY Garage — Your cars and parts"></button>
@@ -146,10 +147,14 @@
   </section>
 
   <section id="sec-blabor">
-    <h2><span class="step">5</span>Labor math — <span class="money">$180</span> an hour, shop times only</h2>
+    <h2><span class="step">5</span>Labor math — <span class="money" id="bayRateHead">$180</span> an hour, shop times only</h2>
     <div id="bayLabor"><p class="hint">Draft the plan and the labor math lands here.</p></div>
     <div class="row" style="margin-top:0.5rem">
       <button id="btnBayLabor" type="button"><span aria-hidden="true">$</span> Update labor</button>
+    </div>
+    <div class="row" style="margin-top:0.5rem">
+      <label>Shop rate $<input id="bayRate" type="number" min="1" style="width:6rem"></label>
+      <button id="btnBayRate" type="button"><span aria-hidden="true">✓</span> Save rate</button>
     </div>
   </section>
 

@@ -695,8 +695,7 @@ class OverhaulGraphicalFixesTest(unittest.TestCase):
         # The 7 Phase-1 manifest files plus the 2-door order's landing art
         # plus the 25 case-art set files (eval_caseart_results.json),
         # plus the audio/ dir holding the 8 tour narration mp3s
-        # (eval_voice_results.json), plus the 2 motion cutouts
-        # (eval_motion_results.json). eval JSONs stay byte-identical history.
+        # (eval_voice_results.json). eval JSONs stay byte-identical history.
         assets = sorted(os.listdir(os.path.join(ROOT, "web", "assets")))
         with open(os.path.join(ROOT, "eval_voice_results.json"),
                   encoding="utf-8") as fh:
@@ -715,7 +714,6 @@ class OverhaulGraphicalFixesTest(unittest.TestCase):
                                  "head-parts.png", "head-plan.png",
                                  "head-trail.png", "head-wrench.png",
                                  "landing-2door.jpg", "landing.png",
-                                 "move-car-alt.png", "move-car-shop.png",
                                  "part-bumper.png", "part-coil.png",
                                  "part-diff.png", "part-ecu.png",
                                  "part-handle.png", "part-headlight.png",
@@ -1158,7 +1156,8 @@ class StreetAndNetworkTest(unittest.TestCase):
         self.assertEqual(len(re.findall(r"<button", home)), 2)
         self.assertIn('id="door-bay"', home)
         self.assertIn('id="door-garage"', home)
-        self.assertEqual(home.count("<img"), 1)
+        # Backdrop plus one clipped in-photo clone per half.
+        self.assertEqual(home.count("<img"), 3)
 
     def test_network_feed_markup(self):
         html = read_web("index.html")

@@ -42,8 +42,8 @@ def reduced_block():
 
 
 KEYFRAMES = {"slidein-right", "slidein-left", "doorfade", "sheetup",
-             "movedflash", "skelpulse", "fadein", "scenedrift",
-             "scenepushbay", "scenepushgarage"}
+             "movedflash", "skelpulse", "fadein", "halfpushshop",
+             "halfpushgarage"}
 # Literal durations already in the tree at WO19 (panel slide, button ease,
 # strip ease, flash, skeleton pulse). Anything new must be a token.
 LEGACY_DURATIONS = {"0.15s", "0.12s", "0.2s", "0.25s", "900ms"}
@@ -128,7 +128,9 @@ class NetworkBaselineTest(unittest.TestCase):
             if not name.endswith(".js"):
                 continue
             fetches += read(name).count("fetch(")
-        self.assertEqual(fetches, 6)
+        # 6 audited call sites plus the shop-rate save (same
+        # origin, same /api/rules path as the rules save).
+        self.assertEqual(fetches, 7)
         for base, _, files in os.walk(WEB):
             for name in files:
                 path = os.path.join(base, name)

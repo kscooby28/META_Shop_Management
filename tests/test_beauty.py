@@ -214,7 +214,8 @@ class MoneyTest(unittest.TestCase):
             self.assertIn(call, app, call)
 
     def test_shop_rate_money_coded(self):
-        self.assertIn('<span class="money">$180</span>', read("index.html"))
+        self.assertIn('<span class="money" id="bayRateHead">$180</span>',
+                      read("index.html"))
 
     def test_no_new_literal_money_amounts_in_js(self):
         # Audited baseline, all honest: "$0" is a computed zero-total
@@ -341,7 +342,7 @@ class NoNewMotionTest(unittest.TestCase):
         self.assertEqual(keyframe_names(),
                          {"slidein-right", "slidein-left", "doorfade",
                           "sheetup", "movedflash", "skelpulse", "fadein",
-                          "scenedrift", "scenepushbay", "scenepushgarage"})
+                          "halfpushshop", "halfpushgarage"})
 
     def test_no_new_easings(self):
         plain = css_no_comments()
