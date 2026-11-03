@@ -42,7 +42,8 @@ def reduced_block():
 
 
 KEYFRAMES = {"slidein-right", "slidein-left", "doorfade", "sheetup",
-             "movedflash", "skelpulse", "fadein"}
+             "movedflash", "skelpulse", "fadein", "scenedrift",
+             "scenepushbay", "scenepushgarage"}
 # Literal durations already in the tree at WO19 (panel slide, button ease,
 # strip ease, flash, skeleton pulse). Anything new must be a token.
 LEGACY_DURATIONS = {"0.15s", "0.12s", "0.2s", "0.25s", "900ms"}

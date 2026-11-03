@@ -59,7 +59,12 @@ class MotionTokensTest(unittest.TestCase):
 
     def test_no_functional_duration_over_1000ms(self):
         css = re.sub(r"/\*.*?\*/", "", read("web/styles.css"), flags=re.S)
-        for number, unit in re.findall(r"(\d+(?:\.\d+)?)(ms|s)(?![a-z])", css):
+        self.assertIn('--t-drift: 12000ms', css)
+        self.assertIn('--t-push: 2400ms', css)
+        ambient = ('--t-drift:', '--t-push:')
+        scoped = [ln for ln in css.splitlines()
+                  if not ln.strip().startswith(ambient)]
+        for number, unit in re.findall(r"(\d+(?:\.\d+)?)(ms|s)(?![a-z])", "\n".join(scoped)):
             ms = float(number) * (1 if unit == "ms" else 1000)
             self.assertLessEqual(ms, 1000, "%s%s runs too long" % (number, unit))
 

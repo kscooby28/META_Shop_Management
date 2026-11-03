@@ -695,7 +695,8 @@ class OverhaulGraphicalFixesTest(unittest.TestCase):
         # The 7 Phase-1 manifest files plus the 2-door order's landing art
         # plus the 25 case-art set files (eval_caseart_results.json),
         # plus the audio/ dir holding the 8 tour narration mp3s
-        # (eval_voice_results.json). eval JSONs stay byte-identical history.
+        # (eval_voice_results.json), plus the 2 motion cutouts
+        # (eval_motion_results.json). eval JSONs stay byte-identical history.
         assets = sorted(os.listdir(os.path.join(ROOT, "web", "assets")))
         with open(os.path.join(ROOT, "eval_voice_results.json"),
                   encoding="utf-8") as fh:
@@ -714,6 +715,7 @@ class OverhaulGraphicalFixesTest(unittest.TestCase):
                                  "head-parts.png", "head-plan.png",
                                  "head-trail.png", "head-wrench.png",
                                  "landing-2door.jpg", "landing.png",
+                                 "move-car-alt.png", "move-car-shop.png",
                                  "part-bumper.png", "part-coil.png",
                                  "part-diff.png", "part-ecu.png",
                                  "part-handle.png", "part-headlight.png",
@@ -854,7 +856,7 @@ class PageTest(unittest.TestCase):
         inv = html[html.index('id="view-inventory"'):
                    html.index('id="view-compare"')]
         covered = set(re.findall(r'secs: \[([^\]]+)\]', chunk))
-        self.assertEqual(len(covered), 14)
+        self.assertEqual(len(covered), 12)
         for block in (bay, inv):
             for sec in re.findall(r'<section id="([\w\-]+)"', block):
                 self.assertIn('"%s"' % sec, chunk, sec)
@@ -907,7 +909,7 @@ class GraphicalButtonsTest(unittest.TestCase):
 
     PLAIN_OK = set()  # every static button is graphical; no exceptions
     # Landing click zones are invisible by design: no visible body,
-    # named by aria-label, outlined on hover/focus.
+    # named by aria-label, alive on hover, outlined on keyboard focus.
     ZONE_OK = {"door-bay": "Shop \u2014 Fix it",
                "door-garage": "DIY Garage \u2014 Your cars and parts"}
 

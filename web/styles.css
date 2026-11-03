@@ -38,6 +38,8 @@
   --t-sheet: 300ms;
   --t-flip: 300ms;
   --t-reveal: 200ms;
+  --t-drift: 12000ms;
+  --t-push: 2400ms;
 }
 
 * { box-sizing: border-box; }
@@ -140,14 +142,17 @@ body {
 
 /* Landing scene: the street photo IS the navigation. Two invisible
  * click zones (shop half, garage half) sit over the image; names live
- * in aria-labels and on the next screen. Hover or keyboard focus draws
- * the outline; otherwise the image stands alone. Zones are scene
- * elements, never primary, and the outline is ink, never amber. */
+ * in aria-labels and on the next screen. The photo breathes with a
+ * slow drift shared by every layer (registration never slips), a
+ * keyed photo cutout pulls into the shop on visits and hovers, and
+ * hovering a half pushes the camera toward that side; keyboard focus
+ * keeps the ink outline. Zones are scene elements, never amber. */
 .scene { position: relative; margin: 0 0 1rem; }
 .backdrop {
   width: 100%; height: min(68vh, 34rem); object-fit: cover; display: block;
   border: 1px solid var(--line); border-radius: var(--radius-card);
   background: var(--paper);
+  transition: transform var(--t-page) var(--ease);
 }
 .entrances {
   position: absolute; inset: 0;
@@ -163,8 +168,22 @@ body {
 }
 .door.zone:hover {
   background: transparent;
-  outline: 3px solid var(--ink);
-  outline-offset: -6px;
+}
+#sceneFx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.backdrop, .entrances, #sceneFx { animation: scenedrift var(--t-drift) var(--ease) infinite alternate; }
+@keyframes scenedrift {
+  from { transform: scale(1.02); }
+  to { transform: scale(1.045) translateX(0.5%); }
+}
+.scene:has(#door-bay:hover) .backdrop, .scene:has(#door-bay:hover) .entrances, .scene:has(#door-bay:hover) #sceneFx { animation: scenepushbay var(--t-push) var(--ease) infinite alternate; }
+@keyframes scenepushbay {
+  from { transform: scale(1.02); }
+  to { transform: scale(1.06) translateX(-1.5%); }
+}
+.scene:has(#door-garage:hover) .backdrop, .scene:has(#door-garage:hover) .entrances, .scene:has(#door-garage:hover) #sceneFx { animation: scenepushgarage var(--t-push) var(--ease) infinite alternate; }
+@keyframes scenepushgarage {
+  from { transform: scale(1.02); }
+  to { transform: scale(1.06) translateX(1.5%); }
 }
 .door.zone:focus-visible {
   background: transparent;
@@ -271,6 +290,8 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
 .thumbs { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.7rem; }
 .thumbs figure { margin: 0; width: 150px; }
 .thumbs img { width: 150px; height: 150px; object-fit: cover; border: 1px solid var(--line); border-radius: var(--radius-small); background: var(--paper); }
+.thumbs img { transition: transform var(--t-tap) var(--ease); }
+.thumbs figure:hover img { transform: scale(1.07); }
 .thumbs figcaption { font-size: var(--text-meta); color: var(--muted); word-break: break-all; }
 
 /* ---- Tour journey line (WO20 item 9): display only. Dots are not
@@ -373,6 +394,8 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
   background: var(--paper);
   display: block;
 }
+.strip img { transition: transform var(--t-tap) var(--ease); }
+.strip figure:hover img { transform: scale(1.07); }
 .strip figure.sel img { border-color: var(--ink); }
 .strip figcaption { font-size: var(--text-meta); color: var(--muted); word-break: break-all; }
 .viewer {
@@ -761,6 +784,8 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
   border: 1px solid var(--line); border-radius: var(--radius-small);
   background: var(--surface); display: block;
 }
+.gtile img.timg { transition: transform var(--t-tap) var(--ease); }
+.gtile:hover img.timg { transform: scale(1.06); }
 /* Primary wins ties on tile-primaries (the Use tile stays amber); inner
  * tile text inherits the amber-ink label, adding no accent references. */
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -834,6 +859,10 @@ body[data-setting="shop"] .staged { border-top-color: var(--ink); }
   .skel { animation: none; }
   .hero-clone { transition: none; }
   button:active { transform: none; }
+  .backdrop, .entrances, #sceneFx { animation: none; transition: none; transform: none; }
+  .scene:has(#door-bay:hover) .backdrop, .scene:has(#door-bay:hover) .entrances, .scene:has(#door-bay:hover) #sceneFx, .scene:has(#door-garage:hover) .backdrop, .scene:has(#door-garage:hover) .entrances, .scene:has(#door-garage:hover) #sceneFx { animation: none; transform: none; }
+  .gtile:hover img.timg, .strip figure:hover img, .thumbs figure:hover img { transform: none; }
+  .gtile img.timg, .strip img, .thumbs img { transition: none; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

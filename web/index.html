@@ -30,6 +30,7 @@
   <div id="view-home">
   <div class="scene" id="homeScene">
     <img class="backdrop" src="assets/landing-2door.jpg" alt="American street: auto repair shop with customer cars on the left, home garage with enthusiast cars on the right">
+    <canvas id="sceneFx" aria-hidden="true"></canvas>
     <div class="tilegrid entrances">
       <button id="door-bay" type="button" class="door entrance zone" aria-label="Shop — Fix it"></button>
       <button id="door-garage" type="button" class="door entrance zone" aria-label="DIY Garage — Your cars and parts"></button>
@@ -255,8 +256,46 @@
     </details>
   </section>
 
+  <section id="sec-intake">
+    <h2><span class="step">3</span>Intake — photos in</h2>
+    <p class="hint">Take walk-around photos or upload frames. The car is identified only as far as the photos honestly support.</p>
+    <div class="tilegrid">
+      <input id="fileCamera" type="file" accept="image/*" capture="environment" hidden>
+      <button id="btnPhoto" type="button" class="photo gtile">
+        <span class="ticon" aria-hidden="true">◉</span>
+        <span class="tbody"><span class="tword">Take a photo</span>
+        <span class="tfield">Camera first</span></span>
+      </button>
+      <input id="fileInput" type="file" accept="image/*" multiple hidden>
+      <label class="gtile" for="fileInput">
+        <span class="ticon" aria-hidden="true">⇪</span>
+        <span class="tbody"><span class="tword">Upload frames</span>
+        <span class="tfield">From this device</span></span>
+      </label>
+      <button id="btnDemo" type="button" class="gtile">
+        <img class="timg" src="assets/case-front.png" alt="Demo car photo">
+        <span class="tbody"><span class="tword">Load demo car</span>
+        <span class="tfield">Labeled demo frames</span></span>
+      </button>
+    </div>
+    <div class="row" style="margin-top:0.6rem">
+      <button id="btnIdentify" type="button"><span aria-hidden="true">◎</span> Identify car</button>
+      <button id="btnRunAll" type="button"><span aria-hidden="true">▶</span> Run whole flow</button>
+    </div>
+    <div id="thumbs" class="thumbs"></div>
+    <div id="carCard" style="margin-top:0.8rem"></div>
+  </section>
+
+  <section id="sec-harvest">
+    <h2><span class="step">4</span>Harvest map — parts found</h2>
+    <p class="hint">Walk-around strip in order. Pick a frame to see its masks and boxes, or pick a part to jump to its frame.</p>
+    <div id="strip" class="strip"></div>
+    <div id="viewer" class="viewer"></div>
+    <ul id="partList" class="part-list"></ul>
+  </section>
+
   <section id="sec-iparts">
-    <h2><span class="step">3</span>Parts — which car, what condition, what worth</h2>
+    <h2><span class="step">5</span>Parts — which car, what condition, what worth</h2>
     <div class="row" id="invFilterRow">
       <select id="invFilterCar" aria-label="Filter parts by car"></select>
       <input id="invFilterPart" type="search" placeholder="Search parts…" aria-label="Search parts">
@@ -301,47 +340,13 @@
   </section>
 
   <section id="sec-itotals">
-    <h2><span class="step">4</span>Inventory totals — plain money</h2>
+    <h2><span class="step">6</span>Inventory totals — plain money</h2>
     <div id="invTotals" class="totals"><p class="hint">Attach a part with a value and the plain-money totals land here.</p></div>
   </section>
 
-  <section id="sec-intake">
-    <h2><span class="step">5</span>Intake — photos in</h2>
-    <p class="hint">Take walk-around photos or upload frames. The car is identified only as far as the photos honestly support.</p>
-    <div class="tilegrid">
-      <input id="fileCamera" type="file" accept="image/*" capture="environment" hidden>
-      <button id="btnPhoto" type="button" class="photo gtile">
-        <span class="ticon" aria-hidden="true">◉</span>
-        <span class="tbody"><span class="tword">Take a photo</span>
-        <span class="tfield">Camera first</span></span>
-      </button>
-      <input id="fileInput" type="file" accept="image/*" multiple hidden>
-      <label class="gtile" for="fileInput">
-        <span class="ticon" aria-hidden="true">⇪</span>
-        <span class="tbody"><span class="tword">Upload frames</span>
-        <span class="tfield">From this device</span></span>
-      </label>
-      <button id="btnDemo" type="button" class="gtile">
-        <img class="timg" src="assets/case-front.png" alt="Demo car photo">
-        <span class="tbody"><span class="tword">Load demo car</span>
-        <span class="tfield">Labeled demo frames</span></span>
-      </button>
-    </div>
-    <div class="row" style="margin-top:0.6rem">
-      <button id="btnIdentify" type="button"><span aria-hidden="true">◎</span> Identify car</button>
-      <button id="btnRunAll" type="button"><span aria-hidden="true">▶</span> Run whole flow</button>
-    </div>
-    <div id="thumbs" class="thumbs"></div>
-    <div id="carCard" style="margin-top:0.8rem"></div>
-  </section>
 
-  <section id="sec-harvest">
-    <h2><span class="step">6</span>Harvest map — parts found</h2>
-    <p class="hint">Walk-around strip in order. Pick a frame to see its masks and boxes, or pick a part to jump to its frame.</p>
-    <div id="strip" class="strip"></div>
-    <div id="viewer" class="viewer"></div>
-    <ul id="partList" class="part-list"></ul>
-  </section>
+
+
 
   <section id="sec-verdicts">
     <h2><span class="step">7</span>Part values — pull it or leave it</h2>

@@ -204,6 +204,7 @@ const UX = (() => {
     revealStepMs: 120, // stagger between reveal pieces
     quietMs: 350,    // loading ladder: show nothing under this
     skeletonMs: 2000, // skeleton until this, staged text after
+    driveMs: 2800,   // living-landing pull-in (ambient scene dressing; calm cuts it)
     maxMs: 1000,     // nothing functional ever runs longer
   };
 

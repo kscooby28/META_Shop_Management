@@ -340,7 +340,8 @@ class NoNewMotionTest(unittest.TestCase):
     def test_keyframes_set_unchanged(self):
         self.assertEqual(keyframe_names(),
                          {"slidein-right", "slidein-left", "doorfade",
-                          "sheetup", "movedflash", "skelpulse", "fadein"})
+                          "sheetup", "movedflash", "skelpulse", "fadein",
+                          "scenedrift", "scenepushbay", "scenepushgarage"})
 
     def test_no_new_easings(self):
         plain = css_no_comments()
@@ -357,8 +358,9 @@ class LeftAloneTest(unittest.TestCase):
     """Audit findings marked already-modern: prove zero regression."""
 
     def test_doors_structure_kept(self):
-        # Click zones: invisible halves over the street photo,
-        # ink outline on hover/focus, never amber, never labeled.
+        # Click zones: invisible halves over the street photo.
+        # Hover brings scene life (never amber, never labeled);
+        # keyboard focus keeps the ink outline.
         door = rule_body(".door")
         for_keep = ("background: transparent;", "border: none;",
                     "cursor: pointer;")
@@ -370,8 +372,9 @@ class LeftAloneTest(unittest.TestCase):
         self.assertIn("outline: 3px solid var(--ink);", css)
         # The image stays fully visible under hover and focus:
         # outline only, never a painted background.
-        self.assertIn("background: transparent;",
-                      rule_body(".door.zone:hover"))
+        hover = rule_body(".door.zone:hover")
+        self.assertIn("background: transparent;", hover)
+        self.assertNotIn("outline", hover)
         self.assertIn("background: transparent;",
                       rule_body(".door.zone:focus-visible"))
         self.assertNotIn(".door-name", css)
