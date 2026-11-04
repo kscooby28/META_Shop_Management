@@ -65,5 +65,70 @@ class ServerHelperTest(unittest.TestCase):
         self.assertTrue(server.ROOT.endswith("META_Shop_Management") or server.ROOT)
 
 
+class SSEFakeHandler:
+    """Capture _api_chat's SSE stream without sockets or network."""
+
+    _case_summary = Handler._case_summary
+    _local_chat_answer = Handler._local_chat_answer
+
+    def __init__(self):
+        self.raw = b""
+        self.wfile = self
+
+    def send_response(self, code):
+        self.code = code
+
+    def send_header(self, key, value):
+        pass
+
+    def end_headers(self):
+        pass
+
+    def write(self, chunk):
+        self.raw += chunk
+
+    def flush(self):
+        pass
+
+    def events(self):
+        found = []
+        for chunk in self.raw.split(b"\n\n"):
+            if chunk.startswith(b"data: "):
+                found.append(json.loads(chunk[6:].decode("utf-8")))
+        return found
+
+
+class ChatDemoTest(unittest.TestCase):
+    def test_chat_honors_shop_demo_env(self):
+        real_stream = server.chat_stream
+        called = []
+
+        def explode(*args, **kwargs):
+            called.append(True)
+            raise AssertionError("live chat attempted under SHOP_DEMO=1")
+
+        server.chat_stream = explode
+        real_env = os.environ.get("SHOP_DEMO")
+        os.environ["SHOP_DEMO"] = "1"
+        try:
+            fake = SSEFakeHandler()
+            Handler._api_chat(fake, {"message": "Will this run rich?"})
+        finally:
+            if real_env is None:
+                os.environ.pop("SHOP_DEMO", None)
+            else:
+                os.environ["SHOP_DEMO"] = real_env
+            server.chat_stream = real_stream
+        self.assertEqual(called, [])
+        events = fake.events()
+        modes = [e.get("mode") for e in events
+                 if e.get("type") in ("mode", "done")]
+        self.assertTrue(modes)
+        for mode in modes:
+            self.assertEqual(mode, "demo-cache")
+        self.assertTrue(any(e.get("type") == "token" and e.get("text")
+                            for e in events))
+
+
 if __name__ == "__main__":
     unittest.main()

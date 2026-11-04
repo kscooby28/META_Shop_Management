@@ -1597,7 +1597,7 @@ class Handler(BaseHTTPRequestHandler):
                         "to answer, say exactly what is missing and what step "
                         "would fill it. Never answer with a bare "
                         "'lacking reliable data'.")
-        if payload.get("demo"):
+        if _demo_forced(payload):
             reply = self._local_chat_answer(session, message, context)
             emit({"type": "mode", "mode": "demo-cache"})
             emit({"type": "token", "text": reply})
