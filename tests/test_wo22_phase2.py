@@ -445,6 +445,44 @@ class InventoryCompareTest(unittest.TestCase):
         (part,) = seen["evidence"]["parts"]
         self.assertIn("roadside spare", part["owner_note"])
 
+    def test_inventory_rows_carry_money_grade(self):
+        real = spark_open.SPARK_OPEN_LIVE
+        spark_open.SPARK_OPEN_LIVE = False
+        try:
+            fake = FakeHandler()
+            sid = server.new_session_id()
+            server.put_session(sid, {})
+            Handler._api_compare(
+                fake, {"sessionId": sid, "invItems": self._inv_payload()})
+        finally:
+            spark_open.SPARK_OPEN_LIVE = real
+        status, body = fake.sent[-1]
+        self.assertEqual(status, 200)
+        (row,) = body["invRows"]
+        # Owner value $25 prices the money side for real.
+        self.assertIn(row["grade13"], ("A", "B", "C"))
+        self.assertIn("Shop range nets", row["reason13"])
+        self.assertEqual(body["invMode13"], "demo-cache")
+
+    def test_inventory_money_falls_back_without_value(self):
+        real = spark_open.SPARK_OPEN_LIVE
+        spark_open.SPARK_OPEN_LIVE = False
+        try:
+            fake = FakeHandler()
+            sid = server.new_session_id()
+            server.put_session(sid, {})
+            payload = [dict(self._inv_payload()[0])]
+            payload[0].pop("value", None)
+            payload[0].pop("valueSource", None)
+            Handler._api_compare(fake, {"sessionId": sid, "invItems": payload})
+        finally:
+            spark_open.SPARK_OPEN_LIVE = real
+        status, body = fake.sent[-1]
+        self.assertEqual(status, 200)
+        (row,) = body["invRows"]
+        self.assertEqual(row["grade13"], "?")
+        self.assertIn("No owner value", row["reason13"])
+
     def test_compare_still_needs_something(self):
         fake = FakeHandler()
         sid = server.new_session_id()

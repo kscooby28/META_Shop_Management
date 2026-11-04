@@ -1240,10 +1240,14 @@ class Handler(BaseHTTPRequestHandler):
             inv_by_id = {g["part_id"]: g for g in inv_opened["grades"]}
             for v in inv_verdicts:
                 side = inv_by_id.get(v.get("part_id"), {})
+                inv_inputs = v.get("inputs", {})
                 inv_rows.append({
                     "part_id": v.get("part_id"),
                     "label": v.get("label", "part"),
                     "rule": v.get("verdict", "?"),
+                    "grade13": inv_inputs.get("money_grade") or "?",
+                    "reason13": inv_inputs.get("money_reason") or (
+                        "No owner value; add one to price this side."),
                     "gradeOpen": side.get("grade", "?"),
                     "reasonOpen": side.get("reason", ""),
                 })
@@ -1267,6 +1271,7 @@ class Handler(BaseHTTPRequestHandler):
                 "noticeOpen": opened["notice"],
                 "rows": rows,
                 "invRows": inv_rows,
+                "invMode13": "demo-cache",
                 "invModeOpen": inv_mode_open,
                 "invSourceOpen": inv_source_open,
                 "invNoticeOpen": inv_notice_open,

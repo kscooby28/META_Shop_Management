@@ -968,7 +968,10 @@ function renderCompare(res) {
       pc.className = "pccard";
       pc.innerHTML = '<div class="pchead"><strong>' + esc(r.label) + "</strong>" +
         gradePill(r.rule) + "</div>" +
-        '<div class="engines"><div class="enginecol"><div class="enginelabel">Muse Spark Open, open-weight via Baseten' +
+        '<div class="engines">' +
+        '<div class="enginecol"><div class="enginelabel">Money grade (rules engine)' + modeTag(res.invMode13) + "</div>" +
+        gradePill(r.grade13) + ' <span class="hint">' + esc(r.reason13) + "</span></div>" +
+        '<div class="enginecol"><div class="enginelabel">Muse Spark Open, open-weight via Baseten' +
         modeTag(res.invModeOpen, res.invModelOpen, res.invMsOpen) + "</div>" +
         gradePill(r.gradeOpen) + ' <span class="hint">' + esc(r.reasonOpen) + "</span></div></div>";
       invList.appendChild(pc);
