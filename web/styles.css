@@ -22,6 +22,8 @@
   --tint-c: rgba(212, 105, 94, 0.22);
   --scrim: rgba(0, 0, 0, 0.62);
   --shadow: rgba(0, 0, 0, 0.45);
+  --door-hi: rgba(255, 255, 255, 0.16);
+  --door-dim: rgba(0, 0, 0, 0.24);
   --text-display: 2rem;
   --text-title: 1.25rem;
   --text-body: 1rem;
@@ -141,10 +143,12 @@ body {
 
 /* Landing scene: the street photo IS the navigation. Two always-visible
  * labeled door buttons (shop half, garage half) sit over the image; the
- * same names live in aria-labels for screen readers. The photo rests
- * dead still: no hover zoom, no scale distortion, on pointer or touch.
- * Keyboard focus keeps the ink outline. Zones are scene elements,
- * never amber. */
+ * same names live in aria-labels for screen readers. Hovering a half
+ * highlights it: the hovered side lifts, the other side dims, and the
+ * hovered label edge inks. Highlight only: no hover zoom, no scale
+ * distortion, no motion, on pointer or touch. Keyboard focus matches
+ * hover, plus the ink outline. The pointer-only rules live with the
+ * media queries below. Zones are scene elements, never amber. */
 .backdrop {
   width: 100%; height: min(68vh, 34rem); object-fit: cover; display: block;
   border: 1px solid var(--line); border-radius: var(--radius-card);
@@ -165,9 +169,6 @@ body {
   align-items: flex-end;
   justify-content: center;
 }
-.door.zone:hover {
-  background: transparent;
-}
 .scene { position: relative; overflow: hidden; border-radius: var(--radius-card); }
 .doorlabel {
   display: block;
@@ -182,7 +183,7 @@ body {
 .doortitle { display: block; font-size: var(--text-title); font-weight: 800; color: var(--ink); }
 .doorsub { display: block; font-size: var(--text-body); color: var(--muted); }
 .door.zone:focus-visible {
-  background: transparent;
+  background: var(--door-hi);
   outline: 3px solid var(--ink);
   outline-offset: -6px;
 }
@@ -645,6 +646,14 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
 .enginelabel { font-size: var(--text-body); font-weight: 800; margin-bottom: 0.4rem; }
 @media (max-width: 700px) { .wideonly { display: none; } }
 @media (min-width: 701px) { .narrowonly { display: none; } }
+/* Landing door hover highlight (pointer only). Hovering a half lifts
+ * it, dims the other, and inks the hovered label edge. Lives here,
+ * after the base rules, so base-rule scans stay intact. */
+@media (hover: hover) {
+  .door.zone:hover { background: var(--door-hi); }
+  .entrances:hover .door.zone:not(:hover) { background: var(--door-dim); }
+  .door.zone:hover .doorlabel { border-color: var(--ink); }
+}
 
 .decline { border: 2px solid var(--ink); border-radius: var(--radius-card); box-shadow: inset 0 1px 0 var(--line); padding: 0.9rem 1rem; background: var(--paper); }
 .decline .dtitle { font-size: var(--text-title); font-weight: 800; margin-bottom: 0.3rem; }

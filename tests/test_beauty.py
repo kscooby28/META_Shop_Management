@@ -361,8 +361,12 @@ class LeftAloneTest(unittest.TestCase):
 
     def test_doors_structure_kept(self):
         # Labeled door buttons over the street photo: the photo stays
-        # fully visible (never amber), hover paints nothing, and
-        # keyboard focus keeps the ink outline.
+        # fully visible (never amber). Owner direction changed the old
+        # "hover paints nothing" contract: hovering a half now
+        # highlights it (translucent lift on the hovered side, dim on
+        # the other), still with no zoom, scale, or motion anywhere on
+        # the doors. Keyboard focus keeps the ink outline plus the
+        # same highlight.
         door = rule_body(".door")
         for_keep = ("background: transparent;", "border: none;",
                     "cursor: pointer;")
@@ -372,13 +376,20 @@ class LeftAloneTest(unittest.TestCase):
         self.assertIn(".door.zone:hover", css)
         self.assertIn(".door.zone:focus-visible", css)
         self.assertIn("outline: 3px solid var(--ink);", css)
-        # The image stays fully visible under hover and focus:
-        # outline only, never a painted background.
+        self.assertIn(".entrances:hover .door.zone:not(:hover)", css)
+        # Highlight, not paint-over: translucent token backgrounds,
+        # no outline swap, no transform/scale/transition on the doors.
         hover = rule_body(".door.zone:hover")
-        self.assertIn("background: transparent;", hover)
+        self.assertIn("background: var(--door-hi);", hover)
+        self.assertNotIn("background: transparent;", hover)
         self.assertNotIn("outline", hover)
-        self.assertIn("background: transparent;",
-                      rule_body(".door.zone:focus-visible"))
+        self.assertNotIn("transform", hover)
+        self.assertNotIn("scale(", hover)
+        self.assertNotIn("transition", hover)
+        focus = rule_body(".door.zone:focus-visible")
+        self.assertIn("background: var(--door-hi);", focus)
+        self.assertIn("outline: 3px solid var(--ink);", focus)
+        self.assertNotIn("background: transparent;", focus)
         self.assertNotIn(".door-name", css)
         self.assertNotIn(".door-why", css)
 
