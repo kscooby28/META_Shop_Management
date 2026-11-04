@@ -9,21 +9,22 @@ sample, honestly labeled. Key names only are ever checked; values are
 never printed or logged.
 
 Isolated adapter with its own transport and key loading, following the
-meta_client pattern. SPARK_OPEN_LIVE gates live attempts (on: Baseten is
-outside the Meta rotation gate). Endpoint and model are the exact pinned
-strings, not guesses.
+meta_client pattern. SPARK_OPEN_LIVE gates live attempts (on: Baseten
+goes live when its key is present). Endpoint and model are the exact
+pinned strings, not guesses.
 """
 
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 
-from meta_client import MetaAPIError
+from meta_client import MetaAPIError, demo_forced
 
-# Live Baseten attempts stay ON: the Baseten key was never pasted anywhere
-# and is not covered by the Meta rotation gate. Tests flip this off to
-# prove the demo path without touching the network.
+# Live Baseten attempts stay ON: the leg goes live when its key is
+# present and demo is not forced. Tests flip this off (or set
+# SHOP_DEMO=1) to prove the demo path without touching the network.
 SPARK_OPEN_LIVE = True
 BASETEN_ENDPOINT = "https://inference.baseten.co/v1"
 SPARK_OPEN_MODEL = "meta-models/muse-spark-open-1026"
@@ -75,15 +76,24 @@ def _api_key():
     raise MetaAPIError("no %s in the local environment" % BASETEN_KEY_NAME, kind="auth")
 
 
+def live_enabled():
+    """Live when the flag is on, the key is present, and demo is not forced."""
+    return bool(SPARK_OPEN_LIVE) and not demo_forced() and _key_present()
+
+
 def request_grades(evidence):
     """Ask Spark Open via Baseten for second-look grades. One call, no retry.
 
-    Raises MetaAPIError without touching the network unless the live flag
-    is on, evidence is present, and the key is present. Any transport,
-    auth, or shape problem raises so the caller falls back to demo cache.
+    Raises MetaAPIError without touching the network unless the leg is
+    live (flag on, key present, demo not forced) and evidence is
+    present. Any transport, auth, or shape problem raises so the caller
+    falls back to demo cache. The result carries ms + model for the
+    live chip.
     """
     if not SPARK_OPEN_LIVE:
         raise MetaAPIError("spark open live is off", kind="unreachable")
+    if demo_forced():
+        raise MetaAPIError("SHOP_DEMO=1 forces the demo sample", kind="demo")
     if not evidence:
         raise MetaAPIError("no evidence to grade", kind="bad_response")
     if not _key_present():
@@ -105,6 +115,7 @@ def request_grades(evidence):
         },
         method="POST",
     )
+    start = time.monotonic()
     try:
         with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
             raw = json.loads(response.read().decode("utf-8"))
@@ -114,6 +125,7 @@ def request_grades(evidence):
         raise MetaAPIError("Baseten error %s" % exc.code, kind="unreachable")
     except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
         raise MetaAPIError("Baseten unreachable: %s" % exc, kind="unreachable")
+    ms = int((time.monotonic() - start) * 1000)
     try:
         text = raw["choices"][0]["message"]["content"]
         parsed = json.loads(text)
@@ -130,7 +142,8 @@ def request_grades(evidence):
     except (KeyError, IndexError, AssertionError, ValueError, TypeError) as exc:
         raise MetaAPIError("Spark Open returned an unusable shape: %s" % exc,
                            kind="bad_response")
-    return {"grades": cleaned, "source": "spark-open-live"}
+    return {"grades": cleaned, "source": "spark-open-live",
+            "ms": ms, "model": SPARK_OPEN_MODEL}
 
 
 def demo_grades(root):
@@ -155,19 +168,23 @@ def demo_grades(root):
 def compare_grades(evidence, part_ids, root):
     """Gated entry: one live attempt when possible, else the demo sample.
 
-    Returns {grades, mode, source, notice}. Live grades are filtered to
-    the case's own part_ids; unknown ids from the model are dropped and
-    named, never rendered.
+    Returns {grades, mode, source, notice, ms, model}. Grades are
+    filtered to the case's own part_ids; unknown ids from the model are
+    dropped and named, never rendered.
     """
     try:
         result = request_grades(evidence)
         mode, notice = "live", ""
+        ms, model = result.get("ms"), result.get("model", "")
     except MetaAPIError as exc:
         result = demo_grades(root)
         mode = "demo-cache"
+        ms, model = None, ""
         if exc.kind == "auth" and "BASETEN_API_KEY" in str(exc):
             notice = ("No Baseten key under BASETEN_API_KEY, so this side shows "
                       "the demo sample. Add the key to run Spark Open live.")
+        elif exc.kind == "demo":
+            notice = ("Demo forced, so this side shows the demo sample.")
         else:
             notice = ("Spark Open live failed (%s), so this side shows the demo "
                       "sample." % exc)
@@ -180,5 +197,6 @@ def compare_grades(evidence, part_ids, root):
             dropped += 1
     if dropped:
         notice = (notice + " " if notice else "") + \
-            "%d live grade(s) named unknown parts and were dropped." % dropped
-    return {"grades": kept, "mode": mode, "source": result["source"], "notice": notice}
+            "%d grade(s) named unknown parts and were dropped." % dropped
+    return {"grades": kept, "mode": mode, "source": result["source"],
+            "notice": notice, "ms": ms, "model": model}

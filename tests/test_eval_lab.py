@@ -29,16 +29,16 @@ class EvalLabTest(unittest.TestCase):
         wonder = next(r for r in rows if r["engine"].startswith("wonder-standard"))
         self.assertIn("7/7 router outcomes", wonder["agreement"])
 
-    def test_all_live_legs_flagged_off(self):
+    def test_live_legs_match_proven_status(self):
         import bay
         import studio
         import voice
         import wonder
 
         self.assertFalse(bay.VIN_LIVE)
-        self.assertFalse(studio.IMAGE_LIVE)
         self.assertFalse(voice.VOICE_LIVE)
-        self.assertFalse(wonder.WONDER_LIVE)
+        self.assertTrue(studio.IMAGE_LIVE)
+        self.assertTrue(wonder.WONDER_LIVE)
         rows, _ = eval_lab.measure()
         for row in rows:
             self.assertIn("blocked", row["status"])

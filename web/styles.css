@@ -473,6 +473,16 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
   background: var(--ink);
   color: var(--bg);
 }
+.livechip {
+  display: inline-block;
+  font-size: var(--text-meta);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-small);
+  background: var(--grade-a);
+  color: var(--bg);
+}
 .thumb {
   width: 64px; height: 64px;
   flex: none;

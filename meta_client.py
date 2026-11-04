@@ -77,6 +77,20 @@ def api_key_present():
     return bool(key and key.strip())
 
 
+def demo_forced():
+    """True when the owner forces demo mode via SHOP_DEMO=1.
+
+    Read from the process environment first, then the local .env, so a
+    server started with the variable set (or a .env carrying it) serves
+    demo cache on every Meta leg without touching the network. The
+    Settings 'Force offline demo' switch is the per-request twin: it
+    injects demo:true into each call, and either one wins.
+    """
+    if os.environ.get("SHOP_DEMO") == "1":
+        return True
+    return _read_dotenv(os.path.join(_repo_root(), ".env")).get("SHOP_DEMO") == "1"
+
+
 def _api_key():
     dotenv = _read_dotenv(os.path.join(_repo_root(), ".env"))
     key = (
@@ -184,8 +198,49 @@ def identify_car(images):
     return {"car": car, "parts": parts}
 
 
+def spark_grounding_harvest(intake):
+    """Build harvest-shaped data from Spark's own intake grounding. Offline.
+
+    Pure function of the intake result: each grounded part keeps its
+    0-1000 box as its single sighting, tagged source spark-live. This is
+    the live-path harvest now that SAM is out of the live path (the
+    /sam/segment endpoint 404s and /v1/responses probes returned zero
+    geometry): the harvest always describes the car Spark just
+    identified, never the demo car.
+    """
+    parts = []
+    for intake_part in (intake or {}).get("parts", []):
+        frame = intake_part.get("source_tag", "photo-0")
+        parts.append(
+            {
+                "id": intake_part.get("id"),
+                "label": intake_part.get("label", ""),
+                "category": intake_part.get("category", "other"),
+                "intact": intake_part.get("intact", "unknown"),
+                "intact_note": intake_part.get("intact_note", ""),
+                "count": intake_part.get("count", 1),
+                "sightings": [
+                    {
+                        "frame": frame,
+                        "box": intake_part.get("box"),
+                        "polygon": None,
+                        "coverage": None,
+                        "score": None,
+                        "source_tag": frame,
+                        "source": "spark-live",
+                    }
+                ],
+            }
+        )
+    return {"car": (intake or {}).get("car", {}), "parts": parts}
+
+
 def segment_parts(images, phrases, intake):
     """Run SAM masks for each grounded part, tracked across frames.
+
+    Documented SAM attempt, kept for the eval record: NOT on the live
+    path (the /sam/segment endpoint 404s). Live harvests come from
+    spark_grounding_harvest instead.
 
     Returns harvest-shaped data: parts with per-frame sightings (box, mask
     polygon on the 0-1000 grid, coverage) plus Spark counts. Merges SAM output

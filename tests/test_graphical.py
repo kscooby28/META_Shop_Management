@@ -128,8 +128,9 @@ class NetworkBaselineTest(unittest.TestCase):
                 continue
             fetches += read(name).count("fetch(")
         # 6 audited call sites plus the shop-rate save (same
-        # origin, same /api/rules path as the rules save).
-        self.assertEqual(fetches, 7)
+        # origin, same /api/rules path as the rules save) plus the
+        # settings health line (same origin GET /api/health).
+        self.assertEqual(fetches, 8)
         for base, _, files in os.walk(WEB):
             for name in files:
                 path = os.path.join(base, name)

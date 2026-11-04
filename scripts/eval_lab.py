@@ -3,7 +3,7 @@
 Case set (demo only, never real customer cases): the 7 Yard demo parts,
 Bay demo case 1's ranking, and the Bay KB samples already in the repo.
 Each engine row reports what is measurable today plus exactly what would
-run it live. Live legs are all flagged off; this harness makes zero
+run it live. Live legs are forced to demo; this harness makes zero
 network calls. Key checks read key NAMES only and never print values.
 
 Usage:
@@ -82,7 +82,8 @@ def measure():
             verdict.get("verdict") == "B" or not inputs.get("price_known")
             or not inputs.get("demand_source") or inputs.get("intact") == "unknown"
         )
-        got = escalate("yard", verdict, verdict["part_id"], ROOT)["escalated"]
+        got = escalate("yard", verdict, verdict["part_id"], ROOT,
+                         force_demo=True)["escalated"]
         router_ok += expect == got
     router = "%d/%d router outcomes" % (router_ok, router_n)
 

@@ -336,7 +336,10 @@ def spine_run(n):
     )
     check(len(passed["plan"]["trail"]) == 1, tag + ": pass must trail")
     _, failed = post("/api/bay/result", {"sessionId": sid, "testId": "t4", "result": "fail"})
-    check(bool(failed["plan"]["trail"][-1]["moved"]), tag + ": fail must move ranks")
+    check("now suspected" in failed["plan"]["trail"][-1]["caused_by"],
+          tag + ": fail must trail its suspicion")
+    check(all(not m.startswith("t4 ") for m in failed["plan"]["trail"][-1]["moved"]),
+          tag + ": recorded test must not list itself as moved")
 
     # Close: every test recorded, the plan is complete.
     for tid in ("t2", "t3", "t5"):

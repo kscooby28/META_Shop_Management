@@ -19,22 +19,33 @@ def harvest_part(part_id):
 
 
 class StudioDemoTest(unittest.TestCase):
-    def test_live_flag_off(self):
-        self.assertFalse(studio.IMAGE_LIVE)
+    def test_live_flag_on_for_proven_leg(self):
+        # Proven leg: live when the key is present and demo is not
+        # forced. Tests force the demo path by patching the flag off.
+        self.assertTrue(studio.IMAGE_LIVE)
+        self.assertEqual(studio.IMAGE_MODEL_DEFAULT, "muse-image-1.0")
+        self.assertEqual(studio.IMAGE_PATH_DEFAULT, "/responses")
 
-    def test_live_refuses_without_network(self):
-        with self.assertRaises(MetaAPIError) as ctx:
-            studio.request_studio_render("data:image/png;base64,xx", "diff")
-        self.assertIn("demo build", str(ctx.exception))
+    def test_live_refuses_when_flag_patched_off(self):
+        real, studio.IMAGE_LIVE = studio.IMAGE_LIVE, False
+        try:
+            with self.assertRaises(MetaAPIError) as ctx:
+                studio.request_studio_render("data:image/png;base64,xx", "diff")
+        finally:
+            studio.IMAGE_LIVE = real
+        self.assertEqual(ctx.exception.kind, "unreachable")
 
     def test_live_refuses_without_cutout_even_if_flagged(self):
-        real, studio.IMAGE_LIVE = studio.IMAGE_LIVE, True
+        real_flag, studio.IMAGE_LIVE = studio.IMAGE_LIVE, True
+        real_gate = studio.live_enabled
+        studio.live_enabled = lambda: True
         try:
             with self.assertRaises(MetaAPIError) as ctx:
                 studio.request_studio_render("", "diff")
             self.assertEqual(ctx.exception.kind, "bad_response")
         finally:
-            studio.IMAGE_LIVE = real
+            studio.IMAGE_LIVE = real_flag
+            studio.live_enabled = real_gate
 
     def test_composite_is_deterministic(self):
         with open(os.path.join(ROOT, "web", "demo", "frame4.svg"), encoding="utf-8") as fh:
@@ -90,9 +101,13 @@ class StudioListingTest(unittest.TestCase):
         return sid
 
     def test_yard_draft_carries_studio(self):
-        fake = FakeHandler()
-        sid = self._session_with_harvest()
-        Handler._api_listing(fake, {"sessionId": sid, "partId": "p_diff"})
+        real, studio.IMAGE_LIVE = studio.IMAGE_LIVE, False
+        try:
+            fake = FakeHandler()
+            sid = self._session_with_harvest()
+            Handler._api_listing(fake, {"sessionId": sid, "partId": "p_diff"})
+        finally:
+            studio.IMAGE_LIVE = real
         status, body = fake.sent[-1]
         self.assertEqual(status, 200)
         self.assertEqual(body["mode"], "demo-cache")

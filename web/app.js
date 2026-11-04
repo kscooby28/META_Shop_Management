@@ -44,7 +44,7 @@ function updateOffline() {
 }
 
 function watchFallback(explicitDemo, mode) {
-  if (!explicitDemo && mode !== "live" && mode !== "live-adapter") {
+  if (!explicitDemo && !isLiveMode(mode)) {
     state.offlineSeen = true;
     updateOffline();
   }
@@ -196,6 +196,31 @@ function isDemoMode(mode) {
   return mode === "demo-cache";
 }
 
+function isLiveMode(mode) {
+  return mode === "live" || mode === "live-adapter" || mode === "spark-grounding";
+}
+
+/* Live chip: every live step shows one in its card plus one line in the
+ * activity feed, reading LIVE - <model> - <ms> ms. Cached steps keep
+ * their DEMO badge; the two never appear together. */
+function liveChip(model, ms) {
+  const s = document.createElement("span");
+  s.className = "livechip";
+  s.textContent = "LIVE - " + model + " - " + ms + " ms";
+  return s;
+}
+
+function liveChipHTML(model, ms) {
+  return '<span class="livechip">LIVE - ' + esc(model) + " - " + esc(ms) + " ms</span>";
+}
+
+function liveSuffix(res) {
+  if (res && isLiveMode(res.mode) && res.model && res.ms !== null && res.ms !== undefined) {
+    return " · LIVE - " + res.model + " - " + res.ms + " ms";
+  }
+  return "";
+}
+
 /* The mode pill answers "which engine ran this screen": modes attach
  * per leg, and each view shows only its own legs, so a Bay hand-entry
  * case never leaks its pill onto the Compare screen. */
@@ -215,11 +240,11 @@ function setPill() {
   const modes = keys.map((k) => state.modes[k]).filter(Boolean);
   if (!modes.length) { pill.hidden = true; return; }
   pill.hidden = false;
-  if (modes.every((m) => m === "live" || m === "live-adapter")) {
+  if (modes.every((m) => isLiveMode(m))) {
     pill.textContent = "live AI"; pill.className = "pill live";
   } else if (modes.some((m) => m === "manual" || m === "manual-entry")) {
     pill.textContent = "hand entry (AI unreachable)"; pill.className = "pill demo";
-  } else if (modes.every((m) => m !== "live" && m !== "live-adapter")) {
+  } else if (modes.every((m) => !isLiveMode(m))) {
     pill.textContent = "demo cache"; pill.className = "pill demo";
   } else {
     pill.textContent = "mixed: live + demo cache"; pill.className = "pill demo";
@@ -330,10 +355,14 @@ async function runIntake() {
   watchFallback(state.demo, res.mode);
   if (res.notice) notice(esc(res.notice));
   renderCar(res.intake.car);
+  if (isLiveMode(res.mode) && res.model) {
+    const name = $("carCard").querySelector(".name");
+    if (name) { name.appendChild(document.createTextNode(" ")); name.appendChild(liveChip(res.model, res.ms)); }
+  }
   const n = (res.intake.parts || []).length;
   feed("Found " + n + " parts on the " +
     [res.intake.car.year, res.intake.car.make, res.intake.car.model].filter(Boolean).join(" "),
-    "tool spark.identify — " + state.images.length + " photo(s) → car ID + " + n + " grounded parts (" + res.mode + ")");
+    "tool spark.identify — " + state.images.length + " photo(s) → car ID + " + n + " grounded parts (" + res.mode + ")" + liveSuffix(res));
   return res;
 }
 
@@ -467,6 +496,9 @@ function renderViewer() {
     badge.textContent = "DEMO FRAME";
     cap.appendChild(document.createTextNode(" "));
     cap.appendChild(badge);
+  } else if (state.harvestMeta) {
+    cap.appendChild(document.createTextNode(" "));
+    cap.appendChild(liveChip(state.harvestMeta.model, state.harvestMeta.ms));
   }
   if (!items.length && parts.length && !Gallery.isDemoFrame(frame.name)) {
     const note = document.createElement("p");
@@ -539,9 +571,10 @@ async function runHarvest() {
   setPill();
   watchFallback(state.demo, res.mode);
   if (res.notice) notice(esc(res.notice));
+  state.harvestMeta = (isLiveMode(res.mode) && res.model) ? { model: res.model, ms: res.ms } : null;
   // Demo fallback keeps your photos: sample boxes stay off them, and
   // the strip never resurrects sample frames beside real photos.
-  if (res.mode !== "live") {
+  if (!isLiveMode(res.mode)) {
     state.demo = true;
     const real = state.images.filter((i) => !Gallery.isDemoFrame(i.name));
     if (!state.images.length) {
@@ -559,7 +592,7 @@ async function runHarvest() {
   const frames = new Set();
   for (const p of res.harvest.parts || []) for (const s of p.sightings || []) frames.add(s.frame);
   feed("Mapped " + n + " parts across " + frames.size + " frames",
-    "tool sam.segment — " + n + " parts × " + frames.size + " frames → masks + tracking (" + res.mode + ")");
+    "tool spark.grounding — " + n + " parts × " + frames.size + " frames → boxes (" + res.mode + ")" + liveSuffix(res));
   return res;
 }
 
@@ -832,7 +865,9 @@ function renderWonder(boxId, res) {
   }
   const card = document.createElement("div");
   card.className = "decline";
-  const badge = res.mode === "live" ? "" : " <span class='demobadge'>DEMO</span>";
+  const badge = (res.mode === "live" && res.model)
+    ? " " + liveChipHTML(res.model, res.ms)
+    : " <span class='demobadge'>DEMO</span>";
   card.innerHTML =
     '<div class="dtitle">Second opinion — Wonder Standard' + badge + "</div>" +
     "<div><strong>" + esc(res.opinion.title || "") + "</strong></div>" +
@@ -854,7 +889,7 @@ async function runWonder(kind, ref, hard, boxId) {
   renderWonder(boxId, res);
   scrollSoon($(boxId));
   feed(res.escalated ? "Second opinion in view" : "Router passed: straightforward",
-    "tool wonder.route — " + res.triggers.length + " trigger(s) (" + res.mode + ")");
+    "tool wonder.route — " + res.triggers.length + " trigger(s) (" + res.mode + ")" + liveSuffix(res));
   return res;
 }
 
@@ -869,9 +904,11 @@ function renderCompare(res) {
   // Neutral panel over the current setting: one version, not three.
   const box = $("compareOut");
   box.innerHTML = "";
-  const modeTag = (mode) => mode === "live"
-    ? " <span class='sourced'>(live)</span>"
-    : " <span class='demobadge'>DEMO</span>";
+  const modeTag = (mode, model, ms) => (mode === "live" && model)
+    ? " " + liveChipHTML(model, ms)
+    : mode === "live"
+      ? " <span class='sourced'>(live)</span>"
+      : " <span class='demobadge'>DEMO</span>";
   const agree = res.rows.filter((r) =>
     r.grade13 !== "?" && r.gradeOpen !== "?" && r.grade13 === r.gradeOpen).length;
   const head = document.createElement("p");
@@ -883,7 +920,7 @@ function renderCompare(res) {
   const table = document.createElement("table");
   table.innerHTML = "<tr><th>Part</th><th>Rule grade</th>" +
     "<th>Money grade (rules engine)" + modeTag(res.mode13) + "</th>" +
-    "<th>Muse Spark Open, open-weight via Baseten" + modeTag(res.modeOpen) + "</th></tr>";
+    "<th>Muse Spark Open, open-weight via Baseten" + modeTag(res.modeOpen, res.modelOpen, res.msOpen) + "</th></tr>";
   for (const r of res.rows) {
     const tr = document.createElement("tr");
     tr.innerHTML = "<td><strong>" + esc(r.label) + "</strong></td>" +
@@ -908,7 +945,7 @@ function renderCompare(res) {
       '<div class="engines">' +
       '<div class="enginecol"><div class="enginelabel">Money grade (rules engine)' + modeTag(res.mode13) + "</div>" +
       gradePill(r.grade13) + ' <span class="hint">' + esc(r.reason13) + "</span></div>" +
-      '<div class="enginecol"><div class="enginelabel">Muse Spark Open, open-weight via Baseten' + modeTag(res.modeOpen) + "</div>" +
+      '<div class="enginecol"><div class="enginelabel">Muse Spark Open, open-weight via Baseten' + modeTag(res.modeOpen, res.modelOpen, res.msOpen) + "</div>" +
       gradePill(r.gradeOpen) + ' <span class="hint">' + esc(r.reasonOpen) + "</span></div>" +
       "</div>";
     cards.appendChild(pc);
@@ -919,6 +956,31 @@ function renderCompare(res) {
   foot.textContent = res.notice13 + (res.noticeOpen ? " " + res.noticeOpen : "") +
     " Open-model source: " + (res.sourceOpen || "?");
   box.appendChild(foot);
+  if (res.invRows && res.invRows.length) {
+    const invTitle = document.createElement("p");
+    invTitle.className = "compare-head";
+    invTitle.innerHTML = "<strong>Your inventory, second look.</strong> " +
+      '<span class="hint">Rules grade your shelf; Spark Open reads the same evidence plus your owner notes.</span>';
+    box.appendChild(invTitle);
+    const invList = document.createElement("div");
+    for (const r of res.invRows) {
+      const pc = document.createElement("div");
+      pc.className = "pccard";
+      pc.innerHTML = '<div class="pchead"><strong>' + esc(r.label) + "</strong>" +
+        gradePill(r.rule) + "</div>" +
+        '<div class="engines"><div class="enginecol"><div class="enginelabel">Muse Spark Open, open-weight via Baseten' +
+        modeTag(res.invModeOpen, res.invModelOpen, res.invMsOpen) + "</div>" +
+        gradePill(r.gradeOpen) + ' <span class="hint">' + esc(r.reasonOpen) + "</span></div></div>";
+      invList.appendChild(pc);
+    }
+    box.appendChild(invList);
+    const ifoot = document.createElement("p");
+    ifoot.className = "hint";
+    ifoot.textContent = (res.invNoticeOpen ? res.invNoticeOpen + " " : "") +
+      "Open-model source: " + (res.invSourceOpen || "?");
+    box.appendChild(ifoot);
+    flash(invList);
+  }
   flash(wrap);
   flash(cards);
   scrollSoon(box);
@@ -935,13 +997,23 @@ async function runCompare(opts) {
     });
     return null;
   }
-  const res = await api("/api/compare", { sessionId: state.sessionId, demo: demoOnly });
+  const body = { sessionId: state.sessionId, demo: demoOnly };
+  if (!demoOnly && typeof invState !== "undefined" && invState.parts.length) {
+    body.invItems = invState.parts.map((p) => ({
+      id: p.id, label: p.label, condition: p.condition, note: p.note,
+      value: p.value, valueSource: p.valueSource,
+      carLabel: Inventory.carLabel(invState, p.carId),
+    }));
+  }
+  const res = await api("/api/compare", body);
   state.sessionId = res.sessionId;
   state.modes.compare = res.modeOpen || "demo-cache";
   setPill();
   renderCompare(res);
+  const openLive = (res.modeOpen === "live" && res.modelOpen)
+    ? " · LIVE - " + res.modelOpen + " - " + res.msOpen + " ms" : "";
   feed("Compared both engines on " + res.rows.length + " parts",
-    "tool compare.run — rules engine (" + res.mode13 + ") vs spark open (" + res.modeOpen + ")");
+    "tool compare.run — rules engine (" + res.mode13 + ") vs spark open (" + res.modeOpen + ")" + openLive);
   return res;
 }
 
@@ -1006,6 +1078,7 @@ async function runDraft(partId) {
   const res = await api("/api/listing", { sessionId: state.sessionId, partId: pid });
   state.draftId = res.draftId;
   state.modes.listing = res.mode;
+  state.listingMeta = (isLiveMode(res.mode) && res.model) ? { model: res.model, ms: res.ms } : null;
   setPill();
   watchFallback(state.demo, res.mode);
   if (res.notice) notice(esc(res.notice));
@@ -1033,7 +1106,7 @@ async function runDraft(partId) {
   renderStudio(res.studio, res.mode, pid);
   const label = ((state.report.verdicts || []).find((v) => v.part_id === pid) || {}).label || pid;
   feed("Drafted a listing for the " + label,
-    "tool listing.draft — " + pid + " → Edit/Approve/Post card (" + res.mode + ")");
+    "tool listing.draft — " + pid + " → Edit/Approve/Post card (" + res.mode + ")" + liveSuffix(res));
   return res;
 }
 
@@ -1971,7 +2044,8 @@ function renderBayPlan() {
     "<p><strong>" + done + " of " + total + " recorded</strong>" +
     (isDemoMode(state.modes.bayPlan) ? " <span class='demobadge'>DEMO</span>" : "") +
     (state.modes.bayPlan === "live" ? " <span class='sourced'>AI-drafted</span>" : "") +
-    (state.modes.bayPlan === "manual" ? " <span class='sourced'>hand-entered</span>" : "") + "</p>" +
+    (state.modes.bayPlan === "manual" ? " <span class='sourced'>hand-entered</span>" : "") +
+    (state.bayPlanMeta ? " " + liveChipHTML(state.bayPlanMeta.model, state.bayPlanMeta.ms) : "") + "</p>" +
     "<div class='progress' style='margin-bottom:0.7rem'><div style='width:" + pct + "%'></div></div>");
   plan.tests.forEach((t, i) => {
     const result = plan.results[t.id];
@@ -2291,13 +2365,14 @@ async function bayDraftPlan() {
   const res = await api("/api/bay/plan", { sessionId: state.sessionId });
   bay.plan = res.plan;
   state.modes.bayPlan = res.mode;
+  state.bayPlanMeta = (res.mode === "live" && res.model) ? { model: res.model, ms: res.ms } : null;
   setPill();
   watchFallback(!!bay.demoCase, res.mode);
   if (res.notice) notice(esc(res.notice));
   renderBayPlan();
   if (!Object.keys(res.plan.results || {}).length) scrollSoon($("bayPlan"));
   feed("Drafted " + res.plan.tests.length + " ranked tests",
-    "tool bay.plan — symptom + codes → ranked tests (" + res.mode + ")");
+    "tool bay.plan — symptom + codes → ranked tests (" + res.mode + ")" + liveSuffix(res));
   await bayParts();
   await bayLabor({});
   return res;
@@ -3669,6 +3744,32 @@ function renderSettings() {
     renderGuides();
   });
   demoCard.appendChild(walk);
+  const liveCard = document.createElement("div");
+  liveCard.className = "gcard";
+  const liveTitle = document.createElement("div");
+  liveTitle.className = "ctitle";
+  liveTitle.textContent = "Live models";
+  liveCard.appendChild(liveTitle);
+  const liveLine = document.createElement("div");
+  liveLine.textContent = "Checking…";
+  liveCard.appendChild(liveLine);
+  box.appendChild(liveCard);
+  fetch("/api/health").then((r) => r.json()).then((health) => {
+    const legs = (health && health.legs) || [];
+    const on = legs.filter((l) => l.live);
+    liveLine.textContent = on.length
+      ? "Live models: " + on.map((l) => l.label).join("; ") + "."
+      : "Live models: none — add keys to the server .env to run Meta legs live.";
+    const hint = document.createElement("div");
+    hint.className = "hint";
+    hint.textContent = legs.map((l) =>
+      l.leg + ": " + (l.live ? "live (" + l.model + ")" : "off") +
+      " — key " + l.key + " " + (l.key_present ? "present" : "missing")
+    ).join("; ") + (health.demo_forced ? "; demo forced by SHOP_DEMO=1." : ".");
+    liveCard.appendChild(hint);
+  }).catch(() => {
+    liveLine.textContent = "Live models: unknown — the server did not answer.";
+  });
   renderCreds(box);
 }
 
@@ -4557,11 +4658,15 @@ function renderGatePrice(partId, from) {
 function markListingDemo() {
   const old = $("listingBadge");
   if (old) old.remove();
+  const card = $("listingCard");
   if (isDemoMode(state.modes.listing)) {
     const badge = demoBadge();
     badge.id = "listingBadge";
-    const card = $("listingCard");
     card.insertBefore(badge, card.firstChild);
+  } else if (state.listingMeta) {
+    const chip = liveChip(state.listingMeta.model, state.listingMeta.ms);
+    chip.id = "listingBadge";
+    card.insertBefore(chip, card.firstChild);
   }
 }
 
@@ -4581,6 +4686,7 @@ async function invDraftListing(partId) {
   state.sessionId = res.sessionId;
   state.draftId = res.draftId;
   state.modes.listing = res.mode;
+  state.listingMeta = (isLiveMode(res.mode) && res.model) ? { model: res.model, ms: res.ms } : null;
   setPill();
   watchFallback(state.forceDemo, res.mode);
   if (res.notice) notice(esc(res.notice));
@@ -4597,7 +4703,7 @@ async function invDraftListing(partId) {
   showView("inventory");
   goSection("sec-listing");
   feed("Drafted a listing from inventory: " + part.label,
-    "tool listing.draft — inventory item → Edit/Approve/Post card (" + res.mode + ")");
+    "tool listing.draft — inventory item → Edit/Approve/Post card (" + res.mode + ")" + liveSuffix(res));
 }
 
 function readPhotoInput(input) {
@@ -4693,7 +4799,7 @@ function initInventory() {
         "tool inv.identify — photo → hand entry (" + res.mode + ")");
     } else {
       feed("Picture identified: " + [car.year, car.make, car.model].filter(Boolean).join(" "),
-        "tool inv.identify — photo → car ID (" + res.mode + ")");
+        "tool inv.identify — photo → car ID (" + res.mode + ")" + liveSuffix(res));
     }
     return car;
   }
@@ -4778,7 +4884,7 @@ function initInventory() {
     if (res.part.condition) $("invPartCond").value = res.part.condition;
     if (res.notice) notice(esc(res.notice));
     feed("Part picture described: " + res.part.label,
-      "tool inv.part-photo — photo → label + condition (" + res.mode + ")");
+      "tool inv.part-photo — photo → label + condition (" + res.mode + ")" + liveSuffix(res));
   }
   async function describeInvPartStaged() {
     const file = ($("invPartPhoto").files || [])[0];

@@ -111,16 +111,19 @@ class BasetenOnlyTest(unittest.TestCase):
             self.assertNotIn(banned, src, banned)
         self.assertIn("spark_open.request_grades", src)
 
-    def test_meta_live_flags_off(self):
+    def test_meta_live_flags_match_proven_status(self):
         import bay
         import studio
         import voice
         import wonder
 
+        # VIN stays off (untested plate path) and voice stays off
+        # (unverified model id); the proven legs go live when keys are
+        # present and demo is not forced.
         self.assertFalse(bay.VIN_LIVE)
-        self.assertFalse(studio.IMAGE_LIVE)
         self.assertFalse(voice.VOICE_LIVE)
-        self.assertFalse(wonder.WONDER_LIVE)
+        self.assertTrue(studio.IMAGE_LIVE)
+        self.assertTrue(wonder.WONDER_LIVE)
 
     def test_baseten_target_exact(self):
         import spark_open

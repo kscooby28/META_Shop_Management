@@ -153,10 +153,16 @@ class SpineShopJourneyTest(unittest.TestCase):
         self.assertIn("passed", plan["trail"][-1]["caused_by"])
         self.assertEqual(len(plan["trail"]), 1)
 
-        # A fail suspects a cause and moves the ranking.
+        # A fail suspects a cause and trails it. Only the recorded
+        # test moves here, so no other test is listed as moved (WO22
+        # 2.8: the recorded test is excluded, cascade shifts are not
+        # reported); test_bay covers a real jump on case3.
         record_result(plan, "t4", "fail", "no click by hand")
         self.assertIn("dead module", plan["suspected"])
-        self.assertTrue(plan["trail"][-1]["moved"])
+        self.assertIn("now suspected: dead module",
+                      plan["trail"][-1]["caused_by"])
+        self.assertFalse([m for m in plan["trail"][-1]["moved"]
+                          if m.startswith("t4 ")])
         self.assertEqual(len(plan["trail"]), 2)
 
         # Parts and labor stay sourced and plain.

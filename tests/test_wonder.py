@@ -44,8 +44,12 @@ def clean_verdict():
 
 
 class WonderUnitTest(unittest.TestCase):
-    def test_live_flag_off(self):
-        self.assertFalse(wonder.WONDER_LIVE)
+    def test_live_flag_on_for_proven_leg(self):
+        # Proven leg: live when the key is present and demo is not
+        # forced. Tests force the demo path by patching the flag off.
+        self.assertTrue(wonder.WONDER_LIVE)
+        self.assertEqual(wonder.WONDER_MODEL_DEFAULT, "muse-wonder-1.0")
+        self.assertEqual(wonder.WONDER_PATH_DEFAULT, "/chat/completions")
 
     def test_standard_only(self):
         self.assertEqual(wonder.WONDER_VARIANT, "standard")
@@ -57,10 +61,24 @@ class WonderUnitTest(unittest.TestCase):
         finally:
             wonder.WONDER_VARIANT = real
 
-    def test_live_refuses_without_network(self):
-        with self.assertRaises(MetaAPIError) as ctx:
-            wonder.request_opinion({"kind": "yard"})
-        self.assertIn("demo build", str(ctx.exception))
+    def test_live_refuses_when_flag_patched_off(self):
+        real, wonder.WONDER_LIVE = wonder.WONDER_LIVE, False
+        try:
+            with self.assertRaises(MetaAPIError) as ctx:
+                wonder.request_opinion({"kind": "yard"})
+        finally:
+            wonder.WONDER_LIVE = real
+        self.assertEqual(ctx.exception.kind, "unreachable")
+
+    def test_live_refuses_without_key(self):
+        real = wonder._key_present
+        wonder._key_present = lambda: False
+        try:
+            with self.assertRaises(MetaAPIError):
+                wonder.request_opinion({"kind": "yard"})
+            self.assertFalse(wonder.live_enabled())
+        finally:
+            wonder._key_present = real
 
     def test_yard_triggers(self):
         self.assertEqual(wonder.assess_yard(clean_verdict())["triggers"], [])
@@ -98,21 +116,33 @@ class WonderUnitTest(unittest.TestCase):
         self.assertIsNone(result["opinion"])
 
     def test_router_escalates_hard_cases_demo(self):
-        borderline = dict(clean_verdict(), verdict="B")
-        result = wonder.escalate("yard", borderline, "p_x", ROOT)
+        real, wonder.WONDER_LIVE = wonder.WONDER_LIVE, False
+        try:
+            borderline = dict(clean_verdict(), verdict="B")
+            result = wonder.escalate("yard", borderline, "p_x", ROOT)
+        finally:
+            wonder.WONDER_LIVE = real
         self.assertTrue(result["escalated"])
         self.assertEqual(result["mode"], "demo-cache")
         self.assertIn("demo-cache", result["opinion"]["source"])
 
     def test_hard_flag_forces_escalation(self):
-        result = wonder.escalate("yard", clean_verdict(), "p_x", ROOT, hard=True)
+        real, wonder.WONDER_LIVE = wonder.WONDER_LIVE, False
+        try:
+            result = wonder.escalate("yard", clean_verdict(), "p_x", ROOT, hard=True)
+        finally:
+            wonder.WONDER_LIVE = real
         self.assertTrue(result["escalated"])
         self.assertIn("flagged hard by the shop",
                       result["assessment"]["triggers"])
 
     def test_real_headlight_escalates(self):
-        verdict = next(v for v in yard_verdicts() if v["part_id"] == "p_headlight")
-        result = wonder.escalate("yard", verdict, "p_headlight", ROOT)
+        real, wonder.WONDER_LIVE = wonder.WONDER_LIVE, False
+        try:
+            verdict = next(v for v in yard_verdicts() if v["part_id"] == "p_headlight")
+            result = wonder.escalate("yard", verdict, "p_headlight", ROOT)
+        finally:
+            wonder.WONDER_LIVE = real
         self.assertTrue(result["escalated"])
         self.assertIn("headlight", result["opinion"]["title"].lower())
 
@@ -129,11 +159,15 @@ class FakeHandler:
 
 class WonderEndpointTest(unittest.TestCase):
     def test_yard_second_opinion(self):
-        fake = FakeHandler()
-        sid = server.new_session_id()
-        server.put_session(sid, {"verdicts": {"verdicts": yard_verdicts()}})
-        Handler._api_wonder(
-            fake, {"sessionId": sid, "kind": "yard", "ref": "p_headlight"})
+        real, wonder.WONDER_LIVE = wonder.WONDER_LIVE, False
+        try:
+            fake = FakeHandler()
+            sid = server.new_session_id()
+            server.put_session(sid, {"verdicts": {"verdicts": yard_verdicts()}})
+            Handler._api_wonder(
+                fake, {"sessionId": sid, "kind": "yard", "ref": "p_headlight"})
+        finally:
+            wonder.WONDER_LIVE = real
         status, body = fake.sent[-1]
         self.assertEqual(status, 200)
         self.assertTrue(body["escalated"])
@@ -141,11 +175,15 @@ class WonderEndpointTest(unittest.TestCase):
         self.assertIn("demo build", body["notice"])
 
     def test_bay_second_opinion_uses_demo_case_ref(self):
-        fake = FakeHandler()
-        sid = server.new_session_id()
-        server.put_session(
-            sid, {"bay": {"plan": case1_plan(), "demo_case": "case1"}})
-        Handler._api_wonder(fake, {"sessionId": sid, "kind": "bay"})
+        real, wonder.WONDER_LIVE = wonder.WONDER_LIVE, False
+        try:
+            fake = FakeHandler()
+            sid = server.new_session_id()
+            server.put_session(
+                sid, {"bay": {"plan": case1_plan(), "demo_case": "case1"}})
+            Handler._api_wonder(fake, {"sessionId": sid, "kind": "bay"})
+        finally:
+            wonder.WONDER_LIVE = real
         status, body = fake.sent[-1]
         self.assertEqual(status, 200)
         self.assertTrue(body["escalated"])

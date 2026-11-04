@@ -320,7 +320,7 @@ def main(argv):
             raise SystemExit("unknown art name: %s" % only)
     names = [only] if only else list(prompts)
     os.makedirs(ASSETS, exist_ok=True)
-    studio.IMAGE_LIVE = True  # in-process only; source default untouched
+    studio.IMAGE_LIVE = True  # in-process only; proven legs default on
     manifest = load_manifest(manifest_name)
     images = manifest.get("images", {})
     attempts = manifest.get("attempts", {})

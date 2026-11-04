@@ -27,24 +27,32 @@ from bay import (
     search_kb,
     strip_vin,
     validate_intake,
-    VIN_LIVE,
+    vin_live_enabled,
 )
 from comps import get_adapter as get_comps_adapter, valuation_from_shop
 from demo_cache import StepCache
 from inventory import comp_for_label, load_seed
 from listing import build_live_draft, demo_draft, get_post_adapter
-from studio import IMAGE_LIVE, demo_lookup, request_studio_render
-from voice import VOICE_LIVE, transcribe
-from spark_open import compare_grades, demo_grades
-from wonder import WONDER_LIVE, escalate
+from studio import demo_lookup, live_enabled as studio_live_enabled, live_model as studio_live_model, request_studio_render
+from voice import live_enabled as voice_live_enabled, live_model as voice_live_model, transcribe
+from spark_open import (
+    _key_present as spark_open_key_present,
+    compare_grades,
+    demo_grades,
+    live_enabled as spark_open_live_enabled,
+)
+from wonder import escalate, live_enabled as wonder_live_enabled, live_model as wonder_live_model
 from meta_client import (
     MetaAPIError,
+    api_key_present,
     chat_stream,
+    demo_forced,
     describe_part,
     draft_plan,
     identify_car,
     read_vin_photo,
-    segment_parts,
+    settings as meta_settings,
+    spark_grounding_harvest,
 )
 from verdict import evaluate, load_rules, render_decline, save_rules
 
@@ -138,6 +146,42 @@ def _manual_notice(exc, tail):
     return head + " " + tail
 
 
+def _demo_forced(payload):
+    """True when demo wins for this request: payload flag or SHOP_DEMO=1."""
+    return bool((payload or {}).get("demo")) or demo_forced()
+
+
+def _live_legs():
+    """Per-leg readiness for /api/health. Key NAMES only, never values."""
+    spark_model = meta_settings()["spark_model"]
+    spark_live = api_key_present() and not demo_forced()
+    return [
+        {"leg": "spark", "label": "Spark 1.3 (identify, plans, drafts, chat)",
+         "key": "META_API_KEY", "key_present": api_key_present(),
+         "live": spark_live, "model": spark_model if spark_live else ""},
+        {"leg": "spark-open", "label": "Spark Open via Baseten (second look)",
+         "key": "BASETEN_API_KEY", "key_present": spark_open_key_present(),
+         "live": spark_open_live_enabled(),
+         "model": "meta-models/muse-spark-open-1026" if spark_open_live_enabled() else ""},
+        {"leg": "wonder", "label": "Wonder Standard (second opinion)",
+         "key": "META_API_KEY", "key_present": api_key_present(),
+         "live": wonder_live_enabled(),
+         "model": wonder_live_model() if wonder_live_enabled() else ""},
+        {"leg": "image", "label": "Muse Image (studio photo)",
+         "key": "META_API_KEY", "key_present": api_key_present(),
+         "live": studio_live_enabled(),
+         "model": studio_live_model() if studio_live_enabled() else ""},
+        {"leg": "voice", "label": "Voice Transcribe (off: unverified model id)",
+         "key": "META_API_KEY", "key_present": api_key_present(),
+         "live": voice_live_enabled(),
+         "model": voice_live_model() if voice_live_enabled() else ""},
+        {"leg": "vin", "label": "VIN plate read (off: untested)",
+         "key": "META_API_KEY", "key_present": api_key_present(),
+         "live": vin_live_enabled(),
+         "model": spark_model if vin_live_enabled() else ""},
+    ]
+
+
 def new_session_id():
     return "s-%d-%d" % (int(time.time() * 1000), os.getpid())
 
@@ -211,6 +255,8 @@ class Handler(BaseHTTPRequestHandler):
                     "api_key_present": api_key_present(),
                     "spark_model": settings()["spark_model"],
                     "sam_model": settings()["sam_model"],
+                    "demo_forced": demo_forced(),
+                    "legs": _live_legs(),
                 }
             )
         elif parsed.path == "/api/rules":
@@ -318,10 +364,11 @@ class Handler(BaseHTTPRequestHandler):
         if not images:
             self._send_json({"ok": False, "error": "upload at least one photo first"}, status=400)
             return
-        demo_only = bool(payload.get("demo"))
+        demo_only = _demo_forced(payload)
         cache = StepCache(ROOT)
         mode = "live"
         notice = ""
+        start = time.monotonic()
         try:
             if demo_only:
                 raise MetaAPIError("demo case requested", kind="demo")
@@ -331,12 +378,15 @@ class Handler(BaseHTTPRequestHandler):
             mode = "demo-cache"
             notice = cache.notice("intake", exc)
             result = cache.load_demo("intake")
+        ms = int((time.monotonic() - start) * 1000)
         session["intake"] = result
         session["intake_mode"] = mode
         session["image_names"] = [img.get("name", "photo-%d" % i) for i, img in enumerate(images)]
         put_session(session_id, session)
         self._send_json(
-            {"ok": True, "sessionId": session_id, "mode": mode, "notice": notice, "intake": result}
+            {"ok": True, "sessionId": session_id, "mode": mode, "notice": notice,
+             "ms": ms, "model": meta_settings()["spark_model"] if mode == "live" else "",
+             "intake": result}
         )
 
     def _api_harvest(self, payload):
@@ -345,27 +395,32 @@ class Handler(BaseHTTPRequestHandler):
         if session is None or "intake" not in session:
             self._send_json({"ok": False, "error": "run intake first"}, status=400)
             return
-        demo_only = bool(payload.get("demo"))
+        demo_only = _demo_forced(payload)
         cached_intake = session["intake"]
         cache = StepCache(ROOT)
-        mode = "live"
+        mode = "spark-grounding"
         notice = ""
+        start = time.monotonic()
         try:
             if demo_only or session.get("intake_mode") != "live":
                 raise MetaAPIError("intake came from demo cache", kind="demo")
-            images = payload.get("images") or []
-            phrases = [p.get("label", "") for p in cached_intake.get("parts", [])]
-            result = segment_parts(images, phrases, cached_intake)
+            # SAM is out of the live path: the harvest is built from
+            # Spark's own 0-1000 grounding boxes, so it always describes
+            # the car Spark just identified, never the demo car.
+            result = spark_grounding_harvest(cached_intake)
             cache.save_live(session_id, "harvest", result)
         except MetaAPIError as exc:
             mode = "demo-cache"
             notice = cache.notice("harvest", exc)
             result = cache.load_demo("harvest")
+        ms = int((time.monotonic() - start) * 1000)
         session["harvest"] = result
         session["harvest_mode"] = mode
         put_session(session_id, session)
         self._send_json(
-            {"ok": True, "sessionId": session_id, "mode": mode, "notice": notice, "harvest": result}
+            {"ok": True, "sessionId": session_id, "mode": mode, "notice": notice,
+             "ms": ms, "model": meta_settings()["spark_model"] if mode == "spark-grounding" else "",
+             "harvest": result}
         )
 
     def _api_comps(self, payload):
@@ -376,7 +431,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         parts = session["harvest"].get("parts", [])
         # Samples are allowed only when the harvest itself came from demo cache.
-        allow_samples = session.get("harvest_mode") != "live"
+        allow_samples = session.get("harvest_mode") not in ("live", "spark-grounding")
         adapter = get_comps_adapter(ROOT)
         found = adapter.lookup([p.get("id") for p in parts], allow_samples)
         session["comps"] = found
@@ -466,7 +521,7 @@ class Handler(BaseHTTPRequestHandler):
             }
             verdict_info = None
             car = payload.get("invCar") or {}
-            force_demo = bool(payload.get("demo"))
+            force_demo = _demo_forced(payload)
         else:
             session_id = payload.get("sessionId")
             session = get_session(session_id) if session_id else None
@@ -486,11 +541,18 @@ class Handler(BaseHTTPRequestHandler):
                 None,
             )
             car = session.get("harvest", {}).get("car", {})
-            force_demo = False
+            force_demo = _demo_forced(payload)
         mode = "live"
         notice = ""
+        start = time.monotonic()
         try:
-            if force_demo or session.get("harvest_mode") != "live":
+            if force_demo:
+                raise MetaAPIError("harvest came from demo cache", kind="demo")
+            if inv is None and session.get("harvest_mode") not in ("live", "spark-grounding"):
+                raise MetaAPIError("harvest came from demo cache", kind="demo")
+            if not api_key_present():
+                # No key, no attempt: the zero-key fallback stays
+                # byte-identical to the demo path above.
                 raise MetaAPIError("harvest came from demo cache", kind="demo")
             draft = build_live_draft(part, comp, verdict_info, car)
             StepCache(ROOT).save_live(session_id, "listing-%s" % part_id, draft)
@@ -498,6 +560,7 @@ class Handler(BaseHTTPRequestHandler):
             mode = "demo-cache"
             notice = StepCache(ROOT).notice("listing", exc)
             draft = demo_draft(part, comp, verdict_info, car)
+        ms = int((time.monotonic() - start) * 1000)
         draft_id = "d-%d" % int(time.time() * 1000)
         drafts = session.setdefault("drafts", {})
         drafts[draft_id] = {
@@ -515,12 +578,13 @@ class Handler(BaseHTTPRequestHandler):
         cutout = self._cutout_spec(part)
         studio = None
         if cutout.get("box"):
-            if not IMAGE_LIVE:
+            if not studio_live_enabled():
                 studio = demo_lookup(part_id, cutout, ROOT, part.get("label", ""))
             else:
-                # Live leg (unreachable while IMAGE_LIVE is False): cutout
-                # bytes ride an optional payload field at rotation; absent
-                # today, so live honestly refuses and demo fills in.
+                # Live leg: cutout bytes ride an optional payload field;
+                # absent today, so live honestly refuses and demo fills in.
+                # Never an AI-generated part image: only the real cutout
+                # gets a studio backdrop, and only when bytes arrive.
                 try:
                     studio = request_studio_render(
                         payload.get("cutoutData"), part.get("label", ""))
@@ -532,6 +596,8 @@ class Handler(BaseHTTPRequestHandler):
                 "sessionId": session_id,
                 "mode": mode,
                 "notice": notice,
+                "ms": ms,
+                "model": meta_settings()["spark_model"] if mode == "live" else "",
                 "draftId": draft_id,
                 "draft": drafts[draft_id],
                 "cutout": cutout,
@@ -620,7 +686,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             vin_photo = payload.get("vinPhoto")
             if vin_photo:
-                if not VIN_LIVE:
+                if not vin_live_enabled():
                     notices.append(
                         "VIN live read is off in this demo build, "
                         "so the case uses manual entry only."
@@ -701,7 +767,7 @@ class Handler(BaseHTTPRequestHandler):
         if case.get("declined"):
             self._send_json({"ok": False, "error": "case declined: no test plan"}, status=400)
             return
-        if payload.get("demo") and not bay.get("demo_case"):
+        if _demo_forced(payload) and not bay.get("demo_case"):
             bay["plan"] = new_plan(case, [])
             bay["modes"]["plan"] = "manual"
             put_session(session_id, session)
@@ -711,6 +777,8 @@ class Handler(BaseHTTPRequestHandler):
                     "sessionId": session_id,
                     "mode": "manual",
                     "notice": "Offline demo: add the tests by hand below; the ranking still works.",
+                    "ms": 0,
+                    "model": "",
                     "plan": self._bay_plan_view(bay["plan"]),
                 }
             )
@@ -718,6 +786,7 @@ class Handler(BaseHTTPRequestHandler):
         mode = "live"
         notice = ""
         raw_tests = None
+        start = time.monotonic()
         if bay.get("demo_case"):
             try:
                 raw_tests = load_bay_case("plan", bay["demo_case"], ROOT)["tests"]
@@ -733,6 +802,7 @@ class Handler(BaseHTTPRequestHandler):
                 mode = "manual"
                 notice = _manual_notice(
                     exc, "Add the tests by hand below; the ranking still works.")
+        ms = int((time.monotonic() - start) * 1000)
         if raw_tests is None and bay.get("demo_case"):
             self._send_json({"ok": False, "error": "demo plan missing"}, status=500)
             return
@@ -748,6 +818,8 @@ class Handler(BaseHTTPRequestHandler):
                 "sessionId": session_id,
                 "mode": mode,
                 "notice": notice,
+                "ms": ms,
+                "model": meta_settings()["spark_model"] if mode == "live" else "",
                 "plan": self._bay_plan_view(bay["plan"]),
             }
         )
@@ -850,12 +922,14 @@ class Handler(BaseHTTPRequestHandler):
 
     # -- inventory -------------------------------------------------------
     def _api_inv_identify(self, payload):
-        if payload.get("demo"):
+        if _demo_forced(payload):
             return self._send_json(
                 {
                     "ok": True,
                     "mode": "demo-cache",
                     "notice": "Demo sample identification.",
+                    "ms": 0,
+                    "model": "",
                     "car": load_seed(ROOT)["sampleIdentify"],
                 }
             )
@@ -863,6 +937,7 @@ class Handler(BaseHTTPRequestHandler):
         if not photo:
             self._send_json({"ok": False, "error": "attach a photo first"}, status=400)
             return
+        start = time.monotonic()
         try:
             found = identify_car([photo])
         except MetaAPIError as exc:
@@ -872,16 +947,21 @@ class Handler(BaseHTTPRequestHandler):
                     "mode": "manual",
                     "notice": _manual_notice(
                         exc, "Enter the car by hand below."),
+                    "ms": int((time.monotonic() - start) * 1000),
+                    "model": "",
                     "car": {"year": "unknown", "make": "unknown",
                             "model": "unknown", "trim": "unknown"},
                 }
             )
-        self._send_json({"ok": True, "mode": "live", "notice": "", "car": found["car"]})
+        self._send_json({"ok": True, "mode": "live", "notice": "",
+                         "ms": int((time.monotonic() - start) * 1000),
+                         "model": meta_settings()["spark_model"],
+                         "car": found["car"]})
 
     def _api_inv_vin(self, payload):
-        if payload.get("demo") or not VIN_LIVE:
+        if _demo_forced(payload) or not vin_live_enabled():
             notice = "Demo sample vehicle; no VIN stored."
-            if payload.get("photo") and not VIN_LIVE and not payload.get("demo"):
+            if payload.get("photo") and not vin_live_enabled() and not payload.get("demo"):
                 notice = (
                     "VIN live read is off in this demo build, "
                     "so this is the demo sample. Confirm or edit by hand."
@@ -910,12 +990,14 @@ class Handler(BaseHTTPRequestHandler):
         self._send_json({"ok": True, "mode": "live", "notice": "", "vehicle": read})
 
     def _api_inv_part_photo(self, payload):
-        if payload.get("demo"):
+        if _demo_forced(payload):
             return self._send_json(
                 {
                     "ok": True,
                     "mode": "demo-cache",
                     "notice": "Demo sample description; enter the real condition by hand.",
+                    "ms": 0,
+                    "model": "",
                     "part": load_seed(ROOT)["samplePart"],
                 }
             )
@@ -923,6 +1005,7 @@ class Handler(BaseHTTPRequestHandler):
         if not photo:
             self._send_json({"ok": False, "error": "attach a part photo first"}, status=400)
             return
+        start = time.monotonic()
         try:
             part = describe_part(photo)
         except MetaAPIError:
@@ -931,7 +1014,10 @@ class Handler(BaseHTTPRequestHandler):
                 status=400,
             )
             return
-        self._send_json({"ok": True, "mode": "live", "notice": "", "part": part})
+        self._send_json({"ok": True, "mode": "live", "notice": "",
+                         "ms": int((time.monotonic() - start) * 1000),
+                         "model": meta_settings()["spark_model"],
+                         "part": part})
 
     def _api_inv_comps(self, payload):
         label = payload.get("label") or ""
@@ -939,11 +1025,12 @@ class Handler(BaseHTTPRequestHandler):
             seed = load_seed(ROOT)
         except (OSError, ValueError):
             seed = {}
-        found = comp_for_label(seed, label, allow_samples=bool(payload.get("demo")))
+        demo = _demo_forced(payload)
+        found = comp_for_label(seed, label, allow_samples=demo)
         self._send_json(
             {
                 "ok": True,
-                "mode": "demo-cache" if payload.get("demo") else "live-adapter",
+                "mode": "demo-cache" if demo else "live-adapter",
                 "comp": found,
             }
         )
@@ -958,7 +1045,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"ok": False, "error": str(exc)}, status=400)
             return
         notice = ""
-        if not VOICE_LIVE:
+        if not voice_live_enabled():
             notice = (
                 "Voice live is off in this demo build, so this is a demo "
                 "sample transcript. Read it before trusting it."
@@ -1014,31 +1101,77 @@ class Handler(BaseHTTPRequestHandler):
             )
             return
         try:
-            result = escalate(kind, evidence, ref, ROOT, hard)
+            result = escalate(kind, evidence, ref, ROOT, hard,
+                              force_demo=_demo_forced(payload))
         except MetaAPIError as exc:
             self._send_json({"ok": False, "error": str(exc)}, status=400)
             return
-        if result["escalated"] and not WONDER_LIVE:
+        if not result["escalated"]:
+            notice = "Straightforward on the visible inputs — no second opinion needed."
+        elif result["mode"] == "live":
+            notice = ""
+        else:
             notice = (
                 "Wonder live is off in this demo build, so this is a demo "
                 "sample opinion. The triggers above are computed from your evidence."
             )
-        elif not result["escalated"]:
-            notice = "Straightforward on the visible inputs — no second opinion needed."
-        else:
-            notice = ""
         self._send_json(
             {
                 "ok": True,
                 "sessionId": session_id,
                 "mode": result["mode"],
                 "notice": notice,
+                "ms": result.get("ms"),
+                "model": result.get("model", ""),
                 "triggers": result["assessment"]["triggers"],
                 "inputs": result["assessment"]["inputs"],
                 "escalated": result["escalated"],
                 "opinion": result["opinion"],
             }
         )
+
+    def _inventory_compare_inputs(self, inv_items):
+        """Rules verdicts + Spark Open evidence for DIY inventory items.
+
+        Same shape as the eval inventory case: condition maps to intact,
+        owner values stand as sourced shop comps, and the owner's own
+        note rides along so the open model can read it (the roadside
+        spare catch came from exactly this evidence).
+        """
+        parts, shop, extra = [], {}, {}
+        for entry in inv_items:
+            pid = entry.get("id") or "inv-part"
+            condition = (entry.get("condition") or "").lower()
+            if not condition or "unknown" in condition or "untested" in condition \
+                    or "haven't" in condition:
+                intact = "unknown"
+            else:
+                intact = "yes"
+            parts.append({"id": pid, "label": entry.get("label", "part"),
+                          "category": "other", "intact": intact,
+                          "sightings": [], "count": 1})
+            value = entry.get("value")
+            source = entry.get("valueSource") or ""
+            if isinstance(value, (int, float)) and source:
+                overlay = dict(valuation_from_shop(value, value))
+                overlay["price_source"] = source
+                shop[pid] = overlay
+            extra[pid] = {"car_label": entry.get("carLabel", "unknown car"),
+                          "owner_note": entry.get("note", ""),
+                          "condition": entry.get("condition", "unknown")}
+        rules = load_rules(RULES_PATH)
+        verdicts = evaluate(parts, rules, shop)["verdicts"]
+        evidence = {
+            "case": "inventory-compare",
+            "car": {"label": "DIY Garage inventory"},
+            "parts": [{"part_id": v["part_id"], "label": v["label"],
+                       "inputs": v["inputs"],
+                       "car_label": extra[v["part_id"]]["car_label"],
+                       "owner_note": extra[v["part_id"]]["owner_note"],
+                       "condition": extra[v["part_id"]]["condition"]}
+                      for v in verdicts],
+        }
+        return verdicts, evidence
 
     def _api_compare(self, payload):
         # Second look only: reads the session's verdicts, writes nothing,
@@ -1048,14 +1181,16 @@ class Handler(BaseHTTPRequestHandler):
         session_id = payload.get("sessionId")
         session = get_session(session_id) if session_id else None
         verdicts = (session or {}).get("verdicts", {}).get("verdicts", [])
-        if not verdicts:
+        inv_items = [i for i in (payload.get("invItems") or []) if isinstance(i, dict)]
+        if not verdicts and not inv_items:
             self._send_json(
                 {"ok": False, "error": "run verdicts first, then compare"},
                 status=400,
             )
             return
+        demo = _demo_forced(payload)
         evidence = {
-            "car": (session.get("harvest") or {}).get("car", {}),
+            "car": ((session or {}).get("harvest") or {}).get("car", {}),
             "parts": [
                 {"part_id": v.get("part_id"), "label": v.get("label"),
                  "inputs": v.get("inputs", {})}
@@ -1063,11 +1198,12 @@ class Handler(BaseHTTPRequestHandler):
             ],
         }
         part_ids = [v.get("part_id") for v in verdicts]
-        if payload.get("demo"):
+        if demo:
             # Tour path: demo leg forced, no live attempt, labeled demo.
             sample = demo_grades(ROOT)
             opened = {"grades": sample["grades"], "mode": "demo-cache",
-                      "source": sample["source"], "notice": ""}
+                      "source": sample["source"], "notice": "",
+                      "ms": None, "model": ""}
         else:
             opened = compare_grades(evidence, part_ids, ROOT)
         open_by_id = {g["part_id"]: g for g in opened["grades"]}
@@ -1085,6 +1221,37 @@ class Handler(BaseHTTPRequestHandler):
                 "gradeOpen": side.get("grade", "?"),
                 "reasonOpen": side.get("reason", ""),
             })
+        inv_rows = []
+        inv_mode_open, inv_source_open, inv_notice_open = "", "", ""
+        inv_ms_open, inv_model_open = None, ""
+        if inv_items:
+            inv_verdicts, inv_evidence = self._inventory_compare_inputs(inv_items)
+            inv_ids = [v.get("part_id") for v in inv_verdicts]
+            if demo:
+                sample = demo_grades(ROOT)
+                inv_opened = {"grades": sample["grades"], "mode": "demo-cache",
+                              "source": sample["source"],
+                              "notice": "Demo forced: the demo sample covers yard "
+                                        "parts only, so your inventory has no open-model "
+                                        "grade on this side.",
+                              "ms": None, "model": ""}
+            else:
+                inv_opened = compare_grades(inv_evidence, inv_ids, ROOT)
+            inv_by_id = {g["part_id"]: g for g in inv_opened["grades"]}
+            for v in inv_verdicts:
+                side = inv_by_id.get(v.get("part_id"), {})
+                inv_rows.append({
+                    "part_id": v.get("part_id"),
+                    "label": v.get("label", "part"),
+                    "rule": v.get("verdict", "?"),
+                    "gradeOpen": side.get("grade", "?"),
+                    "reasonOpen": side.get("reason", ""),
+                })
+            inv_mode_open = inv_opened["mode"]
+            inv_source_open = inv_opened["source"]
+            inv_notice_open = inv_opened["notice"]
+            inv_ms_open = inv_opened.get("ms")
+            inv_model_open = inv_opened.get("model", "")
         self._send_json(
             {
                 "ok": True,
@@ -1092,11 +1259,19 @@ class Handler(BaseHTTPRequestHandler):
                 "mode13": "demo-cache",
                 "modeOpen": opened["mode"],
                 "sourceOpen": opened["source"],
+                "msOpen": opened.get("ms"),
+                "modelOpen": opened.get("model", ""),
                 "notice13": ("Left side is the money-grade second look "
                              "computed from demo cache by the rules engine; "
                              "no live call on this side in the demo build."),
                 "noticeOpen": opened["notice"],
                 "rows": rows,
+                "invRows": inv_rows,
+                "invModeOpen": inv_mode_open,
+                "invSourceOpen": inv_source_open,
+                "invNoticeOpen": inv_notice_open,
+                "invMsOpen": inv_ms_open,
+                "invModelOpen": inv_model_open,
             }
         )
 

@@ -11,16 +11,23 @@ import glob
 import json
 import os
 
+from meta_client import api_key_present, demo_forced
 from verdict import render_decline
 
 LABOR_RATE = 180
 SHOP_MAKES = ("bmw", "porsche", "volvo")
 
-# Live VIN identification stays OFF until the owner confirms the Meta API key
-# has been rotated. While False, every VIN path serves demo cache / manual
-# entry and never calls the live API. Flipping this flag later changes the
-# data source only; the interface does not change.
+# Live VIN identification stays OFF: no plate image has been tested and
+# the privacy line holds (the VIN itself is never stored). While False,
+# every VIN path serves demo cache / manual entry and never calls the
+# live API. Flipping this flag later changes the data source only; the
+# interface does not change.
 VIN_LIVE = False
+
+
+def vin_live_enabled():
+    """Live only when flipped on AND a key is present AND demo is not forced."""
+    return bool(VIN_LIVE) and not demo_forced() and api_key_present()
 AREAS = ("engine", "gearbox", "electrical", "brakes", "suspension", "maintenance", "other", "not sure")
 
 # Visible keyword lists the decline matcher uses. Small and plain on purpose:
@@ -243,8 +250,35 @@ def _score_one(test, state):
     return sum(parts.values()), parts
 
 
-def _rescore(state, caused_by):
+def _jumps(order_before, order_after, score_before, score_after,
+           recorded_id, jump_note):
+    """Real rank jumps, excluding the just-recorded test and cascade shifts.
+
+    The orders are compared with the recorded test removed from both, so
+    the recorded test leaving the pending section (which shifts every
+    index) reports nothing. A test is listed when its relative rank
+    changed or its score changed. Each entry reads
+    't2 -> #1 (+5, now suspected: dead module)': test id, new rank,
+    score delta, and the fresh-cause note when there is one.
+    """
+    if order_before is None:
+        return []
+    before = [tid for tid in order_before if tid != recorded_id]
+    after = [tid for tid in order_after if tid != recorded_id]
+    before_pos = {tid: i for i, tid in enumerate(before)}
+    full_after = {tid: i for i, tid in enumerate(order_after)}
+    suffix = ", %s" % jump_note if jump_note else ""
+    jumps = []
+    for pos, tid in enumerate(after):
+        delta = (score_after.get(tid) or 0) - (score_before.get(tid) or 0)
+        if before_pos.get(tid) != pos or delta:
+            jumps.append("%s -> #%d (%+d%s)" % (tid, full_after[tid] + 1, delta, suffix))
+    return jumps
+
+
+def _rescore(state, caused_by, recorded_id=None, jump_note=""):
     order_before = [t["id"] for t in ranked_tests(state, rescore=False)] if state["trail"] or caused_by else None
+    score_before = {t["id"]: t.get("score", 0) for t in state["tests"]}
     for test in state["tests"]:
         score, parts = _score_one(test, state)
         test["score"] = score
@@ -258,7 +292,9 @@ def _rescore(state, caused_by):
             test["standing"] = "pending"
     if caused_by is not None:
         order_after = [t["id"] for t in ranked_tests(state, rescore=False)]
-        moved = [tid for tid in order_after if order_before is not None and order_before.index(tid) != order_after.index(tid)]
+        score_after = {t["id"]: t.get("score", 0) for t in state["tests"]}
+        moved = _jumps(order_before, order_after, score_before, score_after,
+                       recorded_id, jump_note)
         state["seq"] += 1
         state["trail"].append(
             {
@@ -300,8 +336,10 @@ def record_result(state, test_id, result, note=""):
         state["eliminated"].extend(fresh)
         if fresh:
             caused_by = "%s passed, so ruled out: %s." % (test["title"], "; ".join(fresh))
+            jump_note = "ruled out: %s" % "; ".join(fresh)
         else:
             caused_by = "%s passed; no causes ruled out by this step." % test["title"]
+            jump_note = ""
     else:
         fresh_suspect = [c for c in test["suspects_on_fail"] if c not in state["suspected"]]
         state["suspected"].extend(fresh_suspect)
@@ -316,7 +354,8 @@ def record_result(state, test_id, result, note=""):
             caused_by = "%s failed, so %s." % (test["title"], "; ".join(bits))
         else:
             caused_by = "%s failed; suspicion unchanged." % test["title"]
-    _rescore(state, caused_by)
+        jump_note = "; ".join(bits)
+    _rescore(state, caused_by, test_id, jump_note)
     return state
 
 

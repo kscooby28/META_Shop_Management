@@ -9,26 +9,30 @@ API and is not covered by hackathon credits, so it is never an option
 here (WONDER_VARIANT is pinned and tested).
 
 Isolated adapter with its own transport and key loading, following the
-meta_client pattern. WONDER_LIVE stays False in this demo build;
-while False every escalation serves the demo cache and never touches
-the network. The live model id and endpoint path come from
-the local environment (MUSE_WONDER_MODEL, MUSE_WONDER_PATH)
-and are never guessed: live refuses when either is unset.
+meta_client pattern. Wonder Standard is a proven leg (live opinions over
+/chat/completions in the eval record), so it runs live when its key is
+present and demo is not forced; otherwise every escalation serves the
+demo cache and never touches the network. The live model id and endpoint
+path default to the proven values and can be overridden from the local
+environment (MUSE_WONDER_MODEL, MUSE_WONDER_PATH).
 """
 
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 
-from meta_client import MetaAPIError
+from meta_client import MetaAPIError, demo_forced
 
-# Live second opinions stay OFF in this demo build. While False, every
-# escalation serves a demo-cache opinion and never calls the live API.
-# Flipping this flag later changes the data source only; the interface
-# does not change.
-WONDER_LIVE = False
+# Proven leg: live when the key is present and demo is not forced (the
+# Settings switch or SHOP_DEMO=1). Tests force the demo path by patching
+# this flag off or setting SHOP_DEMO=1. Flipping this flag changes the
+# data source only; the interface does not change.
+WONDER_LIVE = True
 WONDER_VARIANT = "standard"
+WONDER_MODEL_DEFAULT = "muse-wonder-1.0"
+WONDER_PATH_DEFAULT = "/chat/completions"
 TIMEOUT_SECONDS = 30
 KINDS = ("yard", "bay")
 
@@ -53,9 +57,37 @@ def _live_settings():
     ).rstrip("/")
     return {
         "api_base": base,
-        "model": os.environ.get("MUSE_WONDER_MODEL") or dotenv.get("MUSE_WONDER_MODEL") or "",
-        "path": os.environ.get("MUSE_WONDER_PATH") or dotenv.get("MUSE_WONDER_PATH") or "",
+        "model": os.environ.get("MUSE_WONDER_MODEL") or dotenv.get("MUSE_WONDER_MODEL")
+        or WONDER_MODEL_DEFAULT,
+        "path": os.environ.get("MUSE_WONDER_PATH") or dotenv.get("MUSE_WONDER_PATH")
+        or WONDER_PATH_DEFAULT,
     }
+
+
+def live_model():
+    """Model id a live call would use. Never a key value."""
+    return _live_settings()["model"]
+
+
+def _key_present():
+    if os.environ.get("META_API_KEY", "").strip() or os.environ.get("MODEL_API_KEY", "").strip():
+        return True
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"),
+                  "r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if line.startswith("META_API_KEY=") or line.startswith("MODEL_API_KEY="):
+                    if line.split("=", 1)[1].strip():
+                        return True
+    except OSError:
+        pass
+    return False
+
+
+def live_enabled():
+    """Live when the flag is on, a key is present, and demo is not forced."""
+    return bool(WONDER_LIVE) and not demo_forced() and _key_present()
 
 
 def _api_key():
@@ -91,13 +123,17 @@ part numbers, prices, torque values, or labor times. Plain words."""
 def request_opinion(evidence):
     """Ask Wonder Standard for a second opinion. Live only.
 
-    Raises MetaAPIError without touching the network unless the live flag
-    is on, evidence is present, and a model id and path are configured.
+    Raises MetaAPIError without touching the network unless the leg is
+    live (flag on, key present, demo not forced) and evidence is
+    present. The returned opinion carries ms + model for the live chip.
     """
     if WONDER_VARIANT != "standard":
         raise MetaAPIError("only Wonder Standard is allowed here", kind="unreachable")
-    if not WONDER_LIVE:
-        raise MetaAPIError("wonder live is off in this demo build", kind="unreachable")
+    if not live_enabled():
+        raise MetaAPIError(
+            "wonder live is off (flag off, no API key, or demo forced)",
+            kind="unreachable",
+        )
     if not evidence:
         raise MetaAPIError("no evidence to review", kind="bad_response")
     cfg = _live_settings()
@@ -123,6 +159,7 @@ def request_opinion(evidence):
         },
         method="POST",
     )
+    start = time.monotonic()
     try:
         with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
             raw = json.loads(response.read().decode("utf-8"))
@@ -132,6 +169,7 @@ def request_opinion(evidence):
         raise MetaAPIError("wonder API error %s" % exc.code, kind="unreachable")
     except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
         raise MetaAPIError("wonder API unreachable: %s" % exc, kind="unreachable")
+    ms = int((time.monotonic() - start) * 1000)
     try:
         text = raw["choices"][0]["message"]["content"]
         parsed = json.loads(text)
@@ -141,6 +179,8 @@ def request_opinion(evidence):
     parsed.setdefault("title", "Second opinion")
     parsed.setdefault("watch", "")
     parsed["source"] = "wonder-live"
+    parsed["ms"] = ms
+    parsed["model"] = cfg["model"]
     return parsed
 
 
@@ -215,12 +255,13 @@ def demo_opinion(kind, ref, root):
     }
 
 
-def escalate(kind, evidence, ref, root, hard=False):
+def escalate(kind, evidence, ref, root, hard=False, force_demo=False):
     """Router entry: assess, then serve an opinion only for hard cases.
 
-    Returns {assessment, escalated, opinion|null, mode}. Straight cases
-    get no opinion; hard-flagged or triggered cases get the demo sample
-    while the live flag is off, else a live attempt with demo fallback.
+    Returns {assessment, escalated, opinion|null, mode, ms, model}.
+    Straight cases get no opinion; hard-flagged or triggered cases get
+    the demo sample while the leg is off (or demo is forced), else a
+    live attempt with demo fallback. Never overwrites the primary call.
     """
     if kind == "yard":
         assessment = assess_yard(evidence)
@@ -232,16 +273,19 @@ def escalate(kind, evidence, ref, root, hard=False):
         assessment["triggers"].append("flagged hard by the shop")
     if not assessment["triggers"]:
         return {"assessment": assessment, "escalated": False,
-                "opinion": None, "mode": "router"}
-    if not WONDER_LIVE:
+                "opinion": None, "mode": "router", "ms": None, "model": ""}
+    if force_demo or not live_enabled():
         return {"assessment": assessment, "escalated": True,
-                "opinion": demo_opinion(kind, ref, root), "mode": "demo-cache"}
+                "opinion": demo_opinion(kind, ref, root), "mode": "demo-cache",
+                "ms": None, "model": ""}
     try:
         opinion = request_opinion({"kind": kind, "ref": ref, "evidence": evidence,
                                    "triggers": assessment["triggers"]})
     except MetaAPIError:
         return {"assessment": assessment, "escalated": True,
-                "opinion": demo_opinion(kind, ref, root), "mode": "demo-cache"}
+                "opinion": demo_opinion(kind, ref, root), "mode": "demo-cache",
+                "ms": None, "model": ""}
     opinion["triggers"] = assessment["triggers"]
     return {"assessment": assessment, "escalated": True,
-            "opinion": opinion, "mode": "live"}
+            "opinion": opinion, "mode": "live",
+            "ms": opinion.get("ms"), "model": opinion.get("model", "")}

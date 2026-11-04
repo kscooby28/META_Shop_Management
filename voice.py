@@ -7,11 +7,11 @@ note like any other: local, never sent anywhere except the transcription
 API when live, and never bypassing the listing Approve gate.
 
 Isolated adapter with its own transport and key loading, following the
-meta_client pattern. VOICE_LIVE stays False in this demo build; while
-False every call serves the demo cache and never touches the network.
-The live model id and endpoint path come from
-the local environment (MUSE_VOICE_MODEL, MUSE_VOICE_PATH) and are never
-guessed: live refuses when either is unset.
+meta_client pattern. Voice stays OFF until one verification call with a
+confirmed model id succeeds: the flag below stays False and no model
+default is set, so live refuses until the owner both confirms
+MUSE_VOICE_MODEL / MUSE_VOICE_PATH and flips the flag. While off every
+call serves the demo cache and never touches the network.
 """
 
 import json
@@ -19,12 +19,12 @@ import os
 import urllib.error
 import urllib.request
 
-from meta_client import MetaAPIError
+from meta_client import MetaAPIError, demo_forced
 
-# Live transcription stays OFF in this demo build. While False, every
-# mic press serves a demo-cache transcript and never calls the live API.
-# Flipping this flag later changes the data source only; the interface
-# does not change.
+# Live transcription stays OFF: no verification call with a confirmed
+# model id has succeeded yet. While False, every mic press serves a
+# demo-cache transcript and never calls the live API. Flipping this flag
+# later changes the data source only; the interface does not change.
 VOICE_LIVE = False
 TIMEOUT_SECONDS = 30
 KINDS = ("bay", "inv")
@@ -55,6 +55,39 @@ def _live_settings():
     }
 
 
+def live_model():
+    """Confirmed model id, or "" when none is confirmed. Never a key value."""
+    return _live_settings()["model"]
+
+
+def _key_present():
+    if os.environ.get("META_API_KEY", "").strip() or os.environ.get("MODEL_API_KEY", "").strip():
+        return True
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"),
+                  "r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if line.startswith("META_API_KEY=") or line.startswith("MODEL_API_KEY="):
+                    if line.split("=", 1)[1].strip():
+                        return True
+    except OSError:
+        pass
+    return False
+
+
+def live_enabled():
+    """Live only when flipped on AND a model id is confirmed AND demo is free.
+
+    No default model id exists on purpose: the owner confirms one by
+    setting MUSE_VOICE_MODEL / MUSE_VOICE_PATH, then flips VOICE_LIVE
+    after one verification call succeeds.
+    """
+    cfg = _live_settings()
+    return (bool(VOICE_LIVE) and not demo_forced() and _key_present()
+            and bool(cfg["model"]) and bool(cfg["path"]))
+
+
 def _api_key():
     values = {}
     try:
@@ -80,10 +113,11 @@ def _api_key():
 def transcribe_live(audio_b64, mime=""):
     """Ask Transcribe to turn audio into text. Live only.
 
-    Raises MetaAPIError without touching the network unless the live flag
-    is on, audio is present, and a model id and path are configured.
+    Raises MetaAPIError without touching the network unless the leg is
+    live (flag on, confirmed model id, key present, demo not forced)
+    and audio is present.
     """
-    if not VOICE_LIVE:
+    if not live_enabled():
         raise MetaAPIError("voice live is off in this demo build", kind="unreachable")
     if not (audio_b64 or "").strip():
         raise MetaAPIError("no audio in request", kind="bad_response")
@@ -144,7 +178,7 @@ def transcribe(audio_b64, kind, root):
     """Gated entry: live transcription when on, else the demo sample."""
     if kind not in KINDS:
         raise MetaAPIError("target kind must be bay or inv", kind="bad_response")
-    if not VOICE_LIVE:
+    if not live_enabled():
         return dict(
             demo_transcript(kind, root, bool((audio_b64 or "").strip())),
             mode="demo-cache",

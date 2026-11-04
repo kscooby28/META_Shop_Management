@@ -1,12 +1,18 @@
 """Muse Image studio adapter: cutout in, studio-background listing photo out.
 
 Isolated adapter with its own transport and key loading, following the
-meta_client pattern. IMAGE_LIVE stays False in this demo build; while
-False every call serves the demo cache and
-never touches the network. The live model id and endpoint path come from
-the local environment (MUSE_IMAGE_MODEL, MUSE_IMAGE_PATH) and are never
-guessed: live refuses when either is unset, so flipping the flag later is
-safe and changes the data source only. No new runtime dependencies.
+meta_client pattern. Muse Image is a proven leg (scene renders over
+/responses in the eval record), so it runs live when its key is present
+and demo is not forced; otherwise every call serves the demo cache and
+never touches the network. The live model id and endpoint path default
+to the proven values and can be overridden from the local environment
+(MUSE_IMAGE_MODEL, MUSE_IMAGE_PATH). No new runtime dependencies.
+
+Boundary: text-to-image art renders are scene illustrations only and
+never stand in for a listing photo. The listing path uses
+request_studio_render (real cutout bytes in, studio backdrop out) and
+only when the client sends cutout bytes; otherwise the demo sample or
+the honest cutout crop shows.
 """
 
 import json
@@ -16,13 +22,15 @@ import urllib.error
 import urllib.request
 import xml.sax.saxutils as saxutils
 
-from meta_client import MetaAPIError
+from meta_client import MetaAPIError, demo_forced
 
-# Live studio stays OFF in this demo build.
-# While False, the listing card serves demo-cache studio photos and never
-# calls the live API. Flipping this flag later changes the data source
-# only; the interface does not change.
-IMAGE_LIVE = False
+# Proven leg: live when the key is present and demo is not forced (the
+# Settings switch or SHOP_DEMO=1). Tests force the demo path by patching
+# this flag off or setting SHOP_DEMO=1. Flipping this flag changes the
+# data source only; the interface does not change.
+IMAGE_LIVE = True
+IMAGE_MODEL_DEFAULT = "muse-image-1.0"
+IMAGE_PATH_DEFAULT = "/responses"
 TIMEOUT_SECONDS = 20
 ART_TIMEOUT_SECONDS = 120
 
@@ -55,9 +63,37 @@ def _live_settings():
     ).rstrip("/")
     return {
         "api_base": base,
-        "model": os.environ.get("MUSE_IMAGE_MODEL") or dotenv.get("MUSE_IMAGE_MODEL") or "",
-        "path": os.environ.get("MUSE_IMAGE_PATH") or dotenv.get("MUSE_IMAGE_PATH") or "",
+        "model": os.environ.get("MUSE_IMAGE_MODEL") or dotenv.get("MUSE_IMAGE_MODEL")
+        or IMAGE_MODEL_DEFAULT,
+        "path": os.environ.get("MUSE_IMAGE_PATH") or dotenv.get("MUSE_IMAGE_PATH")
+        or IMAGE_PATH_DEFAULT,
     }
+
+
+def live_model():
+    """Model id a live call would use. Never a key value."""
+    return _live_settings()["model"]
+
+
+def _key_present():
+    if os.environ.get("META_API_KEY", "").strip() or os.environ.get("MODEL_API_KEY", "").strip():
+        return True
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"),
+                  "r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if line.startswith("META_API_KEY=") or line.startswith("MODEL_API_KEY="):
+                    if line.split("=", 1)[1].strip():
+                        return True
+    except OSError:
+        pass
+    return False
+
+
+def live_enabled():
+    """Live when the flag is on, a key is present, and demo is not forced."""
+    return bool(IMAGE_LIVE) and not demo_forced() and _key_present()
 
 
 def _api_key():
@@ -85,11 +121,15 @@ def _api_key():
 def request_studio_render(cutout_data_url, label):
     """Ask Muse Image for a studio-background render. Live only.
 
-    Raises MetaAPIError without touching the network unless the live flag
-    is on, a model id is configured, and a key is present.
+    Raises MetaAPIError without touching the network unless the leg is
+    live (flag on, key present, demo not forced) and a model id is
+    configured.
     """
-    if not IMAGE_LIVE:
-        raise MetaAPIError("studio live is off in this demo build", kind="unreachable")
+    if not live_enabled():
+        raise MetaAPIError(
+            "studio live is off (flag off, no API key, or demo forced)",
+            kind="unreachable",
+        )
     if not cutout_data_url:
         raise MetaAPIError("no cutout bytes in request", kind="bad_response")
     cfg = _live_settings()
@@ -145,11 +185,14 @@ def request_art_render(prompt):
     false, and the image_generation tool with output_format png.
     The base64 bytes come back in the output item of type
     image_generation_call, field "result". Raises MetaAPIError
-    without touching the network unless the live flag is on, a
-    model id and path are configured, and a key is present.
+    without touching the network unless the leg is live (flag on, key
+    present, demo not forced) and a model id and path are configured.
     """
-    if not IMAGE_LIVE:
-        raise MetaAPIError("studio live is off in this demo build", kind="unreachable")
+    if not live_enabled():
+        raise MetaAPIError(
+            "studio live is off (flag off, no API key, or demo forced)",
+            kind="unreachable",
+        )
     if not (prompt or "").strip():
         raise MetaAPIError("no prompt in art request", kind="bad_response")
     cfg = _live_settings()
