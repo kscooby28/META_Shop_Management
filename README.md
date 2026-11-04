@@ -94,6 +94,7 @@ demo cache without touching keys. Never commit the real `.env`.
 Verify a cold clone two ways: `python -m unittest` runs the suite (the
 five browser suites need Node.js installed), and with the server running,
 `python scripts/smoke_demo.py` replays ten demo flows against it.
+Run the smoke test against a server with no keys (no .env), e.g. a clean checkout.
 
 ## Built during the event
 

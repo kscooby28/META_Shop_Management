@@ -2,6 +2,7 @@
 
 Usage:  python scripts/smoke_demo.py [base_url] [runs]
 Default: http://127.0.0.1:8765, 10 runs.
+Run against a server with no keys (no .env), e.g. a clean checkout.
 
 Each yard run: session → intake (demo) → harvest → comps → verdicts →
 listing draft → approve → mock post → chat. Each bay run: session → bay
