@@ -1,7 +1,7 @@
 """Scale evaluation tests (WO13): table=file, rules fixed, Baseten-only live.
 
 The live run already happened; these tests pin its artifacts. Everything
-here runs offline so a cold clone stays green: the README table must
+here runs offline so a cold clone stays green: the docs/evals.md table must
 render byte-identical from the JSON file, the JSON rule grades must
 recompute from the untouched rules, no Meta network path may exist in
 the harness, and the yard-photos loader must report absent/empty clean.
@@ -26,12 +26,12 @@ def load_results():
         return json.load(fh)
 
 
-def readme_text():
-    with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as fh:
+def evals_text():
+    with open(os.path.join(ROOT, "docs", "evals.md"), encoding="utf-8") as fh:
         return fh.read()
 
 
-def readme_block(text, start, end):
+def evals_block(text, start, end):
     _, _, rest = text.partition(start)
     block, _, _ = rest.partition(end)
     return block
@@ -40,7 +40,7 @@ def readme_block(text, start, end):
 class ScaleAgreementTest(unittest.TestCase):
     def test_table_matches_file_exactly(self):
         results = load_results()
-        block = readme_block(readme_text(), eval_scale.START, eval_scale.END)
+        block = evals_block(evals_text(), eval_scale.START, eval_scale.END)
         self.assertTrue(block.strip())
         self.assertEqual(block, "\n" + eval_scale.render_section(results))
 
@@ -53,10 +53,10 @@ class ScaleAgreementTest(unittest.TestCase):
         self.assertEqual(results["agreement"]["agree"], agree)
         self.assertEqual(results["agreement"]["total"], total)
         self.assertEqual(results["agreement"]["rate"], "%d/%d" % (agree, total))
-        self.assertIn("Agreement: %d/%d parts" % (agree, total), readme_text())
+        self.assertIn("Agreement: %d/%d parts" % (agree, total), evals_text())
 
     def test_every_part_row_present(self):
-        text = readme_text()
+        text = evals_text()
         results = load_results()
         for case in results["cases"]:
             for part in case["parts"]:
@@ -64,7 +64,7 @@ class ScaleAgreementTest(unittest.TestCase):
                     case["case"], part["label"], part["rule_grade"]), text)
 
     def test_disagreements_carry_both_reasons(self):
-        text = readme_text()
+        text = evals_text()
         results = load_results()
         shown = [c for c in results["cases"] for p in c["parts"]
                  if p["agree"] is False]
@@ -169,7 +169,7 @@ class BasetenOnlyTest(unittest.TestCase):
         haystacks = [
             open(os.path.join(ROOT, "eval_scale_results.json"),
                  encoding="utf-8").read(),
-            readme_block(readme_text(), eval_scale.START, eval_scale.END),
+            evals_block(evals_text(), eval_scale.START, eval_scale.END),
         ]
         for value in values:
             for haystack in haystacks:

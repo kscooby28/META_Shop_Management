@@ -9,7 +9,7 @@ network calls. Key checks read key NAMES only and never print values.
 Usage:
   python scripts/eval_lab.py              print the results table
   python scripts/eval_lab.py --write-readme
-                                         refresh the README table in place
+                                         refresh the docs/evals.md table in place
 """
 
 import json
@@ -116,7 +116,7 @@ def measure():
             "agreement": "%s; bay %s" % (agreement, ranking),
             "cost": "$0.00 (demo)",
             "latency": "%d ms (sampled)" % elapsed_ms,
-            "status": "live blocked: needs Meta key rotation confirmed",
+            "status": "demo leg, blocked without key: live when keys are present",
         },
         {
             "engine": "wonder-standard (demo leg)",
@@ -125,7 +125,7 @@ def measure():
             "agreement": router,
             "cost": "$0.00 (demo)",
             "latency": "shares the run above",
-            "status": "live blocked: needs Meta key rotation confirmed",
+            "status": "demo leg, blocked without key: live when keys are present",
         },
         {
             "engine": "muse-spark-open-1026",
@@ -177,7 +177,7 @@ END = "<!-- EVAL-LAB:END -->"
 
 
 def write_readme(rows, notes):
-    path = os.path.join(ROOT, "README.md")
+    path = os.path.join(ROOT, "docs", "evals.md")
     with open(path, "r", encoding="utf-8") as fh:
         text = fh.read()
     section = (
@@ -207,7 +207,7 @@ def main():
         print("- " + note)
     if "--write-readme" in sys.argv[1:]:
         write_readme(rows, notes)
-        print("\nREADME table refreshed.")
+        print("\ndocs/evals.md table refreshed.")
 
 
 if __name__ == "__main__":

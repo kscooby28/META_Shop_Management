@@ -1,7 +1,7 @@
 """SAM PNG resend tests: file=note, fence intact, leg honestly closed.
 
 The single segment call already ran; these tests pin its artifacts.
-Everything here runs offline: the README note must match the PNG
+Everything here runs offline: the docs/evals.md note must match the PNG
 results JSON, no WO16 or follow-up measurement file may have changed,
 the script's live-call allowlist must contain only the one SAM PNG
 call, VIN_LIVE stays False, and no secret may appear in any artifact.
@@ -59,17 +59,17 @@ def env_secret_values(env_path):
 # and web-tree fences retired in WO22; only measurement files stay pinned.
 FENCE_PINNED = {
     os.path.join("scripts", "eval_meta.py"):
-        "2cce94147b9e1d73f8bb3c8779b12e18c2a9a5f9643eb31c026638518d294301",
+        "e7ba5d698087fdcfd486782e9b55c7abda67bbb5b3ea7e31d81ff12f535810c4",
     "eval_meta_results.json":
         "62877fd49ff3171c1a389d6a5c7602784e254ee1fa319a17f5e26d90de1499ab",
     os.path.join("tests", "test_eval_meta.py"):
-        "574afea0f5e0ffb78ba8fce9d442f660b8e05fc389c46d76b3e5d4aeae4e3451",
+        "c51a23bd7c2167ae555fac673fdbbe5fe2b7f23777a2978ccde49167add06161",
     os.path.join("scripts", "eval_meta_followup.py"):
         "5bd89fb48780d3caf1a6b2051fd0afd205d202b436d873a8e559169fd056b6af",
     "eval_meta_followup_results.json":
         "0ae661705b688420514a2b5bfe147f6c0dc913c3d7b483d64380c60d62519134",
     os.path.join("tests", "test_eval_meta_followup.py"):
-        "94e709e1369b6b13161295ead9798d28ea8100e75f1047f94c9b57b66df2ab65",
+        "ef517aea2e7945e721716172d99637a083f3f1ea465511dc216049c2d9f9b2a1",
 }
 
 
@@ -79,12 +79,12 @@ def load_results():
         return json.load(fh)
 
 
-def readme_text():
-    with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as fh:
+def evals_text():
+    with open(os.path.join(ROOT, "docs", "evals.md"), encoding="utf-8") as fh:
         return fh.read()
 
 
-def readme_block(text, start, end):
+def evals_block(text, start, end):
     _, _, rest = text.partition(start)
     block, _, _ = rest.partition(end)
     return block
@@ -141,10 +141,10 @@ class SamPngShapeTest(unittest.TestCase):
             self.assertTrue(png["sha256"])
 
 
-class SamPngReadmeTest(unittest.TestCase):
-    def test_readme_note_matches_file(self):
+class SamPngEvalsTest(unittest.TestCase):
+    def test_evals_note_matches_file(self):
         results = load_results()
-        block = readme_block(readme_text(), SAM_START, SAM_END)
+        block = evals_block(evals_text(), SAM_START, SAM_END)
         self.assertTrue(block.strip())
         call = results["call"]
         if call.get("request_id"):
@@ -184,7 +184,7 @@ class SamPngFenceTest(unittest.TestCase):
         haystacks = [
             open(os.path.join(ROOT, "eval_sam_png_results.json"),
                  encoding="utf-8").read(),
-            readme_block(readme_text(), SAM_START, SAM_END),
+            evals_block(evals_text(), SAM_START, SAM_END),
         ]
         for value in values:
             for haystack in haystacks:

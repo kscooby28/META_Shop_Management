@@ -1,7 +1,7 @@
 """Meta-live evaluation tests (WO16): table=file, rules fixed, legs honest.
 
 The live run already happened; these tests pin its artifacts. Everything
-here runs offline so a cold clone stays green: the README table must
+here runs offline so a cold clone stays green: the docs/evals.md table must
 render byte-identical from the JSON file, the JSON rule grades must
 recompute from the untouched rules, live-call sites are pinned to the
 known set, the VIN gate stays shut on anything but unanimous proof, and
@@ -55,12 +55,12 @@ def load_results():
         return json.load(fh)
 
 
-def readme_text():
-    with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as fh:
+def evals_text():
+    with open(os.path.join(ROOT, "docs", "evals.md"), encoding="utf-8") as fh:
         return fh.read()
 
 
-def readme_block(text, start, end):
+def evals_block(text, start, end):
     _, _, rest = text.partition(start)
     block, _, _ = rest.partition(end)
     return block
@@ -69,7 +69,7 @@ def readme_block(text, start, end):
 class MetaAgreementTest(unittest.TestCase):
     def test_table_matches_file_exactly(self):
         results = load_results()
-        block = readme_block(readme_text(), eval_meta.START, eval_meta.END)
+        block = evals_block(evals_text(), eval_meta.START, eval_meta.END)
         self.assertTrue(block.strip())
         self.assertEqual(block, "\n" + eval_meta.render_section(results))
 
@@ -93,10 +93,10 @@ class MetaAgreementTest(unittest.TestCase):
         self.assertEqual(pooled["agree"], spark["agree"] + opened["agree"])
         self.assertEqual(pooled["total"], spark["total"] + opened["total"])
         self.assertIn("Agreement: Spark 1.3 vs rules %s" % spark["rate"],
-                      readme_text())
+                      evals_text())
 
     def test_every_part_row_present(self):
-        text = readme_text()
+        text = evals_text()
         results = load_results()
         for case in results["cases"]:
             for part in case["parts"]:
@@ -104,7 +104,7 @@ class MetaAgreementTest(unittest.TestCase):
                     case["case"], part["label"], part["rule_grade"]), text)
 
     def test_disagreements_carry_both_reasons(self):
-        text = readme_text()
+        text = evals_text()
         results = load_results()
         for case in results["cases"]:
             for part in case["parts"]:
@@ -258,7 +258,7 @@ class ModelIdsTest(unittest.TestCase):
         haystacks = [
             open(os.path.join(ROOT, "eval_meta_results.json"),
                  encoding="utf-8").read(),
-            readme_block(readme_text(), eval_meta.START, eval_meta.END),
+            evals_block(evals_text(), eval_meta.START, eval_meta.END),
         ]
         for value in values:
             for haystack in haystacks:

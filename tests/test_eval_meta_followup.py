@@ -1,7 +1,7 @@
 """WO16 follow-up tests: file=note, fence intact, legs honestly closed.
 
 The retry pass already ran; these tests pin its artifacts. Everything
-here runs offline: the README note must match the follow-up JSON, WO16's
+here runs offline: the docs/evals.md note must match the follow-up JSON, WO16's
 artifacts must be identical modulo line endings, the script's live-call
 allowlist must contain only the four probes, VIN_LIVE stays False, and
 no secret may appear in any artifact. The product-file and web-tree
@@ -61,11 +61,11 @@ def env_secret_values(env_path):
 # fenced measurement file fails loudly here instead of slipping through.
 WO16_PINNED = {
     os.path.join("scripts", "eval_meta.py"):
-        "2cce94147b9e1d73f8bb3c8779b12e18c2a9a5f9643eb31c026638518d294301",
+        "e7ba5d698087fdcfd486782e9b55c7abda67bbb5b3ea7e31d81ff12f535810c4",
     "eval_meta_results.json":
         "62877fd49ff3171c1a389d6a5c7602784e254ee1fa319a17f5e26d90de1499ab",
     os.path.join("tests", "test_eval_meta.py"):
-        "574afea0f5e0ffb78ba8fce9d442f660b8e05fc389c46d76b3e5d4aeae4e3451",
+        "c51a23bd7c2167ae555fac673fdbbe5fe2b7f23777a2978ccde49167add06161",
 }
 
 
@@ -75,12 +75,12 @@ def load_results():
         return json.load(fh)
 
 
-def readme_text():
-    with open(os.path.join(ROOT, "README.md"), encoding="utf-8") as fh:
+def evals_text():
+    with open(os.path.join(ROOT, "docs", "evals.md"), encoding="utf-8") as fh:
         return fh.read()
 
 
-def readme_block(text, start, end):
+def evals_block(text, start, end):
     _, _, rest = text.partition(start)
     block, _, _ = rest.partition(end)
     return block
@@ -184,10 +184,10 @@ class FollowupShapeTest(unittest.TestCase):
         self.assertEqual(results["model_list_calls_sent"], 0)
 
 
-class FollowupReadmeTest(unittest.TestCase):
-    def test_readme_note_matches_file(self):
+class FollowupEvalsTest(unittest.TestCase):
+    def test_evals_note_matches_file(self):
         results = load_results()
-        block = readme_block(readme_text(), FOLLOWUP_START, FOLLOWUP_END)
+        block = evals_block(evals_text(), FOLLOWUP_START, FOLLOWUP_END)
         self.assertTrue(block.strip())
         self.assertIn(results["pooled_updated"]["rate"], block)
         usability = results["probes"]["spark-usability"]["agreement"]
@@ -207,7 +207,7 @@ class FollowupReadmeTest(unittest.TestCase):
         with open(os.path.join(ROOT, "eval_meta_results.json"),
                   encoding="utf-8") as fh:
             wo16 = json.load(fh)
-        block = readme_block(readme_text(), eval_meta_followup.eval_meta.START,
+        block = evals_block(evals_text(), eval_meta_followup.eval_meta.START,
                              eval_meta_followup.eval_meta.END)
         self.assertEqual(
             block, "\n" + eval_meta_followup.eval_meta.render_section(wo16))
@@ -256,7 +256,7 @@ class FenceTest(unittest.TestCase):
         haystacks = [
             open(os.path.join(ROOT, "eval_meta_followup_results.json"),
                  encoding="utf-8").read(),
-            readme_block(readme_text(), FOLLOWUP_START, FOLLOWUP_END),
+            evals_block(evals_text(), FOLLOWUP_START, FOLLOWUP_END),
         ]
         for value in values:
             for haystack in haystacks:

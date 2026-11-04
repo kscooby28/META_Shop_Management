@@ -1,7 +1,7 @@
 """Meta-live evaluation (WO16): the WO13 demo set through every live engine.
 
-Measurement, not product. No screens, no flows, no features. Rotation is
-complete, so this script makes live calls, one per case per engine, no
+Measurement, not product. No screens, no flows, no features. Keys are
+confirmed, so this script makes live calls, one per case per engine, no
 retries: Muse Spark 1.3 grades, Wonder Standard second opinions through
 the router leg, SAM 3.1 mask verification on the yard demo frame, and
 Muse Spark Open through Baseten as the already-proven baseline. The
@@ -23,7 +23,7 @@ fresh shell works; names only are ever reported, values never printed.
 
 Usage:
   python scripts/eval_meta.py                 run live, write the JSON file
-  python scripts/eval_meta.py --write-readme  also refresh the README table
+  python scripts/eval_meta.py --write-readme  also refresh the docs/evals.md table
 """
 
 import json
@@ -727,7 +727,7 @@ SCALE_END = "<!-- EVAL-SCALE:END -->"
 
 
 def write_readme(results):
-    path = os.path.join(ROOT, "README.md")
+    path = os.path.join(ROOT, "docs", "evals.md")
     with open(path, "r", encoding="utf-8") as fh:
         text = fh.read()
     block = START + "\n" + render_section(results) + END
@@ -795,7 +795,7 @@ def main(argv):
             print("sam yard: FAILED (%s)" % sam["cause"])
         if "--write-readme" in argv:
             write_readme(results)
-            print("README table refreshed.")
+            print("docs/evals.md table refreshed.")
         return
     meta_client.TIMEOUT_SECONDS = MEASURE_TIMEOUT_SECONDS
     wonder.TIMEOUT_SECONDS = MEASURE_TIMEOUT_SECONDS
@@ -834,7 +834,7 @@ def main(argv):
         results["vin_gate"]["reason"]))
     if "--write-readme" in argv:
         write_readme(results)
-        print("README table refreshed.")
+        print("docs/evals.md table refreshed.")
 
 
 if __name__ == "__main__":

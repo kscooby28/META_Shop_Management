@@ -15,8 +15,8 @@ the case's own written notes (Bay part notes, inventory owner notes and
 car labels), because the rules have no note field and the gap between
 what the rules can read and what the model can read is part of what is
 measured. Bay job parts carry no pull-grade semantics in the product;
-they run here to measure thin-evidence behavior, and the README note
-says so in plain words. Inventory condition maps to intact yes unless
+they run here to measure thin-evidence behavior, and the docs/evals.md
+note says so in plain words. Inventory condition maps to intact yes unless
 the text says unknown, untested, or equivalent; anything else stays
 unknown, never guessed.
 
@@ -26,7 +26,7 @@ failure; failures land in the result file with their exact cause.
 
 Usage:
   python scripts/eval_scale.py                 run live, write the JSON file
-  python scripts/eval_scale.py --write-readme  also refresh the README table
+  python scripts/eval_scale.py --write-readme  also refresh the docs/evals.md table
 """
 
 import json
@@ -230,7 +230,7 @@ def measure(root):
         "live_meta_calls_attempted": 0,
         "engines_live": ["Muse Spark Open through Baseten "
                          "(meta-models/muse-spark-open-1026)"],
-        "engines_demo": ["%s (Meta key rotation unconfirmed)" % leg
+        "engines_demo": ["%s (on demo in this run)" % leg
                          for leg in META_LEGS],
     }
 
@@ -248,7 +248,8 @@ def render_section(results):
         "and the Muse Spark Open live grade side by side, one live Baseten",
         "call per case, no retries. Spark Open ran live because its key is",
         "present and proven; Spark 1.3, SAM, Image, Voice, and Wonder stayed",
-        "on demo because the Meta key rotation is still unconfirmed. Bay job",
+        "on demo (this harness sends no Meta calls; live when keys are",
+        "present). Bay job",
         "parts carry no pull-grade meaning in the product; they run here to",
         "measure thin-evidence behavior from name and note alone. Inventory",
         "conditions map to intact unless the text says unknown or untested.",
@@ -314,7 +315,7 @@ LAB_END = "<!-- EVAL-LAB:END -->"
 
 
 def write_readme(results):
-    path = os.path.join(ROOT, "README.md")
+    path = os.path.join(ROOT, "docs", "evals.md")
     with open(path, "r", encoding="utf-8") as fh:
         text = fh.read()
     block = START + "\n" + render_section(results) + END
@@ -355,7 +356,7 @@ def main(argv):
         agree["rate"], results["live_baseten_calls_sent"]))
     if "--write-readme" in argv:
         write_readme(results)
-        print("README table refreshed.")
+        print("docs/evals.md table refreshed.")
 
 
 if __name__ == "__main__":

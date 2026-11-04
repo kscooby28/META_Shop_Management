@@ -173,17 +173,20 @@ class ReadmeFixesTest(unittest.TestCase):
         self.assertIn("stands in for SAM", text)
         self.assertNotIn("SAM 3.1 masks each grounded part", text)
 
-    def test_hybrid_rotation_current(self):
+    def test_model_table_current(self):
         text = read_root("README.md")
-        hybrid = text[text.index("## Hybrid architecture"):
-                      text.index("## Credentials")]
-        self.assertNotIn("rotation is confirmed", hybrid)
-        self.assertIn("demo build", hybrid)
-        self.assertIn("22/30", hybrid)
+        table = text[text.index("## How Meta models are used"):
+                     text.index("## Why it isn't a chatbot")]
+        self.assertNotIn("rotation is confirmed", table)
+        self.assertNotIn("Meta key rotation", table)
+        self.assertIn("demo build", table)
+        self.assertIn("22/30", table)
+        self.assertIn("live when keys are present", table)
 
-    def test_run_it_names_phone_and_verify(self):
+    def test_quickstart_names_phone_and_verify(self):
         text = read_root("README.md")
-        run = text[text.index("## Run it"):text.index("## The flow")]
+        run = text[text.index("## Quickstart"):
+                   text.index("## Built during the event")]
         for phrase in ("python3", "--host=0.0.0.0",
                        "python -m unittest",
                        "python scripts/smoke_demo.py", "Node.js"):
