@@ -2493,6 +2493,14 @@ function showView(which) {
   $("view-inventory").hidden = which !== "inventory";
   $("view-compare").hidden = which !== "compare";
   $("navHome").classList.toggle("active", which === "home");
+  // Home is just the photo and doors: no Home button, no bottom bar,
+  // no Copilot. Settings stays in the header.
+  const atHome = which === "home";
+  $("navHome").hidden = atHome;
+  $("bottomBar").hidden = atHome;
+  $("copilotFab").hidden = atHome;
+  $("panelToggle").hidden = atHome;
+  if (atHome) closeCopilot();
   paintSideChip();
   if (which === "home") paintSideBadges();
   const subs = {

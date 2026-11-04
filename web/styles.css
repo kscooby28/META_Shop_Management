@@ -124,6 +124,7 @@ body {
   display: flex; gap: 0.5rem; padding: 0.6rem 1rem;
   background: var(--surface); border-top: 2px solid var(--line);
 }
+.bottombar[hidden] { display: none; }
 .bottombar button {
   flex: 1; min-height: 48px; font-size: var(--text-body); font-weight: 800;
   background: var(--paper); color: var(--ink); border: 2px solid var(--line);
@@ -579,6 +580,7 @@ textarea { width: 100%; min-height: 150px; resize: vertical; }
 #chatForm input { flex: 1; min-width: 0; }
 
 #panelToggle { display: none; }
+#panelToggle[hidden] { display: none; }
 
 .bayform {
   display: grid;

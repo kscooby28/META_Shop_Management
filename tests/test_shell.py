@@ -82,6 +82,31 @@ class DoorsTest(unittest.TestCase):
         self.assertIn("screen-line", read("web/app.js"))
 
 
+class HomeChromeTest(unittest.TestCase):
+    """Home is just the photo and doors: no Home button, bottom bar, Copilot."""
+
+    def test_chrome_hidden_in_home_markup(self):
+        html = read("web/index.html")
+        for tag_id in ("navHome", "bottomBar", "copilotFab", "panelToggle"):
+            tag = re.search(r'<[a-z]+[^>]*id="%s"[^>]*>' % tag_id, html).group(0)
+            self.assertIn("hidden", tag, tag_id)
+
+    def test_showview_toggles_home_chrome(self):
+        app = read("web/app.js")
+        view = app[app.index("function showView"):app.index("const VIEW_PAGES")]
+        for line in ('$("navHome").hidden = atHome;',
+                     '$("bottomBar").hidden = atHome;',
+                     '$("copilotFab").hidden = atHome;',
+                     '$("panelToggle").hidden = atHome;',
+                     "if (atHome) closeCopilot();"):
+            self.assertIn(line, view, line)
+
+    def test_hidden_bottombar_and_toggle_stay_hidden(self):
+        css = read("web/styles.css")
+        self.assertIn(".bottombar[hidden] { display: none; }", css)
+        self.assertIn("#panelToggle[hidden] { display: none; }", css)
+
+
 class CameraTest(unittest.TestCase):
     PAIRS = (("fileCamera", "fileInput", "btnPhoto"),
              ("bayVinCamera", "bayVin", "btnBayVinPhoto"),
