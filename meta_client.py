@@ -22,6 +22,10 @@ TIMEOUT_SECONDS = 12
 # Image-bearing legs run far longer (Spark image calls measured
 # 15s+); they get their own budget while text legs stay at 12s.
 IMAGE_TIMEOUT_SECONDS = 60
+# Listing drafts and bay plans are long text generations: measured 4/4
+# over 12s (all ~12.1s read timeouts), so these two legs get 25s.
+# Every other text leg stays at 12s.
+TEXT_TIMEOUT_SECONDS = 25
 
 
 class MetaAPIError(Exception):
@@ -332,6 +336,7 @@ def draft_listing(part, comp, verdict_info, car):
             ],
             "response_format": {"type": "json_object"},
         },
+        timeout=TEXT_TIMEOUT_SECONDS,
     )
     try:
         text = raw["choices"][0]["message"]["content"]
@@ -532,6 +537,7 @@ def draft_plan(case):
             ],
             "response_format": {"type": "json_object"},
         },
+        timeout=TEXT_TIMEOUT_SECONDS,
     )
     try:
         text = raw["choices"][0]["message"]["content"]

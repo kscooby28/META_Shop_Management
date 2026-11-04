@@ -228,6 +228,56 @@ class ImageTimeoutTest(unittest.TestCase):
                          body("draft_plan"))
 
 
+class TextTimeoutTest(unittest.TestCase):
+    def test_budgets(self):
+        import meta_client
+
+        self.assertEqual(meta_client.TEXT_TIMEOUT_SECONDS, 25)
+
+    def _timeout_for(self, fn, content):
+        import meta_client
+
+        seen = {}
+
+        class Resp:
+            status = 200
+
+            def read(self):
+                return json.dumps(
+                    {"choices": [{"message": {"content": content}}]}).encode()
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        def fake_urlopen(request, timeout=None):
+            seen["timeout"] = timeout
+            return Resp()
+
+        with mock.patch("meta_client._api_key", return_value="k"), \
+                mock.patch("urllib.request.urlopen", fake_urlopen):
+            fn()
+        return seen["timeout"]
+
+    def test_listing_uses_text_budget(self):
+        import meta_client
+
+        timeout = self._timeout_for(
+            lambda: meta_client.draft_listing({}, {}, {}, {}),
+            '{"title": "t", "description": "d"}')
+        self.assertEqual(timeout, 25)
+
+    def test_plan_uses_text_budget(self):
+        import meta_client
+
+        timeout = self._timeout_for(
+            lambda: meta_client.draft_plan({"case_id": "c"}),
+            '{"tests": [{"id": "t1"}]}')
+        self.assertEqual(timeout, 25)
+
+
 class PhotoResultHangTest(unittest.TestCase):
     def test_result_always_lands(self):
         app = read_web("app.js")
