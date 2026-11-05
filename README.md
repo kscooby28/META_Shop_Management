@@ -10,7 +10,7 @@ says it lacks reliable data.
 
 ## Demo video
 
-Demo video (3 minutes max): VIDEO_URL
+Demo video (3 minutes max): https://youtu.be/w9ubIjm5En0
 
 Watch the guided tour path: Take the tour on either home screen walks
 eight taps — setup, register, knowledge, money, trust, re-rank, decline,
@@ -112,6 +112,8 @@ Contributors (every author in git history):
 Build tools, stated plainly: the `78931ba` commit above was authored by
 Muse, and the WO22 submission hardening (tour repair, live-when-keys
 legs, this README) was implemented with Muse Code.
+
+Built with braubus, Corey's personal AI assistant — a tool he used, not a second team member. His goal was to do as much of this project as possible using only Meta products, and let Meta products make most of the decisions.
 
 Attribution: the guided-tour narration MP3s (`web/assets/audio/tour-*.mp3`)
 were rendered at build time with Piper (`en_US-libritts-high`), a voice
